@@ -1,6 +1,9 @@
 package idec
 
-import "github.com/awmorgan/coresight/trace"
+import (
+	"github.com/awmorgan/coresight/internal/protocol"
+	"github.com/awmorgan/coresight/trace"
+)
 
 // DecodeInfo provides supplementary decode information
 type DecodeInfo struct {
@@ -260,7 +263,7 @@ func InstA64WfiWfe(inst uint32, info *DecodeInfo) bool {
 		return true
 	}
 	// WFIT / WFET for later archs.
-	return trace.IsArchMinVer(info.ArchVersion, trace.ArchAA64) && inst&0xffffffc0 == 0xd5031000
+	return protocol.IsArchMinVer(info.ArchVersion, trace.ArchAA64) && inst&0xffffffc0 == 0xd5031000
 }
 
 func InstA64Tstart(inst uint32) bool {
@@ -289,7 +292,7 @@ func InstA64IsIndirectBranchLink(inst uint32, info *DecodeInfo) (isBranch, isLin
 		// ERET
 		info.InstrSubType = trace.SInstrV8Eret
 		return true, false
-	case trace.IsArchMinVer(info.ArchVersion, trace.ArchV8r3):
+	case protocol.IsArchMinVer(info.ArchVersion, trace.ArchV8r3):
 		// new pointer auth instr for v8.3 arch
 		switch {
 		case (inst & 0xffdff800) == 0xd71f0800:
@@ -480,7 +483,7 @@ func InstA64IsBranchAndLink(inst uint32, info *DecodeInfo) bool {
 		(inst & 0xfc000000) == 0x94000000: // BL
 		info.InstrSubType = trace.SInstrBrLink
 		return true
-	case trace.IsArchMinVer(info.ArchVersion, trace.ArchV8r3):
+	case protocol.IsArchMinVer(info.ArchVersion, trace.ArchV8r3):
 		// new pointer auth instr for v8.3 arch
 		switch {
 		case (inst & 0xfffff800) == 0xd73f0800, // BLRAA, BLRBB

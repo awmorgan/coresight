@@ -11,6 +11,7 @@ package memacc
 import (
 	"errors"
 	"fmt"
+	"github.com/awmorgan/coresight/internal/protocol"
 	"github.com/awmorgan/coresight/trace"
 	"math/bits"
 	"strings"
@@ -82,21 +83,21 @@ func (m *GlobalMapper) Read(address trace.VAddr, trcID uint8, memSpace trace.Mem
 
 	read := acc.ReadBytes(address, memSpace, trcID, bytesToRead, buffer)
 	if read > bytesToRead {
-		return read, trace.ErrMemAccBadLen
+		return read, protocol.ErrMemAccBadLen
 	}
 	return read, nil
 }
 
 func (m *GlobalMapper) AddAccessor(accessor Accessor, _ uint8) error {
 	if accessor == nil {
-		return trace.ErrInvalidParamVal
+		return protocol.ErrInvalidParamVal
 	}
 	st, en := accessor.Range()
 	if st >= en || st&0x1 != 0 || (en+1)&0x1 != 0 {
-		return trace.ErrMemAccRangeInvalid
+		return protocol.ErrMemAccRangeInvalid
 	}
 	if m.overlapsExisting(accessor) {
-		return trace.ErrMemAccOverlap
+		return protocol.ErrMemAccOverlap
 	}
 
 	m.accessors = append(m.accessors, accessor)
@@ -123,7 +124,7 @@ func (m *GlobalMapper) RemoveAccessor(accessor Accessor) error {
 			return nil
 		}
 	}
-	return trace.ErrInvalidParamVal
+	return protocol.ErrInvalidParamVal
 }
 
 func (m *GlobalMapper) removeAccessorAt(i int) {

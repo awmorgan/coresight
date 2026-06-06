@@ -1,6 +1,9 @@
 package idec
 
-import "github.com/awmorgan/coresight/trace"
+import (
+	"github.com/awmorgan/coresight/internal/protocol"
+	"github.com/awmorgan/coresight/trace"
+)
 
 type RetStackElement struct {
 	RetAddr trace.VAddr
@@ -31,7 +34,7 @@ func (s *AddrReturnStack) Push(addr trace.VAddr, isa trace.ISA) {
 // Pop removes and returns the top entry.
 func (s *AddrReturnStack) Pop() (trace.VAddr, trace.ISA, bool) {
 	if !s.Active || len(s.Stack) == 0 {
-		return trace.VAddr(trace.VAMask), 0, false
+		return trace.VAddr(protocol.VAMask), 0, false
 	}
 	top := len(s.Stack) - 1
 	elem := s.Stack[top]

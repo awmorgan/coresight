@@ -6,6 +6,7 @@ import (
 	"github.com/awmorgan/coresight/internal/memacc"
 	"github.com/awmorgan/coresight/internal/pipeline"
 	"github.com/awmorgan/coresight/internal/printers"
+	"github.com/awmorgan/coresight/internal/protocol"
 	"github.com/awmorgan/coresight/internal/snapshot"
 	"github.com/awmorgan/coresight/trace"
 	"io"
@@ -193,7 +194,7 @@ func mapMemoryRangesWithDiagnostics(mapper *memacc.GlobalMapper, ssDir string, r
 
 			acc := memacc.NewBufferAccessor(trace.VAddr(memParams.Address), b, space, normPath)
 			if err := mapper.AddAccessor(acc, trace.BadCSSrcID); err != nil {
-				if !errors.Is(err, trace.ErrMemAccOverlap) {
+				if !errors.Is(err, protocol.ErrMemAccOverlap) {
 					return diagnostics, fmt.Errorf("add memory accessor for %s @0x%x: %w", filePath, memParams.Address, err)
 				}
 			}

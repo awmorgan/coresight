@@ -3,6 +3,7 @@ package etmv3
 import (
 	"testing"
 
+	"github.com/awmorgan/coresight/internal/protocol"
 	"github.com/awmorgan/coresight/trace"
 )
 
@@ -68,7 +69,7 @@ func BenchmarkPacketString_ISync(b *testing.B) {
 			UpdatedC: true,
 			CtxtID:   0x12345678,
 		},
-		ISyncInfo:  ISyncInfo{Reason: trace.ISyncPeriodic},
+		ISyncInfo:  ISyncInfo{Reason: protocol.ISyncPeriodic},
 		CycleCount: 12,
 	}
 	for b.Loop() {
@@ -86,7 +87,7 @@ func BenchmarkPacketAppendStringTo_ISync(b *testing.B) {
 			UpdatedC: true,
 			CtxtID:   0x12345678,
 		},
-		ISyncInfo:  ISyncInfo{Reason: trace.ISyncPeriodic},
+		ISyncInfo:  ISyncInfo{Reason: protocol.ISyncPeriodic},
 		CycleCount: 12,
 	}
 	buf := make([]byte, 0, 160)

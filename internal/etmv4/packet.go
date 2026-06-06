@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/awmorgan/coresight/internal/protocol"
 	"github.com/awmorgan/coresight/trace"
 )
 
@@ -314,7 +315,7 @@ func (p *Packet) String() string {
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "%s : %s", info.name, info.desc)
 	if p.Err != nil {
-		if ei, ok := packetInfos[p.ErrType]; ok && (!errors.Is(p.Err, trace.ErrInvalidPcktHdr) || p.Type == PktReservedCfg) {
+		if ei, ok := packetInfos[p.ErrType]; ok && (!errors.Is(p.Err, protocol.ErrInvalidPcktHdr) || p.Type == PktReservedCfg) {
 			fmt.Fprintf(&sb, "[%s]", ei.name)
 		}
 		return sb.String()
@@ -528,7 +529,7 @@ func (p *Packet) TraceErrorPrefix(index trace.Index, id uint8) string {
 	if p.RawPrefix != "" {
 		return p.RawPrefix
 	}
-	if !errors.Is(p.Err, trace.ErrInvalidPcktHdr) || p.Type == PktReservedCfg {
+	if !errors.Is(p.Err, protocol.ErrInvalidPcktHdr) || p.Type == PktReservedCfg {
 		return ""
 	}
 	return fmt.Sprintf("PKTP_ETMV4I_%04x : 0x0014 (OCSD_ERR_INVALID_PCKT_HDR) [Invalid packet header]; TrcIdx=%d; CS ID=%02X; ", id, index, id)
@@ -673,7 +674,7 @@ func appendTraceValueWithPktBitsLimit(dst []byte, a Address, showPktBits bool, l
 		dst = append(dst, '?')
 	}
 	if validHex > 0 {
-		dst = appendUpperHex(dst, uint64(a.Val)&trace.BitMask(validBits), validHex)
+		dst = appendUpperHex(dst, uint64(a.Val)&protocol.BitMask(validBits), validHex)
 	}
 	if validBits < totalBits {
 		dst = append(dst, " ("...)
@@ -682,7 +683,7 @@ func appendTraceValueWithPktBitsLimit(dst []byte, a Address, showPktBits bool, l
 	}
 	if showPktBits && a.PktBits > 0 && a.PktBits < limit {
 		dst = append(dst, " ~[0x"...)
-		dst = appendUpperHex(dst, uint64(a.Val)&trace.BitMask(a.PktBits), 0)
+		dst = appendUpperHex(dst, uint64(a.Val)&protocol.BitMask(a.PktBits), 0)
 		dst = append(dst, ']')
 	}
 	return dst

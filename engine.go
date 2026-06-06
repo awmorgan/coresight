@@ -10,6 +10,7 @@ import (
 	"github.com/awmorgan/coresight/internal/itm"
 	"github.com/awmorgan/coresight/internal/memacc"
 	"github.com/awmorgan/coresight/internal/pipeline"
+	"github.com/awmorgan/coresight/internal/protocol"
 	"github.com/awmorgan/coresight/internal/ptm"
 	"github.com/awmorgan/coresight/internal/stm"
 	"github.com/awmorgan/coresight/trace"
@@ -227,12 +228,12 @@ func (e *Engine) RegisterITM(traceID uint8, cfg ITMConfig, sink ElementSink) err
 	return nil
 }
 
-func setupObservers(dec any, pktObs PacketObserver, endObs func(), sink trace.ElementSink) {
-	if s, ok := any(dec).(interface{ SetElementSink(trace.ElementSink) }); ok {
+func setupObservers(dec any, pktObs PacketObserver, endObs func(), sink protocol.ElementSink) {
+	if s, ok := any(dec).(interface{ SetElementSink(protocol.ElementSink) }); ok {
 		s.SetElementSink(sink)
 	}
 	if pktObs != nil {
-		if s, ok := any(dec).(interface{ SetPacketObserver(trace.PacketObserver) }); ok {
+		if s, ok := any(dec).(interface{ SetPacketObserver(protocol.PacketObserver) }); ok {
 			s.SetPacketObserver(func(idx trace.Index, pkt fmt.Stringer, raw []byte) {
 				pktObs(uint64(idx), pkt, raw)
 			})

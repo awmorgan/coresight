@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/awmorgan/coresight/internal/memacc"
+	"github.com/awmorgan/coresight/internal/protocol"
 	"github.com/awmorgan/coresight/trace"
 )
 
@@ -12,19 +13,19 @@ const opcodeBytes = 4
 
 // CodeFollower follows the execution path by decoding instructions.
 type CodeFollower struct {
-	InstrInfo trace.InstrInfo
-	MemAccess trace.MemoryReader
-	IdDecode  trace.InstructionDecoder
+	InstrInfo protocol.InstrInfo
+	MemAccess protocol.MemoryReader
+	IdDecode  protocol.InstructionDecoder
 	MemSpace  trace.MemSpaceAcc
 	TraceID   uint8
-	Arch      trace.ArchProfile
+	Arch      protocol.ArchProfile
 	Isa       trace.ISA
 
 	ErrOnAA64BadOpcode bool
 	InstrRangeLimit    uint32
 
 	ReadBuf   [opcodeBytes]byte
-	TempInstr trace.InstrInfo
+	TempInstr protocol.InstrInfo
 }
 
 // FollowResult contains the decoded single-atom follow outcome.
@@ -36,7 +37,7 @@ type FollowResult struct {
 	RangeSt   trace.VAddr
 	RangeEn   trace.VAddr
 	NextAddr  trace.VAddr
-	InstrInfo trace.InstrInfo
+	InstrInfo protocol.InstrInfo
 }
 
 // SetDSBDMBasWP configures the follower to treat DSB/DMB as waypoints.
@@ -45,28 +46,28 @@ func (cf *CodeFollower) SetDSBDMBasWP() {
 }
 
 // DecodeSingleOpCode decodes a single opcode at instrInfo.InstrAddr.
-func (cf *CodeFollower) DecodeSingleOpCode(instrInfo *trace.InstrInfo, traceID uint8, memSpace trace.MemSpaceAcc) error {
+func (cf *CodeFollower) DecodeSingleOpCode(instrInfo *protocol.InstrInfo, traceID uint8, memSpace trace.MemSpaceAcc) error {
 	readBytes, err := cf.MemAccess.Read(instrInfo.InstrAddr, traceID, memSpace, opcodeBytes, cf.ReadBuf[:])
 	if errors.Is(err, memacc.ErrNoAccessor) {
-		return trace.ErrMemNacc
+		return protocol.ErrMemNacc
 	}
 	if err != nil {
 		return err
 	}
 	if readBytes != opcodeBytes {
-		return trace.ErrMemNacc
+		return protocol.ErrMemNacc
 	}
 
 	instrInfo.Opcode = binary.LittleEndian.Uint32(cf.ReadBuf[:])
 	if cf.ErrOnAA64BadOpcode && instrInfo.ISA == trace.ISAAArch64 && instrInfo.Opcode&0xFFFF0000 == 0 {
-		return trace.ErrInvalidOpcode
+		return protocol.ErrInvalidOpcode
 	}
 
 	return cf.IdDecode(instrInfo)
 }
 
 // FollowSingleAtom decodes an instruction and returns the result snapshot by value.
-func (cf *CodeFollower) FollowSingleAtom(addrStart trace.VAddr, atom trace.AtmVal) (FollowResult, error) {
+func (cf *CodeFollower) FollowSingleAtom(addrStart trace.VAddr, atom protocol.AtmVal) (FollowResult, error) {
 	cf.TempInstr = cf.InstrInfo
 	cf.TempInstr.InstrAddr = addrStart
 
@@ -78,7 +79,7 @@ func (cf *CodeFollower) FollowSingleAtom(addrStart trace.VAddr, atom trace.AtmVa
 	}
 
 	if err := cf.DecodeSingleOpCode(&cf.TempInstr, cf.TraceID, cf.MemSpace); err != nil {
-		res.HasNacc = errors.Is(err, trace.ErrMemNacc)
+		res.HasNacc = errors.Is(err, protocol.ErrMemNacc)
 		res.InstrInfo = cf.TempInstr
 		return res, err
 	}
@@ -89,7 +90,7 @@ func (cf *CodeFollower) FollowSingleAtom(addrStart trace.VAddr, atom trace.AtmVa
 	res.NextAddr = res.RangeEn
 	res.HasNext = true
 
-	if atom != trace.AtomE {
+	if atom != protocol.AtomE {
 		return res, nil
 	}
 
@@ -104,7 +105,7 @@ func (cf *CodeFollower) FollowSingleAtom(addrStart trace.VAddr, atom trace.AtmVa
 }
 
 // FollowAtomWaypoint follows sequential instructions until the atom's waypoint is reached.
-func (cf *CodeFollower) FollowAtomWaypoint(addrStart trace.VAddr, atom trace.AtmVal) (FollowResult, error) {
+func (cf *CodeFollower) FollowAtomWaypoint(addrStart trace.VAddr, atom protocol.AtmVal) (FollowResult, error) {
 	instrInfo := cf.InstrInfo
 	instrInfo.InstrAddr = addrStart
 	rangeStart := addrStart
@@ -130,7 +131,7 @@ func (cf *CodeFollower) FollowAtomWaypoint(addrStart trace.VAddr, atom trace.Atm
 			out.InstrInfo = res.InstrInfo
 		}
 		if cf.InstrRangeLimit > 0 && out.NumInstr > cf.InstrRangeLimit {
-			return out, trace.ErrIRangeLimitOverrun
+			return out, protocol.ErrIRangeLimitOverrun
 		}
 
 		switch res.InstrInfo.Type {

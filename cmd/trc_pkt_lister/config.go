@@ -7,7 +7,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/awmorgan/coresight/trace"
+	"github.com/awmorgan/coresight/internal/protocol"
 )
 
 const defaultLogFile = "trc_pkt_lister.ppl"
@@ -53,7 +53,7 @@ func (i *idListValue) Set(value string) error {
 		return fmt.Errorf("invalid ID number %s", value)
 	}
 	id := uint8(v)
-	if !trace.IsValidCSSrcID(id) {
+	if !protocol.IsValidCSSrcID(id) {
 		return fmt.Errorf("invalid ID number 0x%x", id)
 	}
 	*i = append(*i, id)

@@ -41,7 +41,7 @@ type Decoder struct {
 // NewDecoder creates a new ITM decoder instance.
 func NewDecoder(cfg *Config) (*Decoder, error) {
 	if cfg == nil {
-		return nil, fmt.Errorf("%w: ITM config cannot be nil", trace.ErrInvalidParamVal)
+		return nil, fmt.Errorf("%w: ITM config cannot be nil", protocol.ErrInvalidParamVal)
 	}
 
 	d := &Decoder{
@@ -137,7 +137,7 @@ var (
 
 func (d *Decoder) processPacket(pktIn *Packet) error {
 	if pktIn == nil {
-		return trace.ErrInvalidParamVal
+		return protocol.ErrInvalidParamVal
 	}
 	d.CurrPacketIn = pktIn
 	d.IndexCurrPkt = pktIn.Index
@@ -177,7 +177,7 @@ func (d *Decoder) decodePacket() error {
 	case PktBadSequence, PktReserved:
 		d.unsyncInfo = trace.UnsyncBadPacket
 		d.resetDecoder()
-		return trace.ErrBadPacketSeq
+		return protocol.ErrBadPacketSeq
 
 	case PktNotSync:
 		d.resetDecoder()

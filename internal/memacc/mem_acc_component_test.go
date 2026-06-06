@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"github.com/awmorgan/coresight/internal/memacc"
+	"github.com/awmorgan/coresight/internal/protocol"
 	"github.com/awmorgan/coresight/trace"
 	"testing"
 )
@@ -86,7 +87,7 @@ func TestOverlapRegions(t *testing.T) {
 	// 2) Overlapping region, same memory space — should fail with ErrMemAccOverlap.
 	//    C++: Acc2 at 0x1000, EL1N, overlaps [0x0000..0x7FFF].
 	acc2 := memacc.NewBufferAccessor(0x1000, tb.el01NS[1], trace.MemSpaceEL1N, "")
-	if err := mapper.AddAccessor(acc2, 0); !errors.Is(err, trace.ErrMemAccOverlap) {
+	if err := mapper.AddAccessor(acc2, 0); !errors.Is(err, protocol.ErrMemAccOverlap) {
 		t.Fatalf("Overlapping accessor in same space should return ErrMemAccOverlap, got: %v", err)
 	}
 
@@ -107,7 +108,7 @@ func TestOverlapRegions(t *testing.T) {
 	// 5) Overlapping region, more general memory space (S) that shares bits with EL1S.
 	//    C++: Acc4 at 0x0000, OCSD_MEM_SPACE_S — should overlap with EL1S.
 	acc4 := memacc.NewBufferAccessor(0x0000, tb.el2S[0], trace.MemSpaceS, "")
-	if err := mapper.AddAccessor(acc4, 0); !errors.Is(err, trace.ErrMemAccOverlap) {
+	if err := mapper.AddAccessor(acc4, 0); !errors.Is(err, protocol.ErrMemAccOverlap) {
 		t.Fatalf("Overlapping general S accessor should return ErrMemAccOverlap, got: %v", err)
 	}
 

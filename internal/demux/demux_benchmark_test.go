@@ -2,7 +2,7 @@ package demux_test
 
 import (
 	"github.com/awmorgan/coresight/internal/demux"
-	"github.com/awmorgan/coresight/trace"
+	"github.com/awmorgan/coresight/internal/protocol"
 	"testing"
 )
 
@@ -15,7 +15,7 @@ func BenchmarkDemuxer_Write(b *testing.B) {
 		flagsByte(0, 0, 0, 0, 0, 1, 1, 1),
 	}
 
-	streams := make([]trace.ByteSink, 128)
+	streams := make([]protocol.ByteSink, 128)
 	dec := demux.NewDemuxer(streams)
 	_ = dec.Configure(demux.DemuxOptions{
 		FrameMemAlign: true,

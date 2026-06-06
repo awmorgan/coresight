@@ -34,7 +34,7 @@ type Decoder struct {
 
 func NewDecoder(cfg *Config) (*Decoder, error) {
 	if cfg == nil {
-		return nil, fmt.Errorf("%w: STM config cannot be nil", trace.ErrInvalidParamVal)
+		return nil, fmt.Errorf("%w: STM config cannot be nil", protocol.ErrInvalidParamVal)
 	}
 
 	d := &Decoder{Config: cfg}
@@ -58,7 +58,7 @@ func (d *Decoder) Close() error {
 	d.isClosed = true
 	if d.ctx.numNibbles > 0 {
 		if d.ctx.currPacket.HasMarker {
-			return fmt.Errorf("%w: incomplete marked STM packet at end of trace", trace.ErrDataDecodeFatal)
+			return fmt.Errorf("%w: incomplete marked STM packet at end of trace", protocol.ErrDataDecodeFatal)
 		}
 		d.ctx.currPacket.UpdateErrType(PktIncompleteEOT)
 		_ = d.outputPacket()
@@ -102,7 +102,7 @@ func (d *Decoder) resetProcessorState() {
 
 func (d *Decoder) processPacket(pktIn *Packet) error {
 	if pktIn == nil {
-		return trace.ErrInvalidParamVal
+		return protocol.ErrInvalidParamVal
 	}
 	d.CurrPacketIn = pktIn
 	d.IndexCurrPkt = pktIn.Index

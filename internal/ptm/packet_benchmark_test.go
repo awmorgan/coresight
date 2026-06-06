@@ -3,6 +3,7 @@ package ptm
 import (
 	"testing"
 
+	"github.com/awmorgan/coresight/internal/protocol"
 	"github.com/awmorgan/coresight/trace"
 )
 
@@ -37,7 +38,7 @@ func BenchmarkPacketString_ISync(b *testing.B) {
 		AddrVal:     trace.VAddr(0xc0012345),
 		CurrISA:     trace.ISAThumb2,
 		Context:     Context{CurrNS: true, UpdatedC: true, CtxtID: 0x12345678},
-		ISyncReason: trace.ISyncPeriodic,
+		ISyncReason: protocol.ISyncPeriodic,
 		CycleCount:  12,
 		CCValid:     true,
 	}

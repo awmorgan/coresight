@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/awmorgan/coresight/internal/pipeline"
+	"github.com/awmorgan/coresight/internal/protocol"
 	"github.com/awmorgan/coresight/trace"
 	"io"
 	"slices"
@@ -113,7 +114,7 @@ func attachPacketPrinters(out io.Writer, pipe *pipeline.Pipeline, opts options) 
 			showRawBytes: opts.decode || opts.pktMon,
 		}
 
-		if setter, ok := route.ByteSink.(interface{ SetPacketObserver(trace.PacketObserver) }); ok {
+		if setter, ok := route.ByteSink.(interface{ SetPacketObserver(protocol.PacketObserver) }); ok {
 			setter.SetPacketObserver(mon.ObservePacket)
 			if endSetter, ok := route.ByteSink.(interface{ SetTraceEndObserver(func()) }); ok {
 				endSetter.SetTraceEndObserver(mon.ObserveTraceEnd)

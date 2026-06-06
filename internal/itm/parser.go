@@ -50,7 +50,7 @@ func (d *Decoder) resetPacketState() {
 func (d *Decoder) throwMalformedPacketErr(msg string) error {
 	d.ctx.processState = stateProcErr
 	d.ctx.currPacket.UpdateErrType(PktBadSequence)
-	d.ctx.procErrReason = fmt.Errorf("%w: %s", trace.ErrBadPacketSeq, msg)
+	d.ctx.procErrReason = fmt.Errorf("%w: %s", protocol.ErrBadPacketSeq, msg)
 	return d.ctx.procErrReason
 }
 
@@ -80,7 +80,7 @@ func (d *Decoder) processData(index trace.Index, dataBlock []uint8) (uint32, err
 				d.ctx.headerByte = currByte
 				d.decodeHeaderByte(currByte)
 			} else {
-				err = fmt.Errorf("%w: Data Buffer Overrun", trace.ErrPktInterpFail)
+				err = fmt.Errorf("%w: Data Buffer Overrun", protocol.ErrPktInterpFail)
 			}
 
 		case stateProcData:
@@ -98,12 +98,12 @@ func (d *Decoder) processData(index trace.Index, dataBlock []uint8) (uint32, err
 		case stateProcErr:
 			err = d.ctx.procErrReason
 			if err == nil {
-				err = trace.ErrPktInterpFail
+				err = protocol.ErrPktInterpFail
 			}
 		}
 
 		if err != nil {
-			if errors.Is(err, trace.ErrBadPacketSeq) || errors.Is(err, trace.ErrInvalidPcktHdr) {
+			if errors.Is(err, protocol.ErrBadPacketSeq) || errors.Is(err, protocol.ErrInvalidPcktHdr) {
 				d.ctx.processState = stateSendPkt
 				d.ctx.bStreamSync = false
 				err = nil
@@ -268,7 +268,7 @@ func (d *Decoder) decodeHeaderByte(b uint8) {
 
 	d.ctx.currPacket.Type = PktReserved
 	d.ctx.currPacket.ErrType = PktReserved
-	d.ctx.procErrReason = fmt.Errorf("%w: Reserved Header", trace.ErrInvalidPcktHdr)
+	d.ctx.procErrReason = fmt.Errorf("%w: Reserved Header", protocol.ErrInvalidPcktHdr)
 	d.ctx.processState = stateProcErr
 }
 

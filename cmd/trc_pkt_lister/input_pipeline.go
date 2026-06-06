@@ -9,6 +9,7 @@ import (
 
 	"github.com/awmorgan/coresight/internal/pipeline"
 	"github.com/awmorgan/coresight/internal/printers"
+	"github.com/awmorgan/coresight/internal/protocol"
 	"github.com/awmorgan/coresight/trace"
 )
 
@@ -62,7 +63,7 @@ func processTraceFile(out io.Writer, pipe *pipeline.Pipeline, fileName string, g
 
 	if !dataPathFatal {
 		if err := pipe.Close(); err != nil {
-			if errors.Is(err, trace.ErrDataDecodeFatal) {
+			if errors.Is(err, protocol.ErrDataDecodeFatal) {
 				fmt.Fprintln(out, "Trace Packet Lister : Data Path fatal error")
 				reportProcessedInput(out, traceIndex, start, genPrinter, opts)
 				return nil

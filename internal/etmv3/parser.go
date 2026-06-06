@@ -74,8 +74,8 @@ func (d *Decoder) resetPacketState() {
 
 func (d *Decoder) throwMalformedPacketErr(msg string) error {
 	d.ctx.processState = stateProcErr
-	d.ctx.currPacket.Err = trace.ErrBadPacketSeq
-	d.ctx.procErrReason = fmt.Errorf("%w: %s", trace.ErrBadPacketSeq, msg)
+	d.ctx.currPacket.Err = protocol.ErrBadPacketSeq
+	d.ctx.procErrReason = fmt.Errorf("%w: %s", protocol.ErrBadPacketSeq, msg)
 	return d.ctx.procErrReason
 }
 
@@ -99,7 +99,7 @@ func (d *Decoder) processData(index trace.Index, dataBlock []uint8) (uint32, err
 			if currByte, ok := d.readNextByte(); ok {
 				d.decodeHeaderByte(currByte)
 			} else {
-				err = fmt.Errorf("%w: Data Buffer Overrun", trace.ErrPktInterpFail)
+				err = fmt.Errorf("%w: Data Buffer Overrun", protocol.ErrPktInterpFail)
 			}
 
 		case stateProcData:
@@ -117,12 +117,12 @@ func (d *Decoder) processData(index trace.Index, dataBlock []uint8) (uint32, err
 		case stateProcErr:
 			err = d.ctx.procErrReason
 			if err == nil {
-				err = trace.ErrPktInterpFail
+				err = protocol.ErrPktInterpFail
 			}
 		}
 
 		if err != nil {
-			if errors.Is(err, trace.ErrBadPacketSeq) || errors.Is(err, trace.ErrInvalidPcktHdr) || errors.Is(err, trace.ErrHWCfgUnsupp) {
+			if errors.Is(err, protocol.ErrBadPacketSeq) || errors.Is(err, protocol.ErrInvalidPcktHdr) || errors.Is(err, protocol.ErrHWCfgUnsupp) {
 				d.ctx.processState = stateSendPkt
 				err = nil
 			} else {
@@ -273,35 +273,35 @@ func (d *Decoder) decodeHeaderByte(by uint8) {
 	} else if (by & 0x03) == 0x00 {
 		if (by & 0x93) == 0x00 {
 			d.ctx.currPacket.Type = PktOOOData
-			d.ctx.currPacket.Err = trace.ErrHWCfgUnsupp
+			d.ctx.currPacket.Err = protocol.ErrHWCfgUnsupp
 			d.ctx.processState = stateSendPkt
 		} else if by == 0x70 {
 			d.ctx.currPacket.Type = PktISyncCycle
 		} else if by == 0x50 {
 			d.ctx.currPacket.Type = PktStoreFail
-			d.ctx.currPacket.Err = trace.ErrHWCfgUnsupp
+			d.ctx.currPacket.Err = protocol.ErrHWCfgUnsupp
 			d.ctx.processState = stateSendPkt
 		} else if (by & 0xD3) == 0x50 {
 			d.ctx.currPacket.Type = PktOOOAddrPlc
-			d.ctx.currPacket.Err = trace.ErrHWCfgUnsupp
+			d.ctx.currPacket.Err = protocol.ErrHWCfgUnsupp
 			d.ctx.processState = stateSendPkt
 		} else if by == 0x3C {
 			d.ctx.currPacket.Type = PktVMID
 		} else {
-			d.ctx.currPacket.Err = trace.ErrInvalidPcktHdr
+			d.ctx.currPacket.Err = protocol.ErrInvalidPcktHdr
 			d.ctx.processState = stateSendPkt
 		}
 	} else if (by & 0xD3) == 0x02 {
 		d.ctx.currPacket.Type = PktNormData
-		d.ctx.currPacket.Err = trace.ErrHWCfgUnsupp
+		d.ctx.currPacket.Err = protocol.ErrHWCfgUnsupp
 		d.ctx.processState = stateSendPkt
 	} else if by == 0x62 {
 		d.ctx.currPacket.Type = PktDataSuppressed
-		d.ctx.currPacket.Err = trace.ErrHWCfgUnsupp
+		d.ctx.currPacket.Err = protocol.ErrHWCfgUnsupp
 		d.ctx.processState = stateSendPkt
 	} else if (by & 0xEF) == 0x6A {
 		d.ctx.currPacket.Type = PktValNotTraced
-		d.ctx.currPacket.Err = trace.ErrHWCfgUnsupp
+		d.ctx.currPacket.Err = protocol.ErrHWCfgUnsupp
 		d.ctx.processState = stateSendPkt
 	} else if by == 0x66 {
 		d.ctx.currPacket.Type = PktIgnore
@@ -318,7 +318,7 @@ func (d *Decoder) decodeHeaderByte(by uint8) {
 	} else if (by & 0xFB) == 0x42 {
 		d.ctx.currPacket.Type = PktTimestamp
 	} else {
-		d.ctx.currPacket.Err = trace.ErrInvalidPcktHdr
+		d.ctx.currPacket.Err = protocol.ErrInvalidPcktHdr
 		d.ctx.processState = stateSendPkt
 	}
 }
@@ -671,13 +671,13 @@ func (d *Decoder) extractExceptionData(offset int) int {
 		}
 	}
 
-	excepType := trace.ExcpReserved
+	excepType := protocol.ExcpReserved
 	if d.Config.V7MArch() {
 		exceptionNum &= 0x1FF
 		if int(exceptionNum) < len(exceptionTypesCM) {
 			excepType = exceptionTypesCM[exceptionNum]
 		} else {
-			excepType = trace.ExcpCMIRQn
+			excepType = protocol.ExcpCMIRQn
 		}
 	} else {
 		exceptionNum &= 0xF
@@ -717,7 +717,7 @@ func (d *Decoder) onISyncPacket() {
 	infoByte := scratch[currIdx]
 	currIdx++
 
-	d.ctx.currPacket.ISyncInfo.Reason = trace.ISyncReason((infoByte >> 5) & 0x3)
+	d.ctx.currPacket.ISyncInfo.Reason = protocol.ISyncReason((infoByte >> 5) & 0x3)
 	j := (infoByte >> 4) & 0x1
 	var altISA uint8
 	if d.Config.MinorRev() >= 3 {
@@ -863,23 +863,23 @@ func (d *Decoder) extractTimestamp(offset int) (val uint64, tsBits uint8) {
 	return val, tsBits
 }
 
-var exceptionTypeARMdeprecated = []trace.ArmV7Exception{
-	trace.ExcpReset, trace.ExcpIRQ, trace.ExcpReserved, trace.ExcpReserved,
-	trace.ExcpJazelle, trace.ExcpFIQ, trace.ExcpAsyncDAbort, trace.ExcpDebugHalt,
+var exceptionTypeARMdeprecated = []protocol.ArmV7Exception{
+	protocol.ExcpReset, protocol.ExcpIRQ, protocol.ExcpReserved, protocol.ExcpReserved,
+	protocol.ExcpJazelle, protocol.ExcpFIQ, protocol.ExcpAsyncDAbort, protocol.ExcpDebugHalt,
 }
 
-var exceptionTypesStd = []trace.ArmV7Exception{
-	trace.ExcpNoException, trace.ExcpDebugHalt, trace.ExcpSMC, trace.ExcpHyp,
-	trace.ExcpAsyncDAbort, trace.ExcpJazelle, trace.ExcpReserved, trace.ExcpReserved,
-	trace.ExcpReset, trace.ExcpUndef, trace.ExcpSVC, trace.ExcpPrefAbort,
-	trace.ExcpSyncDataAbort, trace.ExcpGeneric, trace.ExcpIRQ, trace.ExcpFIQ,
+var exceptionTypesStd = []protocol.ArmV7Exception{
+	protocol.ExcpNoException, protocol.ExcpDebugHalt, protocol.ExcpSMC, protocol.ExcpHyp,
+	protocol.ExcpAsyncDAbort, protocol.ExcpJazelle, protocol.ExcpReserved, protocol.ExcpReserved,
+	protocol.ExcpReset, protocol.ExcpUndef, protocol.ExcpSVC, protocol.ExcpPrefAbort,
+	protocol.ExcpSyncDataAbort, protocol.ExcpGeneric, protocol.ExcpIRQ, protocol.ExcpFIQ,
 }
 
-var exceptionTypesCM = []trace.ArmV7Exception{
-	trace.ExcpNoException, trace.ExcpCMIRQn, trace.ExcpCMIRQn, trace.ExcpCMIRQn,
-	trace.ExcpCMIRQn, trace.ExcpCMIRQn, trace.ExcpCMIRQn, trace.ExcpCMIRQn,
-	trace.ExcpCMIRQn, trace.ExcpCMUsageFault, trace.ExcpCMNMI, trace.ExcpSVC,
-	trace.ExcpCMDebugMonitor, trace.ExcpCMMemManage, trace.ExcpCMPendSV, trace.ExcpCMSysTick,
-	trace.ExcpReserved, trace.ExcpReset, trace.ExcpReserved, trace.ExcpCMHardFault,
-	trace.ExcpReserved, trace.ExcpCMBusFault, trace.ExcpReserved, trace.ExcpReserved,
+var exceptionTypesCM = []protocol.ArmV7Exception{
+	protocol.ExcpNoException, protocol.ExcpCMIRQn, protocol.ExcpCMIRQn, protocol.ExcpCMIRQn,
+	protocol.ExcpCMIRQn, protocol.ExcpCMIRQn, protocol.ExcpCMIRQn, protocol.ExcpCMIRQn,
+	protocol.ExcpCMIRQn, protocol.ExcpCMUsageFault, protocol.ExcpCMNMI, protocol.ExcpSVC,
+	protocol.ExcpCMDebugMonitor, protocol.ExcpCMMemManage, protocol.ExcpCMPendSV, protocol.ExcpCMSysTick,
+	protocol.ExcpReserved, protocol.ExcpReset, protocol.ExcpReserved, protocol.ExcpCMHardFault,
+	protocol.ExcpReserved, protocol.ExcpCMBusFault, protocol.ExcpReserved, protocol.ExcpReserved,
 }

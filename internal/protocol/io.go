@@ -9,16 +9,16 @@ import (
 
 // Emitter holds the observers shared by packet decoders.
 type Emitter struct {
-	ElementSink      trace.ElementSink
-	PacketObserver   trace.PacketObserver
+	ElementSink      ElementSink
+	PacketObserver   PacketObserver
 	TraceEndObserver func()
 }
 
-func (o *Emitter) SetElementSink(sink trace.ElementSink) {
+func (o *Emitter) SetElementSink(sink ElementSink) {
 	o.ElementSink = sink
 }
 
-func (o *Emitter) SetPacketObserver(observer trace.PacketObserver) {
+func (o *Emitter) SetPacketObserver(observer PacketObserver) {
 	o.PacketObserver = observer
 }
 

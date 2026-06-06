@@ -2,8 +2,10 @@ package etmv3
 
 import (
 	"errors"
-	"github.com/awmorgan/coresight/trace"
 	"strconv"
+
+	"github.com/awmorgan/coresight/internal/protocol"
+	"github.com/awmorgan/coresight/trace"
 )
 
 type PktType int
@@ -38,7 +40,7 @@ const (
 )
 
 type Excep struct {
-	Type    trace.ArmV7Exception
+	Type    protocol.ArmV7Exception
 	Number  uint16
 	Present bool
 }
@@ -66,7 +68,7 @@ type Data struct {
 }
 
 type ISyncInfo struct {
-	Reason        trace.ISyncReason
+	Reason        protocol.ISyncReason
 	HasCycleCount bool
 	HasLSipAddr   bool
 	NoAddress     bool
@@ -161,13 +163,13 @@ func (p *Packet) UpdateTimestamp(tsVal uint64, updateBits uint8) {
 	p.TsUpdateBits = updateBits
 }
 
-func (p *Packet) SetException(exType trace.ArmV7Exception, num uint16) {
+func (p *Packet) SetException(exType protocol.ArmV7Exception, num uint16) {
 	p.Exception.Type = exType
 	p.Exception.Number = num
 	p.Exception.Present = true
 }
 
-func (p *Packet) SetExceptionWithCancel(exType trace.ArmV7Exception, num uint16, cancel bool) {
+func (p *Packet) SetExceptionWithCancel(exType protocol.ArmV7Exception, num uint16, cancel bool) {
 	p.SetException(exType, num)
 	p.ExceptionCancel = cancel
 }
@@ -308,7 +310,7 @@ func (p *Packet) AppendStringTo(dst []byte) []byte {
 	dst = append(dst, desc...)
 
 	if p.Err != nil {
-		if errors.Is(p.Err, trace.ErrBadPacketSeq) {
+		if errors.Is(p.Err, protocol.ErrBadPacketSeq) {
 			return append(dst, "[BAD_SEQUENCE]"...)
 		}
 		return append(dst, "[I_RESERVED]"...)

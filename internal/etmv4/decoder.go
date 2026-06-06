@@ -36,7 +36,7 @@ const (
 type pendingP0 struct {
 	kind      pendingP0Kind
 	index     trace.Index
-	atom      trace.AtmVal
+	atom      protocol.AtmVal
 	exception *Packet
 	packet    *Packet
 	element   *trace.Element
@@ -48,8 +48,8 @@ type pendingP0 struct {
 
 type Decoder struct {
 	Config      *Config
-	MemAccess   trace.MemoryReader
-	InstrDecode trace.InstructionDecoder
+	MemAccess   protocol.MemoryReader
+	InstrDecode protocol.InstructionDecoder
 	protocol.Emitter
 
 	ctx parseContext
@@ -86,9 +86,9 @@ type Decoder struct {
 	flushBuf           []trace.Element
 }
 
-func NewDecoder(cfg *Config, mem trace.MemoryReader, instr trace.InstructionDecoder) (*Decoder, error) {
+func NewDecoder(cfg *Config, mem protocol.MemoryReader, instr protocol.InstructionDecoder) (*Decoder, error) {
 	if cfg == nil {
-		return nil, fmt.Errorf("%w: ETMv4 config cannot be nil", trace.ErrInvalidParamVal)
+		return nil, fmt.Errorf("%w: ETMv4 config cannot be nil", protocol.ErrInvalidParamVal)
 	}
 	pendingP0Cap := min(max(64, int(cfg.MaxSpecDepth())+32), 512)
 	d := &Decoder{
@@ -101,7 +101,7 @@ func NewDecoder(cfg *Config, mem trace.MemoryReader, instr trace.InstructionDeco
 			TraceID:            cfg.TraceID(),
 			ErrOnAA64BadOpcode: cfg.ErrOnAA64BadOpcode,
 			InstrRangeLimit:    cfg.InstrRangeLimit,
-			Arch: trace.ArchProfile{
+			Arch: protocol.ArchProfile{
 				Arch:    cfg.ArchVer,
 				Profile: cfg.CoreProf,
 			},
@@ -130,7 +130,7 @@ func (d *Decoder) IsElementSource() bool {
 
 func (d *Decoder) Write(index trace.Index, dataBlock []byte) (uint32, error) {
 	if len(dataBlock) == 0 {
-		return 0, fmt.Errorf("%w: packet processor: zero length data block", trace.ErrInvalidParamVal)
+		return 0, fmt.Errorf("%w: packet processor: zero length data block", protocol.ErrInvalidParamVal)
 	}
 	d.seenData = true
 	return d.processData(index, dataBlock)
@@ -142,7 +142,7 @@ func (d *Decoder) Close() error {
 	}
 	d.isClosed = true
 	if len(d.ctx.raw) > 0 {
-		d.ctx.currPacket.updateErr(PktIncompleteEOT, trace.ErrBadPacketSeq)
+		d.ctx.currPacket.updateErr(PktIncompleteEOT, protocol.ErrBadPacketSeq)
 		_ = d.outputPacket()
 	}
 
@@ -263,7 +263,7 @@ func (d *Decoder) decodePacket(pkt *Packet) error {
 		if pkt.Type == PktIncompleteEOT {
 			return nil
 		}
-		if errors.Is(pkt.Err, trace.ErrBadPacketSeq) || errors.Is(pkt.Err, trace.ErrInvalidPcktHdr) {
+		if errors.Is(pkt.Err, protocol.ErrBadPacketSeq) || errors.Is(pkt.Err, protocol.ErrInvalidPcktHdr) {
 			reason := "Unknown packet type."
 			switch pkt.Type {
 			case PktReservedCfg:
@@ -508,17 +508,17 @@ func (d *Decoder) processExceptionPacket(pkt *Packet, retAddr trace.VAddr, flush
 		rangeStart := d.iAddr
 		rangeEnd := d.iAddr
 		var numInstr uint32
-		var lastInfo trace.InstrInfo
+		var lastInfo protocol.InstrInfo
 		for rangeEnd < retAddr {
 			d.codeFollower.TempInstr = d.codeFollower.InstrInfo
 			d.codeFollower.TempInstr.ISA = isa
 			d.codeFollower.TempInstr.InstrAddr = rangeEnd
 			d.codeFollower.TempInstr.PeType = d.codeFollower.Arch
 			err := d.codeFollower.DecodeSingleOpCode(&d.codeFollower.TempInstr, d.Config.TraceID(), memSpace)
-			if err != nil && !errors.Is(err, trace.ErrMemNacc) {
+			if err != nil && !errors.Is(err, protocol.ErrMemNacc) {
 				return err
 			}
-			if errors.Is(err, trace.ErrMemNacc) {
+			if errors.Is(err, protocol.ErrMemNacc) {
 				elem := trace.Element{ElemType: trace.GenElemAddrNacc}
 				elem.StartAddr = rangeEnd
 				elem.Payload.ExceptionNum = uint32(memSpace)
@@ -608,9 +608,9 @@ func (d *Decoder) packetAtoms(pkt *Packet) []pendingP0 {
 	atoms := make([]pendingP0, 0, pkt.Atom.Num)
 	bits := pkt.Atom.EnBits
 	for range int(pkt.Atom.Num) {
-		val := trace.AtomN
+		val := protocol.AtomN
 		if bits&1 != 0 {
-			val = trace.AtomE
+			val = protocol.AtomE
 		}
 		bits >>= 1
 		atoms = append(atoms, pendingP0{kind: pendingP0Atom, index: pkt.Index, atom: val})
@@ -621,9 +621,9 @@ func (d *Decoder) packetAtoms(pkt *Packet) []pendingP0 {
 func (d *Decoder) queueAtoms(pkt *Packet) {
 	bits := pkt.Atom.EnBits
 	for range int(pkt.Atom.Num) {
-		val := trace.AtomN
+		val := protocol.AtomN
 		if bits&1 != 0 {
-			val = trace.AtomE
+			val = protocol.AtomE
 		}
 		bits >>= 1
 		d.pendingP0 = append(d.pendingP0, pendingP0{kind: pendingP0Atom, index: pkt.Index, atom: val})
@@ -743,10 +743,10 @@ func (d *Decoder) resolveSpeculation(pkt *Packet) error {
 				continue
 			}
 			if newest.kind == pendingP0Atom {
-				if newest.atom == trace.AtomE {
-					newest.atom = trace.AtomN
+				if newest.atom == protocol.AtomE {
+					newest.atom = protocol.AtomN
 				} else {
-					newest.atom = trace.AtomE
+					newest.atom = protocol.AtomE
 				}
 				break
 			}
@@ -849,12 +849,12 @@ func (d *Decoder) processAtomEntries(atoms []pendingP0) error {
 	for i, atom := range atoms {
 		val := atom.atom
 		res, err := d.codeFollower.FollowAtomWaypoint(d.iAddr, val)
-		if err != nil && !errors.Is(err, trace.ErrMemNacc) {
+		if err != nil && !errors.Is(err, protocol.ErrMemNacc) {
 			d.handlePacketSequenceError(atom.index, err, "Error processing atom packet.")
 			return nil
 		}
 		elem := trace.Element{ElemType: trace.GenElemInstrRange}
-		if errors.Is(err, trace.ErrMemNacc) {
+		if errors.Is(err, protocol.ErrMemNacc) {
 			elem.ElemType = trace.GenElemAddrNacc
 			elem.StartAddr = res.NaccAddr
 			elem.Payload.ExceptionNum = uint32(memSpace)
@@ -866,17 +866,17 @@ func (d *Decoder) processAtomEntries(atoms []pendingP0) error {
 		elem.EndAddr = res.RangeEn
 		elem.ISA = isa
 		elem.Payload.NumInstrRange = res.NumInstr
-		elem.SetLastInstrInfo(val == trace.AtomE, res.InstrInfo.Type, res.InstrInfo.Subtype, res.InstrInfo.InstrSize)
+		elem.SetLastInstrInfo(val == protocol.AtomE, res.InstrInfo.Type, res.InstrInfo.Subtype, res.InstrInfo.InstrSize)
 		elem.LastInstrCond = res.InstrInfo.IsConditional
 		d.outputTraceElementAt(atom.index, elem)
-		if d.Config.IsETE() && val == trace.AtomE && res.InstrInfo.Subtype == trace.SInstrV8Eret {
+		if d.Config.IsETE() && val == protocol.AtomE && res.InstrInfo.Subtype == trace.SInstrV8Eret {
 			d.outputTraceElementAt(atom.index, trace.Element{ElemType: trace.GenElemExceptionRet})
 		}
 
-		if d.returnStack.Active && val == trace.AtomE && res.InstrInfo.IsLink {
+		if d.returnStack.Active && val == protocol.AtomE && res.InstrInfo.IsLink {
 			d.returnStack.Push(res.RangeEn, res.InstrInfo.ISA)
 		}
-		if d.returnStack.Active && val == trace.AtomE && res.InstrInfo.Type == trace.InstrBrIndirect {
+		if d.returnStack.Active && val == protocol.AtomE && res.InstrInfo.Type == trace.InstrBrIndirect {
 			d.retStackPopPending = true
 		}
 		if d.retStackPopPending && i+1 < len(atoms) {
@@ -905,7 +905,7 @@ func (d *Decoder) processSourceAddress(pkt *Packet) error {
 	isa := d.calcISA(d.lastIS)
 	srcInstrInfo, err := d.decodeSourceAddressInstr(pkt.Addr.Val, isa, memSpace)
 	if err != nil {
-		if errors.Is(err, trace.ErrMemNacc) {
+		if errors.Is(err, protocol.ErrMemNacc) {
 			elem := trace.Element{ElemType: trace.GenElemAddrNacc}
 			elem.StartAddr = pkt.Addr.Val
 			elem.Payload.ExceptionNum = uint32(memSpace)
@@ -956,7 +956,7 @@ func (d *Decoder) processSourceAddress(pkt *Packet) error {
 	return nil
 }
 
-func (d *Decoder) decodeSourceAddressInstr(addr trace.VAddr, isa trace.ISA, memSpace trace.MemSpaceAcc) (trace.InstrInfo, error) {
+func (d *Decoder) decodeSourceAddressInstr(addr trace.VAddr, isa trace.ISA, memSpace trace.MemSpaceAcc) (protocol.InstrInfo, error) {
 	d.codeFollower.TempInstr = d.codeFollower.InstrInfo
 	d.codeFollower.TempInstr.ISA = isa
 	d.codeFollower.TempInstr.InstrAddr = addr
@@ -965,7 +965,7 @@ func (d *Decoder) decodeSourceAddressInstr(addr trace.VAddr, isa trace.ISA, memS
 	return d.codeFollower.TempInstr, err
 }
 
-func (d *Decoder) outputSplitSourceAddressRanges(index trace.Index, start, end trace.VAddr, isa trace.ISA, memSpace trace.MemSpaceAcc, srcInstrInfo trace.InstrInfo) error {
+func (d *Decoder) outputSplitSourceAddressRanges(index trace.Index, start, end trace.VAddr, isa trace.ISA, memSpace trace.MemSpaceAcc, srcInstrInfo protocol.InstrInfo) error {
 	rangeStart := start
 	var numInstr uint32
 	for addr := start; addr < end; {
@@ -974,7 +974,7 @@ func (d *Decoder) outputSplitSourceAddressRanges(index trace.Index, start, end t
 			var err error
 			instrInfo, err = d.decodeSourceAddressInstr(addr, isa, memSpace)
 			if err != nil {
-				if errors.Is(err, trace.ErrMemNacc) {
+				if errors.Is(err, protocol.ErrMemNacc) {
 					elem := trace.Element{ElemType: trace.GenElemAddrNacc}
 					elem.StartAddr = addr
 					elem.Payload.ExceptionNum = uint32(memSpace)
@@ -998,7 +998,7 @@ func (d *Decoder) outputSplitSourceAddressRanges(index trace.Index, start, end t
 	return nil
 }
 
-func (d *Decoder) outputSourceAddressRange(index trace.Index, start, end trace.VAddr, isa trace.ISA, executed bool, instrInfo trace.InstrInfo) {
+func (d *Decoder) outputSourceAddressRange(index trace.Index, start, end trace.VAddr, isa trace.ISA, executed bool, instrInfo protocol.InstrInfo) {
 	numInstr := uint32(1)
 	if isa != trace.ISAThumb2 && end > start {
 		numInstr = uint32((end - start) / 4)
@@ -1006,7 +1006,7 @@ func (d *Decoder) outputSourceAddressRange(index trace.Index, start, end trace.V
 	d.outputSourceAddressRangeWithCount(index, start, end, isa, numInstr, executed, instrInfo)
 }
 
-func (d *Decoder) outputSourceAddressRangeWithCount(index trace.Index, start, end trace.VAddr, isa trace.ISA, numInstr uint32, executed bool, instrInfo trace.InstrInfo) {
+func (d *Decoder) outputSourceAddressRangeWithCount(index trace.Index, start, end trace.VAddr, isa trace.ISA, numInstr uint32, executed bool, instrInfo protocol.InstrInfo) {
 	elem := trace.Element{ElemType: trace.GenElemInstrRange}
 	elem.StartAddr = start
 	elem.EndAddr = end
@@ -1028,10 +1028,10 @@ func (d *Decoder) handlePacketSequenceError(index trace.Index, err error, reason
 }
 
 func (d *Decoder) packetSequenceDiagnostic(index trace.Index, err error, reason string) string {
-	if errors.Is(err, trace.ErrInvalidOpcode) {
+	if errors.Is(err, protocol.ErrInvalidOpcode) {
 		return fmt.Sprintf("DCD_ETMV4_0016 : 0x002c (OCSD_ERR_INVALID_OPCODE) [Illegal Opode found while decoding program memory.]; TrcIdx=%d; CS ID=%x; %s", index, d.Config.TraceID(), reason)
 	}
-	if errors.Is(err, trace.ErrIRangeLimitOverrun) {
+	if errors.Is(err, protocol.ErrIRangeLimitOverrun) {
 		errText := "An optional limit on consecutive instructions in range during decode has been exceeded."
 		return fmt.Sprintf("DCD_ETMV4_0016 : 0x002d (OCSD_ERR_I_RANGE_LIMIT_OVERRUN) [%s]; Decode Instruction Range Limit OverrunDCD_ETMV4_0016 : 0x002d (OCSD_ERR_I_RANGE_LIMIT_OVERRUN) [%s]; TrcIdx=%d; CS ID=%x; %s", errText, errText, index, d.Config.TraceID(), reason)
 	}
@@ -1217,7 +1217,7 @@ func (d *Decoder) processQElement(pkt *Packet) error {
 	var rangeStart = d.iAddr
 	var rangeEnd = d.iAddr
 	var numInstr uint32
-	var lastInfo trace.InstrInfo
+	var lastInfo protocol.InstrInfo
 	var isBranch bool
 	var err error
 

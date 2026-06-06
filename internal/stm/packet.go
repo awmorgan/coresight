@@ -3,6 +3,7 @@ package stm
 import (
 	"strconv"
 
+	"github.com/awmorgan/coresight/internal/protocol"
 	"github.com/awmorgan/coresight/trace"
 )
 
@@ -108,7 +109,7 @@ func (p *Packet) SetTimestamp(ts uint64, updatedBits uint8) {
 	if updatedBits == 64 {
 		p.Timestamp = ts
 	} else {
-		mask := trace.BitMask(int(updatedBits))
+		mask := protocol.BitMask(int(updatedBits))
 		p.Timestamp &= ^mask
 		p.Timestamp |= ts & mask
 	}
@@ -171,7 +172,7 @@ func (p *Packet) AppendStringTo(dst []byte) []byte {
 		dst = append(dst, "; TS=0x"...)
 		dst = appendUpperHex(dst, p.Timestamp, 16)
 		dst = append(dst, " ~[0x"...)
-		dst = appendUpperHex(dst, p.TSUpdate&trace.BitMask(int(p.PktTSBits)), 0)
+		dst = appendUpperHex(dst, p.TSUpdate&protocol.BitMask(int(p.PktTSBits)), 0)
 		dst = append(dst, ']')
 	}
 	return dst

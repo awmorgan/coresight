@@ -1,13 +1,14 @@
 package snapshot
 
 import (
+	"github.com/awmorgan/coresight/internal/protocol"
 	"github.com/awmorgan/coresight/trace"
 	"maps"
 	"strconv"
 	"strings"
 )
 
-var defaultCoreMap = map[string]trace.ArchProfile{
+var defaultCoreMap = map[string]protocol.ArchProfile{
 	// Cortex-A Series
 	"Cortex-A77": {Arch: trace.ArchV8r3, Profile: trace.ProfileCortexA},
 	"Cortex-A76": {Arch: trace.ArchV8r3, Profile: trace.ProfileCortexA},
@@ -45,23 +46,23 @@ var defaultCoreMap = map[string]trace.ArchProfile{
 	"Cortex-M0":  {Arch: trace.ArchV7, Profile: trace.ProfileCortexM},
 }
 
-var unknownArchProfile = trace.ArchProfile{Arch: trace.ArchUnknown, Profile: trace.ProfileUnknown}
+var unknownArchProfile = protocol.ArchProfile{Arch: trace.ArchUnknown, Profile: trace.ProfileUnknown}
 
 // CoreArchProfileMap maps core names to architecture profiles.
 type CoreArchProfileMap struct {
-	coreMap map[string]trace.ArchProfile
+	coreMap map[string]protocol.ArchProfile
 }
 
 // NewCoreArchProfileMap creates a new map.
 func NewCoreArchProfileMap() *CoreArchProfileMap {
-	m := make(map[string]trace.ArchProfile, len(defaultCoreMap))
+	m := make(map[string]protocol.ArchProfile, len(defaultCoreMap))
 	maps.Copy(m, defaultCoreMap)
 
 	return &CoreArchProfileMap{coreMap: m}
 }
 
 // ArchProfile returns the architecture profile for a given core name.
-func (m *CoreArchProfileMap) ArchProfile(coreName string) (trace.ArchProfile, bool) {
+func (m *CoreArchProfileMap) ArchProfile(coreName string) (protocol.ArchProfile, bool) {
 	if val, ok := m.coreMap[coreName]; ok {
 		return val, true
 	}
@@ -69,7 +70,7 @@ func (m *CoreArchProfileMap) ArchProfile(coreName string) (trace.ArchProfile, bo
 	return getPatternMatchCoreName(coreName)
 }
 
-func getPatternMatchCoreName(coreName string) (trace.ArchProfile, bool) {
+func getPatternMatchCoreName(coreName string) (protocol.ArchProfile, bool) {
 	if rest, ok := strings.CutPrefix(coreName, "ARMv"); ok {
 		return parseARMvCoreName(rest)
 	}
@@ -79,7 +80,7 @@ func getPatternMatchCoreName(coreName string) (trace.ArchProfile, bool) {
 	return unknownArchProfile, false
 }
 
-func parseARMvCoreName(rest string) (trace.ArchProfile, bool) {
+func parseARMvCoreName(rest string) (protocol.ArchProfile, bool) {
 	version, profile, ok := strings.Cut(rest, "-")
 	if !ok || profile == "" {
 		return unknownArchProfile, false
@@ -90,7 +91,7 @@ func parseARMvCoreName(rest string) (trace.ArchProfile, bool) {
 		return unknownArchProfile, false
 	}
 
-	ap := trace.ArchProfile{}
+	ap := protocol.ArchProfile{}
 	if !setProfileFromByte(&ap, profile[0]) {
 		return unknownArchProfile, false
 	}
@@ -100,13 +101,13 @@ func parseARMvCoreName(rest string) (trace.ArchProfile, bool) {
 	return ap, true
 }
 
-func parseARMDashCoreName(rest string) (trace.ArchProfile, bool) {
+func parseARMDashCoreName(rest string) (protocol.ArchProfile, bool) {
 	archName, profile, hasProfile := strings.Cut(rest, "-")
 	if !strings.EqualFold(archName, "aa64") {
 		return unknownArchProfile, false
 	}
 
-	ap := trace.ArchProfile{Arch: trace.ArchAA64, Profile: trace.ProfileCortexA}
+	ap := protocol.ArchProfile{Arch: trace.ArchAA64, Profile: trace.ProfileCortexA}
 	if !hasProfile || profile == "" {
 		return ap, true
 	}
@@ -139,7 +140,7 @@ func parseARMVersion(version string) (major, minor int, ok bool) {
 	return major, minor, true
 }
 
-func setArchFromARMVersion(ap *trace.ArchProfile, major, minor int) bool {
+func setArchFromARMVersion(ap *protocol.ArchProfile, major, minor int) bool {
 	switch {
 	case major == 7:
 		ap.Arch = trace.ArchV7
@@ -155,7 +156,7 @@ func setArchFromARMVersion(ap *trace.ArchProfile, major, minor int) bool {
 	return true
 }
 
-func setProfileFromByte(ap *trace.ArchProfile, profile byte) bool {
+func setProfileFromByte(ap *protocol.ArchProfile, profile byte) bool {
 	switch profile {
 	case 'A':
 		ap.Profile = trace.ProfileCortexA

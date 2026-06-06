@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/awmorgan/coresight/internal/demux"
 	"github.com/awmorgan/coresight/internal/printers"
-	"github.com/awmorgan/coresight/trace"
+	"github.com/awmorgan/coresight/internal/protocol"
 	"os"
 	"strings"
 	"testing"
@@ -137,7 +137,7 @@ func TestTraceDemuxGoldens(t *testing.T) {
 	logMsg("Check bad combination flag error: PASS\n")
 
 	var d *demux.Demuxer
-	streams := make([]trace.ByteSink, 128)
+	streams := make([]protocol.ByteSink, 128)
 
 	// Helper to setup active decoder
 	setupDecoder := func(opts demux.DemuxOptions) *demux.Demuxer {

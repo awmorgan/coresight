@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+
+	"github.com/awmorgan/coresight/internal/protocol"
 	"github.com/awmorgan/coresight/trace"
 )
 
@@ -69,13 +71,13 @@ func (d *Demuxer) checkForResetFSyncPatterns() (uint32, error) {
 
 	fSyncBytes := uint32(numFsyncs * len(fSyncPatternBytes))
 	if numFsyncs%4 != 0 {
-		return fSyncBytes, trace.ErrDfrmtrBadFhsync
+		return fSyncBytes, protocol.ErrDfrmtrBadFhsync
 	}
 
 	err := d.resetAllIDs(d.trcCurrIdx)
 	d.currSrcID = trace.BadCSSrcID
 	d.exFrmBytes = 0
-	d.trcCurrIdxSof = trace.BadIndex
+	d.trcCurrIdxSof = protocol.BadIndex
 	return fSyncBytes, err
 }
 
@@ -109,11 +111,11 @@ func (d *Demuxer) extractFrame() (bool, error) {
 	}
 
 	totalProcessed := uint32(d.trcCurrIdx - startIdx)
-	if (d.exFrmBytes == trace.DfrmtrFrameSize || len(d.inBlock) == 0) && d.outPackedRaw {
+	if (d.exFrmBytes == protocol.DfrmtrFrameSize || len(d.inBlock) == 0) && d.outPackedRaw {
 		d.outputRawMonBytes(startIdx, trace.FrmPacked, startInBlock[:totalProcessed], 0)
 	}
 
-	return d.exFrmBytes == trace.DfrmtrFrameSize, nil
+	return d.exFrmBytes == protocol.DfrmtrFrameSize, nil
 }
 
 func (d *Demuxer) extractAlignedFrame() error {
@@ -126,14 +128,14 @@ func (d *Demuxer) extractAlignedFrame() error {
 	if len(d.inBlock) == 0 {
 		return nil
 	}
-	if len(d.inBlock) < int(trace.DfrmtrFrameSize) {
-		return trace.ErrDfrmtrUnaligned
+	if len(d.inBlock) < int(protocol.DfrmtrFrameSize) {
+		return protocol.ErrDfrmtrUnaligned
 	}
 
 	d.trcCurrIdxSof = d.trcCurrIdx
-	copy(d.exFrmData[:], d.inBlock[:trace.DfrmtrFrameSize])
-	d.exFrmBytes = trace.DfrmtrFrameSize
-	d.advanceInput(trace.DfrmtrFrameSize)
+	copy(d.exFrmData[:], d.inBlock[:protocol.DfrmtrFrameSize])
+	d.exFrmBytes = protocol.DfrmtrFrameSize
+	d.advanceInput(protocol.DfrmtrFrameSize)
 	return nil
 }
 
@@ -148,8 +150,8 @@ func (d *Demuxer) consumeResetFSyncs() error {
 	if err == nil {
 		return nil
 	}
-	if errors.Is(err, trace.ErrDfrmtrBadFhsync) {
-		return trace.ErrDfrmtrBadFsyncReset
+	if errors.Is(err, protocol.ErrDfrmtrBadFhsync) {
+		return protocol.ErrDfrmtrBadFsyncReset
 	}
 	return err
 }
@@ -164,7 +166,7 @@ func (d *Demuxer) extractUnalignedFrame() error {
 		}
 	}
 
-	for d.exFrmBytes < trace.DfrmtrFrameSize && len(d.inBlock) >= 2 {
+	for d.exFrmBytes < protocol.DfrmtrFrameSize && len(d.inBlock) >= 2 {
 		if d.exFrmBytes == 0 {
 			d.trcCurrIdxSof = d.trcCurrIdx
 		}
@@ -173,19 +175,19 @@ func (d *Demuxer) extractUnalignedFrame() error {
 		switch pair {
 		case hSyncPattern:
 			if !hasHSyncs {
-				return trace.ErrDfrmtrBadHSync
+				return protocol.ErrDfrmtrBadHSync
 			}
 			d.advanceInput(2)
 		case fSyncStart:
-			return trace.ErrDfrmtrBadFsyncStart
+			return protocol.ErrDfrmtrBadFsyncStart
 		default:
 			d.copyFramePair()
 			d.advanceInput(2)
 		}
 	}
 
-	if len(d.inBlock) == 1 && d.exFrmBytes < trace.DfrmtrFrameSize {
-		return trace.ErrDfrmtrOddByte
+	if len(d.inBlock) == 1 && d.exFrmBytes < protocol.DfrmtrFrameSize {
+		return protocol.ErrDfrmtrOddByte
 	}
 
 	return nil
@@ -195,7 +197,7 @@ func (d *Demuxer) consumeLeadingUnalignedFSyncs() error {
 	if d.fsyncStartEOB {
 		if len(d.inBlock) >= 2 {
 			if binary.LittleEndian.Uint16(d.inBlock) != hSyncPattern {
-				return trace.ErrDfrmtrBadFsyncStart
+				return protocol.ErrDfrmtrBadFsyncStart
 			}
 			d.advanceInput(2)
 		}

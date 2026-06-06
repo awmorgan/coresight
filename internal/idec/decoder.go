@@ -1,9 +1,12 @@
 package idec
 
-import "github.com/awmorgan/coresight/trace"
+import (
+	"github.com/awmorgan/coresight/internal/protocol"
+	"github.com/awmorgan/coresight/trace"
+)
 
 // DecodeInstruction processes an instruction based on its ISA.
-func DecodeInstruction(instrInfo *trace.InstrInfo) error {
+func DecodeInstruction(instrInfo *protocol.InstrInfo) error {
 	info := DecodeInfo{
 		InstrSubType: trace.SInstrNone,
 		ArchVersion:  instrInfo.PeType.Arch,
@@ -18,21 +21,21 @@ func DecodeInstruction(instrInfo *trace.InstrInfo) error {
 	case trace.ISAAArch64:
 		err = decodeA64(instrInfo, &info)
 	default:
-		err = trace.ErrUnsupportedISA
+		err = protocol.ErrUnsupportedISA
 	}
 
 	instrInfo.Subtype = info.InstrSubType
 	return err
 }
 
-func resetInstrInfo(instrInfo *trace.InstrInfo) {
+func resetInstrInfo(instrInfo *protocol.InstrInfo) {
 	instrInfo.Type = trace.InstrOther
 	instrInfo.NextISA = instrInfo.ISA
 	instrInfo.IsLink = false
 	instrInfo.IsConditional = false
 }
 
-func applyBarrier(instrInfo *trace.InstrInfo, barrier ArmBarrierT) bool {
+func applyBarrier(instrInfo *protocol.InstrInfo, barrier ArmBarrierT) bool {
 	switch barrier {
 	case ArmBarrierIsb:
 		instrInfo.Type = trace.InstrIsb
@@ -51,7 +54,7 @@ func canonicalThumbOpcode(opcode uint32) uint32 {
 	return (opcode>>16)&0xFFFF | (opcode&0xFFFF)<<16
 }
 
-func setThumbInstrSize(instrInfo *trace.InstrInfo) {
+func setThumbInstrSize(instrInfo *protocol.InstrInfo) {
 	if IsWideThumb(uint16(instrInfo.Opcode >> 16)) {
 		instrInfo.InstrSize = 4
 		return
@@ -59,7 +62,7 @@ func setThumbInstrSize(instrInfo *trace.InstrInfo) {
 	instrInfo.InstrSize = 2
 }
 
-func decodeA32(instrInfo *trace.InstrInfo, info *DecodeInfo) error {
+func decodeA32(instrInfo *protocol.InstrInfo, info *DecodeInfo) error {
 	resetInstrInfo(instrInfo)
 	instrInfo.InstrSize = 4
 	instrInfo.ThumbItConditions = 0 // not Thumb
@@ -88,7 +91,7 @@ func decodeA32(instrInfo *trace.InstrInfo, info *DecodeInfo) error {
 	return nil
 }
 
-func decodeA64(instrInfo *trace.InstrInfo, info *DecodeInfo) error {
+func decodeA64(instrInfo *protocol.InstrInfo, info *DecodeInfo) error {
 	resetInstrInfo(instrInfo)
 	instrInfo.InstrSize = 4
 	instrInfo.ThumbItConditions = 0
@@ -99,7 +102,7 @@ func decodeA64(instrInfo *trace.InstrInfo, info *DecodeInfo) error {
 	case applyBarrier(instrInfo, InstA64Barrier(instrInfo.Opcode)):
 	case instrInfo.WfiWfeBranch != 0 && InstA64WfiWfe(instrInfo.Opcode, info):
 		instrInfo.Type = trace.InstrWfiWfe
-	case trace.IsArchMinVer(info.ArchVersion, trace.ArchAA64) && InstA64Tstart(instrInfo.Opcode):
+	case protocol.IsArchMinVer(info.ArchVersion, trace.ArchAA64) && InstA64Tstart(instrInfo.Opcode):
 		instrInfo.Type = trace.InstrTstart
 	}
 
@@ -107,7 +110,7 @@ func decodeA64(instrInfo *trace.InstrInfo, info *DecodeInfo) error {
 	return nil
 }
 
-func decodeA64IndirectBranch(instrInfo *trace.InstrInfo, info *DecodeInfo) bool {
+func decodeA64IndirectBranch(instrInfo *protocol.InstrInfo, info *DecodeInfo) bool {
 	isBranch, isLink := InstA64IsIndirectBranchLink(instrInfo.Opcode, info)
 	if !isBranch {
 		return false
@@ -117,7 +120,7 @@ func decodeA64IndirectBranch(instrInfo *trace.InstrInfo, info *DecodeInfo) bool 
 	return true
 }
 
-func decodeA64DirectBranch(instrInfo *trace.InstrInfo, info *DecodeInfo) bool {
+func decodeA64DirectBranch(instrInfo *protocol.InstrInfo, info *DecodeInfo) bool {
 	isBranch, isLink := InstA64IsDirectBranchLink(instrInfo.Opcode, info)
 	if !isBranch {
 		return false
@@ -131,7 +134,7 @@ func decodeA64DirectBranch(instrInfo *trace.InstrInfo, info *DecodeInfo) bool {
 	return true
 }
 
-func decodeT32(instrInfo *trace.InstrInfo, info *DecodeInfo) error {
+func decodeT32(instrInfo *protocol.InstrInfo, info *DecodeInfo) error {
 	instrInfo.Opcode = canonicalThumbOpcode(instrInfo.Opcode)
 	resetInstrInfo(instrInfo)
 	setThumbInstrSize(instrInfo)
@@ -151,7 +154,7 @@ func decodeT32(instrInfo *trace.InstrInfo, info *DecodeInfo) error {
 	return nil
 }
 
-func decodeT32DirectBranch(instrInfo *trace.InstrInfo, info *DecodeInfo) bool {
+func decodeT32DirectBranch(instrInfo *protocol.InstrInfo, info *DecodeInfo) bool {
 	isBranch, isLink, isCond := InstThumbIsDirectBranchLink(instrInfo.Opcode, info)
 	if !isBranch {
 		return false
@@ -168,7 +171,7 @@ func decodeT32DirectBranch(instrInfo *trace.InstrInfo, info *DecodeInfo) bool {
 	return true
 }
 
-func decodeT32IndirectBranch(instrInfo *trace.InstrInfo, info *DecodeInfo) bool {
+func decodeT32IndirectBranch(instrInfo *protocol.InstrInfo, info *DecodeInfo) bool {
 	isBranch, isLink := InstThumbIsIndirectBranchLink(instrInfo.Opcode, info)
 	if !isBranch {
 		return false
@@ -178,7 +181,7 @@ func decodeT32IndirectBranch(instrInfo *trace.InstrInfo, info *DecodeInfo) bool 
 	return true
 }
 
-func updateThumbITBlock(instrInfo *trace.InstrInfo) {
+func updateThumbITBlock(instrInfo *protocol.InstrInfo) {
 	if instrInfo.TrackItBlock == 0 {
 		return
 	}

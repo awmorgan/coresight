@@ -2,6 +2,7 @@ package ptm
 
 import (
 	"fmt"
+	"github.com/awmorgan/coresight/internal/protocol"
 	"github.com/awmorgan/coresight/trace"
 	"strings"
 )
@@ -77,7 +78,7 @@ type Context struct {
 
 // Excep represents an exception inside a PTM packet.
 type Excep struct {
-	Type    trace.ArmV7Exception
+	Type    protocol.ArmV7Exception
 	Number  uint16
 	Present bool
 }
@@ -99,7 +100,7 @@ type Packet struct {
 	Context Context
 	Atom    AtomPkt
 
-	ISyncReason trace.ISyncReason
+	ISyncReason protocol.ISyncReason
 
 	CycleCount uint32
 	CCValid    bool
@@ -180,7 +181,7 @@ func (p *Packet) UpdateISA(currISA trace.ISA) {
 	p.CurrISA = currISA
 }
 
-func (p *Packet) SetException(exType trace.ArmV7Exception, exNum uint16) {
+func (p *Packet) SetException(exType protocol.ArmV7Exception, exNum uint16) {
 	p.Exception.Present = true
 	p.Exception.Type = exType
 	p.Exception.Number = exNum
@@ -440,7 +441,7 @@ func PacketTypeName(t PacketType) string {
 	return packetInfo(t).name
 }
 
-func iSyncReasonName(reason trace.ISyncReason) string {
+func iSyncReasonName(reason protocol.ISyncReason) string {
 	idx := int(reason)
 	if idx >= 0 && idx < len(iSyncReasonNames) {
 		return iSyncReasonNames[idx]
@@ -504,13 +505,13 @@ type AtomPkt struct {
 }
 
 // Pop returns the next atom value and updates the packet state.
-func (a *AtomPkt) Pop() trace.AtmVal {
+func (a *AtomPkt) Pop() protocol.AtmVal {
 	if a.Num == 0 {
-		return trace.AtomN
+		return protocol.AtomN
 	}
-	val := trace.AtomN
+	val := protocol.AtomN
 	if (a.EnBits & 0x1) != 0 {
-		val = trace.AtomE
+		val = protocol.AtomE
 	}
 	a.EnBits >>= 1
 	a.Num--

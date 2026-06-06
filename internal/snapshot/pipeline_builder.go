@@ -7,6 +7,7 @@ import (
 	"github.com/awmorgan/coresight/internal/idec"
 	"github.com/awmorgan/coresight/internal/memacc"
 	"github.com/awmorgan/coresight/internal/pipeline"
+	"github.com/awmorgan/coresight/internal/protocol"
 	"github.com/awmorgan/coresight/trace"
 	"path/filepath"
 	"strings"
@@ -24,8 +25,8 @@ type PipelineBuilder struct {
 	packetProcOnly bool
 	bufferFileName string
 	mapper         *memacc.GlobalMapper
-	memIf          trace.MemoryReader
-	instrDecode    trace.InstructionDecoder
+	memIf          protocol.MemoryReader
+	instrDecode    protocol.InstructionDecoder
 	diagnostics    []string
 
 	errOnAA64BadOpcode bool
@@ -132,7 +133,7 @@ func (b *PipelineBuilder) Build(sourceName string, packetProcOnly bool) (*pipeli
 		b.pipe = nil
 		err := errors.Join(skipped...)
 		if err == nil {
-			err = trace.ErrNoProtocol
+			err = protocol.ErrNoProtocol
 		}
 		return nil, fmt.Errorf("no supported protocols found: %w", err)
 	}
@@ -173,7 +174,7 @@ func etmPTMDeviceRegs(dev *Device, defaultIDR uint32) (etmPTMRegs, error) {
 	return regs, nil
 }
 
-func (b *PipelineBuilder) decodeInterfaces() (trace.MemoryReader, trace.InstructionDecoder) {
+func (b *PipelineBuilder) decodeInterfaces() (protocol.MemoryReader, protocol.InstructionDecoder) {
 	if b.packetProcOnly {
 		return nil, nil
 	}

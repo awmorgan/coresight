@@ -2,14 +2,15 @@ package memacc
 
 import (
 	"fmt"
+	"github.com/awmorgan/coresight/internal/protocol"
 	"github.com/awmorgan/coresight/trace"
 )
 
 // CallbackAccessor represents a callback trace memory accessor.
 type CallbackAccessor struct {
 	BaseAccessor
-	callback        trace.MemoryCallback
-	traceIDCallback trace.MemoryCallback
+	callback        protocol.MemoryCallback
+	traceIDCallback protocol.MemoryCallback
 }
 
 func NewCallbackAccessor(startAddr trace.VAddr, endAddr trace.VAddr, memSpace trace.MemSpaceAcc) *CallbackAccessor {
@@ -35,13 +36,13 @@ func (c *CallbackAccessor) ReadBytes(address trace.VAddr, memSpace trace.MemSpac
 }
 
 // SetCallback sets a callback function that does not take a trace ID.
-func (c *CallbackAccessor) SetCallback(fn trace.MemoryCallback) {
+func (c *CallbackAccessor) SetCallback(fn protocol.MemoryCallback) {
 	c.callback = fn
 	c.traceIDCallback = nil
 }
 
 // SetTraceIDCallback sets a callback function that includes trace ID.
-func (c *CallbackAccessor) SetTraceIDCallback(fn trace.MemoryCallback) {
+func (c *CallbackAccessor) SetTraceIDCallback(fn protocol.MemoryCallback) {
 	c.traceIDCallback = fn
 	c.callback = nil
 }

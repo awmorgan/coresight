@@ -77,7 +77,7 @@ type parseContext struct {
 
 func (p *Decoder) Write(index trace.Index, dataBlock []byte) (uint32, error) {
 	if len(dataBlock) == 0 {
-		return 0, fmt.Errorf("%w: packet processor: zero length data block", trace.ErrInvalidParamVal)
+		return 0, fmt.Errorf("%w: packet processor: zero length data block", protocol.ErrInvalidParamVal)
 	}
 	processed, err := p.processData(index, dataBlock)
 	if err != nil {
@@ -126,12 +126,12 @@ func (p *Decoder) readNextByte() (uint8, bool) {
 
 func (p *Decoder) malformedPacketErr(msg string) error {
 	p.ctx.currPacket.SetErrType(PacketBadSequence)
-	return fmt.Errorf("%w: %s", trace.ErrBadPacketSeq, msg)
+	return fmt.Errorf("%w: %s", protocol.ErrBadPacketSeq, msg)
 }
 
 func (p *Decoder) processData(index trace.Index, dataBlock []uint8) (uint32, error) {
 	if p.Config == nil {
-		return 0, trace.ErrNotInit
+		return 0, protocol.ErrNotInit
 	}
 
 	p.ctx.Feed(index, dataBlock)
@@ -154,7 +154,7 @@ func (p *Decoder) processData(index trace.Index, dataBlock []uint8) (uint32, err
 				p.ctx.currPacket.Type = headerToPacketType(currByte)
 				p.ctx.processState = stateProcData
 			} else {
-				err = fmt.Errorf("%w: Data Buffer Overrun", trace.ErrPktInterpFail)
+				err = fmt.Errorf("%w: Data Buffer Overrun", protocol.ErrPktInterpFail)
 			}
 			if p.ctx.processState != stateProcData {
 				break
@@ -176,7 +176,7 @@ func (p *Decoder) processData(index trace.Index, dataBlock []uint8) (uint32, err
 		}
 
 		if err != nil {
-			if errors.Is(err, trace.ErrBadPacketSeq) || errors.Is(err, trace.ErrInvalidPcktHdr) {
+			if errors.Is(err, protocol.ErrBadPacketSeq) || errors.Is(err, protocol.ErrInvalidPcktHdr) {
 				p.ctx.processState = stateSendPkt
 			} else {
 				break
@@ -522,7 +522,7 @@ func (p *Decoder) PacketISync() error {
 		if pktIndex == 5 {
 			altISA := (currByte >> 2) & 0x1
 			reason := (currByte >> 5) & 0x3
-			p.ctx.currPacket.ISyncReason = trace.ISyncReason(reason)
+			p.ctx.currPacket.ISyncReason = protocol.ISyncReason(reason)
 
 			p.ctx.currPacket.Context.CurrNS = (currByte & PktISyncNSMask) != 0
 			p.ctx.currPacket.Context.CurrAltISA = (currByte & PktISyncAltISAMask) != 0
@@ -917,7 +917,7 @@ func (p *Decoder) pktBranchAddr() error {
 		scratch := p.ctx.Reader.Scratch()
 		E1 := scratch[p.ctx.numAddrBytes]
 		ENum := uint16(E1>>1) & 0xF
-		excep := trace.ExcpReserved
+		excep := protocol.ExcpReserved
 
 		p.ctx.currPacket.Context.CurrNS = (E1 & 0x1) != 0
 		p.ctx.currPacket.Context.Updated = true
@@ -928,11 +928,11 @@ func (p *Decoder) pktBranchAddr() error {
 			ENum |= uint16(E2&0x1F) << 4
 		}
 		if ENum <= 0xF {
-			v7ARExceptions := []trace.ArmV7Exception{
-				trace.ExcpNoException, trace.ExcpDebugHalt, trace.ExcpSMC, trace.ExcpHyp,
-				trace.ExcpAsyncDAbort, trace.ExcpJazelle, trace.ExcpReserved, trace.ExcpReserved,
-				trace.ExcpReset, trace.ExcpUndef, trace.ExcpSVC, trace.ExcpPrefAbort,
-				trace.ExcpSyncDataAbort, trace.ExcpGeneric, trace.ExcpIRQ, trace.ExcpFIQ,
+			v7ARExceptions := []protocol.ArmV7Exception{
+				protocol.ExcpNoException, protocol.ExcpDebugHalt, protocol.ExcpSMC, protocol.ExcpHyp,
+				protocol.ExcpAsyncDAbort, protocol.ExcpJazelle, protocol.ExcpReserved, protocol.ExcpReserved,
+				protocol.ExcpReset, protocol.ExcpUndef, protocol.ExcpSVC, protocol.ExcpPrefAbort,
+				protocol.ExcpSyncDataAbort, protocol.ExcpGeneric, protocol.ExcpIRQ, protocol.ExcpFIQ,
 			}
 			excep = v7ARExceptions[ENum]
 		}

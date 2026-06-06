@@ -20,8 +20,8 @@ const (
 // Decoder processes raw trace bytes into ETMv3 packets, then decodes them into Elements.
 type Decoder struct {
 	Config      *Config
-	MemAccess   trace.MemoryReader
-	InstrDecode trace.InstructionDecoder
+	MemAccess   protocol.MemoryReader
+	InstrDecode protocol.InstructionDecoder
 	protocol.Emitter
 
 	ctx parseContext
@@ -52,9 +52,9 @@ type Decoder struct {
 }
 
 // NewDecoder creates a new ETMv3 decoder instance.
-func NewDecoder(cfg *Config, mem trace.MemoryReader, instr trace.InstructionDecoder) (*Decoder, error) {
+func NewDecoder(cfg *Config, mem protocol.MemoryReader, instr protocol.InstructionDecoder) (*Decoder, error) {
 	if cfg == nil {
-		return nil, fmt.Errorf("%w: ETMv3 config cannot be nil", trace.ErrInvalidParamVal)
+		return nil, fmt.Errorf("%w: ETMv3 config cannot be nil", protocol.ErrInvalidParamVal)
 	}
 
 	d := &Decoder{
@@ -65,7 +65,7 @@ func NewDecoder(cfg *Config, mem trace.MemoryReader, instr trace.InstructionDeco
 			MemAccess: mem,
 			IdDecode:  instr,
 			TraceID:   cfg.TraceID(),
-			Arch: trace.ArchProfile{
+			Arch: protocol.ArchProfile{
 				Arch:    cfg.ArchVer,
 				Profile: cfg.CoreProf,
 			},
@@ -134,7 +134,7 @@ func (d *Decoder) OutputTraceElementIdx(idx trace.Index, elem trace.Element) {
 // Write consumes trace data from the demuxer.
 func (d *Decoder) Write(index trace.Index, dataBlock []byte) (uint32, error) {
 	if len(dataBlock) == 0 {
-		return 0, fmt.Errorf("%w: packet processor: zero length data block", trace.ErrInvalidParamVal)
+		return 0, fmt.Errorf("%w: packet processor: zero length data block", protocol.ErrInvalidParamVal)
 	}
 	processed, err := d.processData(index, dataBlock)
 	if err != nil {
@@ -205,7 +205,7 @@ func (d *Decoder) resetProcessorState() {
 // processPacket is the entrypoint for the Step 5 decoder logic.
 func (d *Decoder) processPacket(pkt *Packet) error {
 	if pkt == nil {
-		return trace.ErrInvalidParamVal
+		return protocol.ErrInvalidParamVal
 	}
 	if !d.canDecodeElements() {
 		return nil
@@ -259,7 +259,7 @@ func (d *Decoder) decodePacket() error {
 	d.committedPendThisPacket = false
 
 	if pkt.Err != nil {
-		if errors.Is(pkt.Err, trace.ErrBadPacketSeq) || errors.Is(pkt.Err, trace.ErrInvalidPcktHdr) {
+		if errors.Is(pkt.Err, protocol.ErrBadPacketSeq) || errors.Is(pkt.Err, protocol.ErrInvalidPcktHdr) {
 			d.unsyncInfo = trace.UnsyncBadPacket
 			d.currState = decodeWaitSync
 			d.needIsync = true
@@ -327,13 +327,13 @@ func (d *Decoder) processISync() error {
 	pkt := d.CurrPacketIn
 	ctxtUpdate := pkt.Context.UpdatedC || pkt.Context.UpdatedV || pkt.Context.Updated
 
-	if d.needIsync || pkt.ISyncInfo.Reason != trace.ISyncPeriodic {
+	if d.needIsync || pkt.ISyncInfo.Reason != protocol.ISyncPeriodic {
 		elem := trace.Element{ElemType: trace.GenElemTraceOn}
 		elem.SetTraceOnReason(trace.TraceOnNormal)
 		switch pkt.ISyncInfo.Reason {
-		case trace.ISyncTraceRestartAfterOverflow:
+		case protocol.ISyncTraceRestartAfterOverflow:
 			elem.SetTraceOnReason(trace.TraceOnOverflow)
-		case trace.ISyncDebugExit:
+		case protocol.ISyncDebugExit:
 			elem.SetTraceOnReason(trace.TraceOnExDebug)
 		}
 		d.OutputTraceElement(elem)
@@ -497,16 +497,16 @@ func (d *Decoder) processPHdr() error {
 			}
 
 			if atomsNum > 0 {
-				val := trace.AtomN
+				val := protocol.AtomN
 				if (enBits & 1) == 1 {
-					val = trace.AtomE
+					val = protocol.AtomE
 				}
 
 				d.codeFollower.Isa = pkt.CurrISA
 				d.codeFollower.InstrInfo.ISA = pkt.CurrISA
 
 				res, err := d.codeFollower.FollowSingleAtom(trace.VAddr(d.iAddr), val)
-				if err != nil && !errors.Is(err, trace.ErrMemNacc) {
+				if err != nil && !errors.Is(err, protocol.ErrMemNacc) {
 					return err
 				}
 
@@ -515,7 +515,7 @@ func (d *Decoder) processPHdr() error {
 					elem.EndAddr = res.RangeEn
 					elem.ISA = pkt.CurrISA
 					elem.Payload.NumInstrRange = res.NumInstr
-					elem.SetLastInstrInfo(val == trace.AtomE, res.InstrInfo.Type, res.InstrInfo.Subtype, res.InstrInfo.InstrSize)
+					elem.SetLastInstrInfo(val == protocol.AtomE, res.InstrInfo.Type, res.InstrInfo.Subtype, res.InstrInfo.InstrSize)
 					elem.LastInstrCond = res.InstrInfo.IsConditional
 
 					d.iAddr = uint64(res.NextAddr)
@@ -527,7 +527,7 @@ func (d *Decoder) processPHdr() error {
 					}
 				}
 
-				if errors.Is(err, trace.ErrMemNacc) {
+				if errors.Is(err, protocol.ErrMemNacc) {
 					if res.NumInstr > 0 {
 						outputElem(elem)
 

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/awmorgan/coresight/internal/protocol"
 	"github.com/awmorgan/coresight/trace"
 )
 
@@ -83,8 +84,8 @@ func (d *Decoder) processData(index trace.Index, dataBlock []byte) (uint32, erro
 		case stateSendPkt:
 			err = d.outputPacket()
 		}
-		if errors.Is(err, trace.ErrBadPacketSeq) || errors.Is(err, trace.ErrInvalidPcktHdr) {
-			return uint32(d.ctx.off), fmt.Errorf("%w: %v", trace.ErrDataDecodeFatal, err)
+		if errors.Is(err, protocol.ErrBadPacketSeq) || errors.Is(err, protocol.ErrInvalidPcktHdr) {
+			return uint32(d.ctx.off), fmt.Errorf("%w: %v", protocol.ErrDataDecodeFatal, err)
 		}
 	}
 	return uint32(d.ctx.off), err
@@ -226,12 +227,12 @@ func (d *Decoder) waitForSync(blockStart trace.Index) {
 
 func (d *Decoder) throwBadSequenceError(msg string) error {
 	d.ctx.currPacket.UpdateErrType(PktBadSequence)
-	return fmt.Errorf("%w: %s", trace.ErrBadPacketSeq, msg)
+	return fmt.Errorf("%w: %s", protocol.ErrBadPacketSeq, msg)
 }
 
 func (d *Decoder) throwReservedHdrError(msg string) error {
 	d.ctx.currPacket.SetType(PktReserved, false)
-	return fmt.Errorf("%w: %s", trace.ErrInvalidPcktHdr, msg)
+	return fmt.Errorf("%w: %s", protocol.ErrInvalidPcktHdr, msg)
 }
 
 func (d *Decoder) op1(n uint8) pktFn {
@@ -389,7 +390,7 @@ func (d *Decoder) stmExtractTS() error {
 		if newBits == 64 {
 			gray = d.ctx.tsUpdateValue
 		} else {
-			mask := trace.BitMask(int(newBits))
+			mask := protocol.BitMask(int(newBits))
 			gray &= ^mask
 			gray |= d.ctx.tsUpdateValue & mask
 		}

@@ -199,13 +199,13 @@ func (d *Decoder) iPktNoPayload(lastByte byte) error {
 }
 
 func (d *Decoder) iPktReserved(lastByte byte) error {
-	d.ctx.currPacket.updateErr(PktReserved, trace.ErrInvalidPcktHdr)
+	d.ctx.currPacket.updateErr(PktReserved, protocol.ErrInvalidPcktHdr)
 	d.ctx.processState = stateSendPkt
 	return nil
 }
 
 func (d *Decoder) iPktInvalidCfg(lastByte byte) error {
-	d.ctx.currPacket.updateErr(PktReservedCfg, trace.ErrInvalidPcktHdr)
+	d.ctx.currPacket.updateErr(PktReservedCfg, protocol.ErrInvalidPcktHdr)
 	d.ctx.processState = stateSendPkt
 	return nil
 }
@@ -230,7 +230,7 @@ func (d *Decoder) iPktExtension(lastByte byte) error {
 		d.ctx.currPacket.Type = PktOverflow
 		d.ctx.processState = stateSendPkt
 	default:
-		d.ctx.currPacket.updateErr(PktBadSequence, trace.ErrBadPacketSeq)
+		d.ctx.currPacket.updateErr(PktBadSequence, protocol.ErrBadPacketSeq)
 		d.ctx.processState = stateSendPkt
 	}
 	return nil
@@ -245,7 +245,7 @@ func (d *Decoder) iPktASync(lastByte byte) error {
 		}
 		d.ctx.processState = stateSendPkt
 		if len(d.ctx.raw) != 12 || lastByte != 0x80 {
-			d.ctx.currPacket.updateErr(PktBadSequence, trace.ErrBadPacketSeq)
+			d.ctx.currPacket.updateErr(PktBadSequence, protocol.ErrBadPacketSeq)
 		} else {
 			d.ctx.isSync = true
 		}
@@ -254,7 +254,7 @@ func (d *Decoder) iPktASync(lastByte byte) error {
 			d.ctx.dumpUnsyncedBytes = 1
 			d.ctx.processState = stateSendUnsynced
 		} else {
-			d.ctx.currPacket.updateErr(PktBadSequence, trace.ErrBadPacketSeq)
+			d.ctx.currPacket.updateErr(PktBadSequence, protocol.ErrBadPacketSeq)
 			d.ctx.processState = stateSendPkt
 		}
 	}
@@ -358,7 +358,7 @@ func (d *Decoder) iPktTimestamp(lastByte byte) error {
 		d.ctx.currPacket.setTimestamp(ts, bits)
 		if d.ctx.raw[0]&1 != 0 {
 			cc, _ := extractContField(d.ctx.raw, 1+n, 3)
-			d.ctx.currPacket.CycleCount = cc & uint32(trace.BitMask(int(d.Config.CCSize())))
+			d.ctx.currPacket.CycleCount = cc & uint32(protocol.BitMask(int(d.Config.CCSize())))
 			d.ctx.currPacket.CCValid = true
 		}
 		d.ctx.processState = stateSendPkt
@@ -607,7 +607,7 @@ func (d *Decoder) iPktShortAddr(lastByte byte) error {
 	if len(d.ctx.raw) == 3 || lastByte&0x80 == 0 {
 		value, bits, _ := extractShortAddr(d.ctx.raw, 1, d.ctx.addrIS)
 		addr := d.ctx.currPacket.Addr
-		mask := trace.BitMask(bits)
+		mask := protocol.BitMask(bits)
 		addr.Val = trace.VAddr((uint64(addr.Val) & ^mask) | (uint64(value) & mask))
 		addr.IS = d.ctx.addrIS
 		addr.PktBits = bits
@@ -682,7 +682,7 @@ func (d *Decoder) iPktQ(lastByte byte) error {
 			d.ctx.countDone = true
 
 		default:
-			d.ctx.currPacket.updateErr(PktBadSequence, trace.ErrBadPacketSeq)
+			d.ctx.currPacket.updateErr(PktBadSequence, protocol.ErrBadPacketSeq)
 			d.ctx.processState = stateSendPkt
 			return nil
 		}
@@ -710,7 +710,7 @@ func (d *Decoder) iPktQ(lastByte byte) error {
 			} else if d.ctx.addrShort {
 				v, bits, consumed := extractShortAddr(d.ctx.raw, idx, d.ctx.addrIS)
 				addr := d.ctx.currPacket.Addr
-				mask := trace.BitMask(bits)
+				mask := protocol.BitMask(bits)
 				addr.Val = trace.VAddr((uint64(addr.Val) & ^mask) | (uint64(v) & mask))
 				addr.IS = d.ctx.addrIS
 				addr.PktBits = bits
@@ -779,7 +779,7 @@ func (d *Decoder) iAtom(lastByte byte) error {
 	case PktAtomF6:
 		eCount := (h & 0x1F) + 3
 		count = eCount + 1
-		pattern = uint32(trace.BitMask(int(eCount)))
+		pattern = uint32(protocol.BitMask(int(eCount)))
 		if h&0x20 == 0 {
 			pattern |= 1 << eCount
 		}
@@ -790,7 +790,7 @@ func (d *Decoder) iAtom(lastByte byte) error {
 }
 
 func (d *Decoder) iPktUnsupported(lastByte byte) error {
-	d.ctx.currPacket.updateErr(PktBadTraceMode, trace.ErrHWCfgUnsupp)
+	d.ctx.currPacket.updateErr(PktBadTraceMode, protocol.ErrHWCfgUnsupp)
 	d.ctx.processState = stateSendPkt
 	return nil
 }
@@ -817,7 +817,7 @@ func (d *Decoder) setLongAddr(idx int, is uint8, is64 bool) {
 	} else {
 		pktBits = 32
 		if d.ctx.currPacket.Context.SF {
-			value = (uint64(d.ctx.currPacket.Addr.Val) & ^trace.BitMask(32)) | (value & trace.BitMask(32))
+			value = (uint64(d.ctx.currPacket.Addr.Val) & ^protocol.BitMask(32)) | (value & protocol.BitMask(32))
 		}
 	}
 	d.ctx.currPacket.pushAddr(Address{Val: trace.VAddr(value), IS: is, Size: size, ValidBits: valid, PktBits: pktBits})

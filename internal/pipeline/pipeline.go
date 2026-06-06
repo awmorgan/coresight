@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"github.com/awmorgan/coresight/internal/demux"
+	"github.com/awmorgan/coresight/internal/protocol"
 	"github.com/awmorgan/coresight/trace"
 )
 
@@ -9,14 +10,14 @@ import (
 type Route struct {
 	TraceID  uint8
 	Protocol trace.TraceProtocol
-	ByteSink trace.ByteSink
+	ByteSink protocol.ByteSink
 }
 
 // Pipeline orchestrates the demuxer and registered decoders.
 type Pipeline struct {
 	Demuxer        *demux.Demuxer
 	Routes         []Route
-	sinksByTraceID [trace.MaxTraceID]trace.ByteSink
+	sinksByTraceID [protocol.MaxTraceID]protocol.ByteSink
 	FramedInput    bool
 }
 
@@ -39,7 +40,7 @@ func (p *Pipeline) AddRoute(route Route) {
 		route.TraceID = 0
 	}
 	p.Routes = append(p.Routes, route)
-	if route.TraceID < trace.MaxTraceID {
+	if route.TraceID < protocol.MaxTraceID {
 		p.sinksByTraceID[route.TraceID] = route.ByteSink
 	}
 }
@@ -51,24 +52,24 @@ func (p *Pipeline) Write(index trace.Index, data []byte) (uint32, error) {
 	if len(p.Routes) > 0 && p.Routes[0].ByteSink != nil {
 		return p.Routes[0].ByteSink.Write(index, data)
 	}
-	return 0, trace.ErrNotInit
+	return 0, protocol.ErrNotInit
 }
 
 func (p *Pipeline) Close() error {
 	if p.FramedInput && p.Demuxer != nil {
 		return p.Demuxer.Close()
 	}
-	return p.controlRoutes(func(s trace.ByteSink) error { return s.Close() })
+	return p.controlRoutes(func(s protocol.ByteSink) error { return s.Close() })
 }
 
 func (p *Pipeline) Reset(index trace.Index) error {
 	if p.FramedInput && p.Demuxer != nil {
 		return p.Demuxer.Reset(index)
 	}
-	return p.controlRoutes(func(s trace.ByteSink) error { return s.Reset(index) })
+	return p.controlRoutes(func(s protocol.ByteSink) error { return s.Reset(index) })
 }
 
-func (p *Pipeline) controlRoutes(op func(trace.ByteSink) error) error {
+func (p *Pipeline) controlRoutes(op func(protocol.ByteSink) error) error {
 	var outErr error
 	for _, r := range p.Routes {
 		if r.ByteSink == nil {
@@ -82,9 +83,9 @@ func (p *Pipeline) controlRoutes(op func(trace.ByteSink) error) error {
 }
 
 // SetElementSink attaches the sink to all decoders that support it.
-func (p *Pipeline) SetElementSink(sink trace.ElementSink) {
+func (p *Pipeline) SetElementSink(sink protocol.ElementSink) {
 	for _, r := range p.Routes {
-		if s, ok := r.ByteSink.(interface{ SetElementSink(trace.ElementSink) }); ok {
+		if s, ok := r.ByteSink.(interface{ SetElementSink(protocol.ElementSink) }); ok {
 			s.SetElementSink(sink)
 		}
 	}

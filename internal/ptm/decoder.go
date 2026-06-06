@@ -41,8 +41,8 @@ type Decoder struct {
 	ctx parseContext
 
 	// Packet decoding state
-	MemAccess      trace.MemoryReader
-	InstrDecode    trace.InstructionDecoder
+	MemAccess      protocol.MemoryReader
+	InstrDecode    protocol.InstructionDecoder
 	IndexCurrPkt   trace.Index
 	CurrPacketIn   *Packet
 	currState      decodeState
@@ -50,7 +50,7 @@ type Decoder struct {
 	peContext      trace.PEContext
 	currPeState    peAddrState
 	needIsync      bool
-	instrInfo      trace.InstrInfo
+	instrInfo      protocol.InstrInfo
 	memNaccPending bool
 	naccAddr       trace.VAddr
 	iSyncPeCtxt    bool
@@ -64,9 +64,9 @@ type Decoder struct {
 	fetchBuf [4]byte
 }
 
-func NewDecoder(cfg *Config, mem trace.MemoryReader, instr trace.InstructionDecoder) (*Decoder, error) {
+func NewDecoder(cfg *Config, mem protocol.MemoryReader, instr protocol.InstructionDecoder) (*Decoder, error) {
 	if cfg == nil {
-		return nil, fmt.Errorf("%w: PTM config cannot be nil", trace.ErrInvalidParamVal)
+		return nil, fmt.Errorf("%w: PTM config cannot be nil", protocol.ErrInvalidParamVal)
 	}
 
 	d := &Decoder{
@@ -106,15 +106,15 @@ func (d *Decoder) AccessMemory(address trace.VAddr, traceID uint8, memSpace trac
 	if d.MemAccess != nil {
 		return d.MemAccess.Read(address, traceID, memSpace, reqBytes, buffer)
 	}
-	return 0, trace.ErrDcdInterfaceUnused
+	return 0, protocol.ErrDcdInterfaceUnused
 }
 
 // InstrDecodeCall calls the attached instruction decoder.
-func (d *Decoder) InstrDecodeCall(instrInfo *trace.InstrInfo) error {
+func (d *Decoder) InstrDecodeCall(instrInfo *protocol.InstrInfo) error {
 	if d.InstrDecode != nil {
 		return d.InstrDecode(instrInfo)
 	}
-	return trace.ErrDcdInterfaceUnused
+	return protocol.ErrDcdInterfaceUnused
 }
 
 func (d *Decoder) Close() error {
@@ -165,7 +165,7 @@ func (d *Decoder) Reset(index trace.Index) error {
 
 func (d *Decoder) Flush() error {
 	if d.Config == nil {
-		return trace.ErrNotInit
+		return protocol.ErrNotInit
 	}
 	return nil
 }
@@ -202,7 +202,7 @@ func (d *Decoder) resetDecoder() {
 // processPacket encapsulates the core state machine for decoding a single packet.
 func (d *Decoder) processPacket(pktIn *Packet) error {
 	if pktIn == nil {
-		return trace.ErrInvalidParamVal
+		return protocol.ErrInvalidParamVal
 	}
 	d.CurrPacketIn = pktIn
 	d.IndexCurrPkt = pktIn.Index
@@ -340,13 +340,13 @@ func (d *Decoder) processIsync() error {
 			d.peContext.SecurityLevel = trace.SecSecure
 		}
 
-		if d.needIsync || pkt.ISyncReason != trace.ISyncPeriodic {
+		if d.needIsync || pkt.ISyncReason != protocol.ISyncPeriodic {
 			elem := trace.Element{ElemType: trace.GenElemTraceOn}
 			elem.SetTraceOnReason(trace.TraceOnNormal)
 			switch pkt.ISyncReason {
-			case trace.ISyncTraceRestartAfterOverflow:
+			case protocol.ISyncTraceRestartAfterOverflow:
 				elem.SetTraceOnReason(trace.TraceOnOverflow)
-			case trace.ISyncDebugExit:
+			case protocol.ISyncDebugExit:
 				elem.SetTraceOnReason(trace.TraceOnExDebug)
 			}
 			if pkt.CCValid {
@@ -392,7 +392,7 @@ func (d *Decoder) processBranch() error {
 			d.OutputTraceElement(elem)
 		} else {
 			if d.currPeState.valid {
-				err = d.processAtomRange(trace.AtomE, traceWaypoint, 0)
+				err = d.processAtomRange(protocol.AtomE, traceWaypoint, 0)
 			}
 		}
 
@@ -409,7 +409,7 @@ func (d *Decoder) processWPUpdate() error {
 	var err error
 
 	if d.currPeState.valid {
-		err = d.processAtomRange(trace.AtomE, traceToAddrIncl, d.CurrPacketIn.AddrVal)
+		err = d.processAtomRange(protocol.AtomE, traceToAddrIncl, d.CurrPacketIn.AddrVal)
 	}
 
 	d.checkPendingNacc()
@@ -446,7 +446,7 @@ func (d *Decoder) checkPendingNacc() {
 	}
 }
 
-func (d *Decoder) processAtomRange(A trace.AtmVal, traceWPOp waypointTraceOp, nextAddrMatch trace.VAddr) error {
+func (d *Decoder) processAtomRange(A protocol.AtmVal, traceWPOp waypointTraceOp, nextAddrMatch trace.VAddr) error {
 	d.instrInfo.InstrAddr = d.currPeState.instrAddr
 	d.instrInfo.ISA = d.currPeState.isa
 
@@ -457,7 +457,7 @@ func (d *Decoder) processAtomRange(A trace.AtmVal, traceWPOp waypointTraceOp, ne
 
 	wpFound, err := d.traceInstrToWP(traceWPOp, nextAddrMatch, &elem)
 	if err != nil {
-		if errors.Is(err, trace.ErrUnsupportedISA) {
+		if errors.Is(err, protocol.ErrUnsupportedISA) {
 			d.currPeState.valid = false
 			return nil // Warning
 		}
@@ -469,21 +469,21 @@ func (d *Decoder) processAtomRange(A trace.AtmVal, traceWPOp waypointTraceOp, ne
 
 		switch d.instrInfo.Type {
 		case trace.InstrBr:
-			if A == trace.AtomE {
+			if A == protocol.AtomE {
 				d.instrInfo.InstrAddr = d.instrInfo.BranchAddr
 				if d.instrInfo.IsLink {
 					d.returnStack.Push(nextAddr, d.instrInfo.ISA)
 				}
 			}
 		case trace.InstrBrIndirect:
-			if A == trace.AtomE {
+			if A == protocol.AtomE {
 				d.currPeState.valid = false
 
 				// Match PTM OpenCSD: any indirect branch resulting in an ATOM E is treated as a ReturnStack Pop
 				if d.returnStack.Active && d.CurrPacketIn.Type == PacketAtom {
 					popAddr, nextIsa, ok := d.returnStack.Pop()
 					if !ok {
-						return trace.ErrRetStackOverflow // fatal
+						return protocol.ErrRetStackOverflow // fatal
 					} else {
 						d.instrInfo.InstrAddr = popAddr
 						d.instrInfo.NextISA = nextIsa
@@ -497,7 +497,7 @@ func (d *Decoder) processAtomRange(A trace.AtmVal, traceWPOp waypointTraceOp, ne
 			}
 		}
 
-		elem.SetLastInstrInfo(A == trace.AtomE, d.instrInfo.Type, d.instrInfo.Subtype, d.instrInfo.InstrSize)
+		elem.SetLastInstrInfo(A == protocol.AtomE, d.instrInfo.Type, d.instrInfo.Subtype, d.instrInfo.InstrSize)
 		if d.CurrPacketIn.CCValid {
 			elem.SetCycleCount(d.CurrPacketIn.CycleCount)
 		}
@@ -528,7 +528,7 @@ func (d *Decoder) traceInstrToWP(traceWPOp waypointTraceOp, nextAddrMatch trace.
 		currOpAddress := d.instrInfo.InstrAddr
 		opcode, size, errFetch := d.fetchAndDecodeOpcode(currOpAddress, d.instrInfo.ISA)
 		if errFetch != nil {
-			if errors.Is(errFetch, memacc.ErrNoAccessor) || errors.Is(errFetch, trace.ErrMemNacc) {
+			if errors.Is(errFetch, memacc.ErrNoAccessor) || errors.Is(errFetch, protocol.ErrMemNacc) {
 				d.memNaccPending = true
 				d.naccAddr = currOpAddress
 				break
@@ -569,7 +569,7 @@ func (d *Decoder) fetchAndDecodeOpcode(addr trace.VAddr, isa trace.ISA) (uint32,
 
 	// Match OpenCSD PTM: strictly requires 4 bytes returned or assumes NACC
 	if bytesRead != 4 {
-		return 0, 0, trace.ErrMemNacc
+		return 0, 0, protocol.ErrMemNacc
 	}
 
 	opcode := uint32(d.fetchBuf[0])

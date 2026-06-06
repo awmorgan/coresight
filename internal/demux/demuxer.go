@@ -1,9 +1,12 @@
 package demux
 
-import "github.com/awmorgan/coresight/trace"
+import (
+	"github.com/awmorgan/coresight/internal/protocol"
+	"github.com/awmorgan/coresight/trace"
+)
 
 const (
-	maxTraceID = trace.MaxTraceID
+	maxTraceID = protocol.MaxTraceID
 )
 
 // DemuxOptions defines the configuration for the frame demuxer.
@@ -26,8 +29,8 @@ type Demuxer struct {
 	outUnpackedRaw bool
 	rawChanEnable  []bool
 
-	streams         []trace.ByteSink
-	rawFrameHandler trace.FrameObserver
+	streams         []protocol.ByteSink
+	rawFrameHandler protocol.FrameObserver
 
 	trcCurrIdx  trace.Index
 	frameSynced bool
@@ -37,14 +40,14 @@ type Demuxer struct {
 	fsyncStartEOB bool
 	trcCurrIdxSof trace.Index
 
-	exFrmData [trace.DfrmtrFrameSize]byte
+	exFrmData [protocol.DfrmtrFrameSize]byte
 
 	inBlock []byte
 
 	unpackBuf [16]byte
 }
 
-func NewDemuxer(streams []trace.ByteSink) *Demuxer {
+func NewDemuxer(streams []protocol.ByteSink) *Demuxer {
 	d := &Demuxer{
 		rawChanEnable: make([]bool, maxTraceID),
 		streams:       streams,
@@ -58,7 +61,7 @@ func NewDemuxer(streams []trace.ByteSink) *Demuxer {
 	return d
 }
 
-func (d *Demuxer) SetRawFrameHandler(handler trace.FrameObserver) {
+func (d *Demuxer) SetRawFrameHandler(handler protocol.FrameObserver) {
 	d.rawFrameHandler = handler
 }
 
@@ -75,11 +78,11 @@ func (d *Demuxer) Configure(opts DemuxOptions) error {
 func validateFormatterOptions(opts DemuxOptions) error {
 	if !opts.HasFsyncs && !opts.HasHsyncs && !opts.FrameMemAlign &&
 		!opts.PackedRawOut && !opts.UnpackedRawOut && !opts.ResetOn4xFsync {
-		return trace.ErrInvalidParamVal
+		return protocol.ErrInvalidParamVal
 	}
 
 	if opts.FrameMemAlign && (opts.HasFsyncs || opts.HasHsyncs) {
-		return trace.ErrInvalidParamVal
+		return protocol.ErrInvalidParamVal
 	}
 	return nil
 }
@@ -91,7 +94,7 @@ func alignmentForOptions(opts DemuxOptions) uint32 {
 	case opts.HasFsyncs:
 		return 4
 	default:
-		return trace.DfrmtrFrameSize
+		return protocol.DfrmtrFrameSize
 	}
 }
 
@@ -114,18 +117,18 @@ func (d *Demuxer) outputRawMonBytes(index trace.Index, frameElem trace.RawframeE
 }
 
 func (d *Demuxer) flushAllIDs() error {
-	return d.controlAllIDs(func(stream trace.ByteSink) error { return stream.Flush() })
+	return d.controlAllIDs(func(stream protocol.ByteSink) error { return stream.Flush() })
 }
 
 func (d *Demuxer) resetAllIDs(index trace.Index) error {
-	return d.controlAllIDs(func(stream trace.ByteSink) error { return stream.Reset(index) })
+	return d.controlAllIDs(func(stream protocol.ByteSink) error { return stream.Reset(index) })
 }
 
 func (d *Demuxer) closeAllIDs() error {
-	return d.controlAllIDs(func(stream trace.ByteSink) error { return stream.Close() })
+	return d.controlAllIDs(func(stream protocol.ByteSink) error { return stream.Close() })
 }
 
-func (d *Demuxer) controlAllIDs(streamOp func(trace.ByteSink) error) error {
+func (d *Demuxer) controlAllIDs(streamOp func(protocol.ByteSink) error) error {
 	var outErr error
 	for _, stream := range d.streams {
 		if stream == nil {
@@ -148,23 +151,23 @@ func (d *Demuxer) Flush() error {
 }
 
 func (d *Demuxer) resetStateParams() {
-	d.trcCurrIdx = trace.BadIndex
+	d.trcCurrIdx = protocol.BadIndex
 	d.frameSynced = false
 	d.currSrcID = trace.BadCSSrcID
 
 	d.exFrmBytes = 0
 	d.fsyncStartEOB = false
-	d.trcCurrIdxSof = trace.BadIndex
+	d.trcCurrIdxSof = protocol.BadIndex
 }
 
 // Write processes the raw trace byte stream, demuxing frames into individual trace streams.
 func (d *Demuxer) Write(index trace.Index, dataBlock []byte) (uint32, error) {
 	d.updateRawOutputState()
 	if len(dataBlock) == 0 {
-		return 0, trace.ErrInvalidParamVal
+		return 0, protocol.ErrInvalidParamVal
 	}
 	if d.alignment == 0 {
-		return 0, trace.ErrDfrmtrNotConfigured
+		return 0, protocol.ErrDfrmtrNotConfigured
 	}
 
 	processSize := uint32(len(dataBlock))
@@ -307,7 +310,7 @@ func (d *Demuxer) dataByteWithFlag(i int, frameFlagBit uint8) byte {
 	return b
 }
 
-func (d *Demuxer) outputStream(id uint8) trace.ByteSink {
+func (d *Demuxer) outputStream(id uint8) protocol.ByteSink {
 	if !validTraceID(id) {
 		return nil
 	}
