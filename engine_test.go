@@ -2,8 +2,8 @@ package coresight_test
 
 import (
 	"bytes"
-	"coresight"
-	"coresight/trace"
+	"github.com/awmorgan/coresight"
+	"github.com/awmorgan/coresight/trace"
 	"os"
 	"testing"
 )

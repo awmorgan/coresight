@@ -1,8 +1,8 @@
 package pipeline
 
 import (
-	"coresight/internal/demux"
-	"coresight/trace"
+	"github.com/awmorgan/coresight/internal/demux"
+	"github.com/awmorgan/coresight/trace"
 )
 
 // Route links a Trace ID to its processors.

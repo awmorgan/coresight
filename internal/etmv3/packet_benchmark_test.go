@@ -3,7 +3,7 @@ package etmv3
 import (
 	"testing"
 
-	"coresight/trace"
+	"github.com/awmorgan/coresight/trace"
 )
 
 func BenchmarkPacketString_PHdr(b *testing.B) {

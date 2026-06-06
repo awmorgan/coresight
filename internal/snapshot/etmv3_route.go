@@ -3,9 +3,9 @@ package snapshot
 import (
 	"fmt"
 
-	"coresight/internal/etmv3"
-	"coresight/internal/pipeline"
-	"coresight/trace"
+	"github.com/awmorgan/coresight/internal/etmv3"
+	"github.com/awmorgan/coresight/internal/pipeline"
+	"github.com/awmorgan/coresight/trace"
 )
 
 func (b *PipelineBuilder) buildETMv3Route(spec sourceRouteSpec) (pipeline.Route, error) {

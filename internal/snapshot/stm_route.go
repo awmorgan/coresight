@@ -3,9 +3,9 @@ package snapshot
 import (
 	"fmt"
 
-	"coresight/internal/pipeline"
-	"coresight/internal/stm"
-	"coresight/trace"
+	"github.com/awmorgan/coresight/internal/pipeline"
+	"github.com/awmorgan/coresight/internal/stm"
+	"github.com/awmorgan/coresight/trace"
 )
 
 func (b *PipelineBuilder) buildSTMRoute(spec sourceRouteSpec) (pipeline.Route, error) {

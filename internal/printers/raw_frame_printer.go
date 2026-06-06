@@ -1,8 +1,8 @@
 package printers
 
 import (
-	"coresight/trace"
 	"fmt"
+	"github.com/awmorgan/coresight/trace"
 	"io"
 	"strings"
 )

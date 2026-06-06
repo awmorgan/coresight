@@ -44,7 +44,7 @@ const (
 	CPUprofileR = "Cortex-R"
 	CPUprofileM = "Cortex-M"
 
-	BuffFmtCS = "coresight"
+	BuffFmtCS = "github.com/awmorgan/coresight"
 
 	ProtocolTypeETMv3 = "ETM3"
 	ProtocolTypeETMv4 = "ETM4"

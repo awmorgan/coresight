@@ -1,8 +1,8 @@
 package ptm
 
 import (
-	"coresight/trace"
 	"fmt"
+	"github.com/awmorgan/coresight/trace"
 	"strings"
 )
 

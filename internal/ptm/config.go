@@ -1,6 +1,6 @@
 package ptm
 
-import "coresight/trace"
+import "github.com/awmorgan/coresight/trace"
 
 const (
 	ctrlBranchBcast = 1 << 8

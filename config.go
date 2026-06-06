@@ -3,7 +3,7 @@ package coresight
 import (
 	"fmt"
 
-	"coresight/trace"
+	"github.com/awmorgan/coresight/trace"
 )
 
 // PacketObserver is the public type for observing raw packets off the decode path.

@@ -1,6 +1,6 @@
 package idec
 
-import "coresight/trace"
+import "github.com/awmorgan/coresight/trace"
 
 // DecodeInstruction processes an instruction based on its ISA.
 func DecodeInstruction(instrInfo *trace.InstrInfo) error {

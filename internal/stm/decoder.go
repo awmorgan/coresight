@@ -4,8 +4,8 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"coresight/internal/protocol"
-	"coresight/trace"
+	"github.com/awmorgan/coresight/internal/protocol"
+	"github.com/awmorgan/coresight/trace"
 )
 
 type decodeState int

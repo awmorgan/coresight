@@ -1,7 +1,7 @@
 package memacc
 
 import (
-	"coresight/trace"
+	"github.com/awmorgan/coresight/trace"
 	"io"
 )
 

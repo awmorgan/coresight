@@ -1,6 +1,6 @@
 package idec
 
-import "coresight/trace"
+import "github.com/awmorgan/coresight/trace"
 
 // DecodeInfo provides supplementary decode information
 type DecodeInfo struct {

@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"coresight/trace"
+	"github.com/awmorgan/coresight/trace"
 )
 
 type PacketType int

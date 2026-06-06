@@ -2,9 +2,9 @@ package coresight_test
 
 import (
 	"bytes"
-	"coresight"
-	"coresight/trace"
 	"fmt"
+	"github.com/awmorgan/coresight"
+	"github.com/awmorgan/coresight/trace"
 )
 
 // This example demonstrates how to configure and initialize a PTM (Program Trace Macrocell)

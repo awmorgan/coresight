@@ -3,7 +3,7 @@ package etmv4
 import (
 	"fmt"
 
-	"coresight/trace"
+	"github.com/awmorgan/coresight/trace"
 )
 
 type QSuppType int

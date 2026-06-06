@@ -7,7 +7,7 @@ import (
 	"os"
 	"strconv"
 
-	"coresight/trace"
+	"github.com/awmorgan/coresight/trace"
 )
 
 const defaultLogFile = "trc_pkt_lister.ppl"

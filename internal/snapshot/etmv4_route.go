@@ -3,9 +3,9 @@ package snapshot
 import (
 	"fmt"
 
-	"coresight/internal/etmv4"
-	"coresight/internal/pipeline"
-	"coresight/trace"
+	"github.com/awmorgan/coresight/internal/etmv4"
+	"github.com/awmorgan/coresight/internal/pipeline"
+	"github.com/awmorgan/coresight/trace"
 )
 
 type etmv4Regs struct {

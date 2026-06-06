@@ -1,7 +1,7 @@
 package itm_test
 
 import (
-	"coresight/internal/itm"
+	"github.com/awmorgan/coresight/internal/itm"
 	"testing"
 )
 

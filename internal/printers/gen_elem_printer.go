@@ -2,9 +2,9 @@ package printers
 
 import (
 	"bytes"
-	"coresight/trace"
 	"encoding/binary"
 	"fmt"
+	"github.com/awmorgan/coresight/trace"
 	"io"
 	"strconv"
 	"strings"

@@ -3,7 +3,7 @@ package etmv4
 import (
 	"testing"
 
-	"coresight/trace"
+	"github.com/awmorgan/coresight/trace"
 )
 
 func BenchmarkPacketString_Atom(b *testing.B) {

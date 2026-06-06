@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"slices"
 
-	"coresight/internal/etmv3"
-	"coresight/internal/idec"
-	"coresight/internal/protocol"
-	"coresight/trace"
+	"github.com/awmorgan/coresight/internal/etmv3"
+	"github.com/awmorgan/coresight/internal/idec"
+	"github.com/awmorgan/coresight/internal/protocol"
+	"github.com/awmorgan/coresight/trace"
 )
 
 type decodeState int

@@ -1,10 +1,10 @@
 package demux_test
 
 import (
-	"coresight/internal/demux"
-	"coresight/internal/printers"
-	"coresight/trace"
 	"fmt"
+	"github.com/awmorgan/coresight/internal/demux"
+	"github.com/awmorgan/coresight/internal/printers"
+	"github.com/awmorgan/coresight/trace"
 	"os"
 	"strings"
 	"testing"

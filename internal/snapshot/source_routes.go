@@ -1,8 +1,8 @@
 package snapshot
 
 import (
-	"coresight/internal/pipeline"
 	"fmt"
+	"github.com/awmorgan/coresight/internal/pipeline"
 	"sort"
 	"strings"
 )

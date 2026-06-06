@@ -3,8 +3,8 @@ package protocol
 import (
 	"fmt"
 
-	"coresight/internal/utils"
-	"coresight/trace"
+	"github.com/awmorgan/coresight/internal/utils"
+	"github.com/awmorgan/coresight/trace"
 )
 
 // Emitter holds the observers shared by packet decoders.

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"coresight/trace"
+	"github.com/awmorgan/coresight/trace"
 )
 
 type processState int

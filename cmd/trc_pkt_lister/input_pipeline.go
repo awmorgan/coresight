@@ -7,9 +7,9 @@ import (
 	"os"
 	"time"
 
-	"coresight/internal/pipeline"
-	"coresight/internal/printers"
-	"coresight/trace"
+	"github.com/awmorgan/coresight/internal/pipeline"
+	"github.com/awmorgan/coresight/internal/printers"
+	"github.com/awmorgan/coresight/trace"
 )
 
 func processTraceFile(out io.Writer, pipe *pipeline.Pipeline, fileName string, genPrinter *printers.GenericElementPrinter, opts options) error {

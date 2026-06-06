@@ -9,8 +9,8 @@ import (
 	"slices"
 	"strings"
 
-	"coresight/internal/snapshot"
-	"coresight/trace"
+	"github.com/awmorgan/coresight/internal/snapshot"
+	"github.com/awmorgan/coresight/trace"
 )
 
 func main() {

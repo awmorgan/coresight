@@ -6,9 +6,9 @@ import (
 	"io"
 	"path/filepath"
 
-	"coresight/internal/pipeline"
-	"coresight/internal/printers"
-	"coresight/internal/snapshot"
+	"github.com/awmorgan/coresight/internal/pipeline"
+	"github.com/awmorgan/coresight/internal/printers"
+	"github.com/awmorgan/coresight/internal/snapshot"
 )
 
 func listTracePackets(out io.Writer, reader *snapshot.Reader, opts options, sourceNames []string) error {

@@ -3,9 +3,9 @@ package snapshot
 import (
 	"fmt"
 
-	"coresight/internal/ete"
-	"coresight/internal/pipeline"
-	"coresight/trace"
+	"github.com/awmorgan/coresight/internal/ete"
+	"github.com/awmorgan/coresight/internal/pipeline"
+	"github.com/awmorgan/coresight/trace"
 )
 
 type eteRegs struct {

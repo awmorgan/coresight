@@ -4,8 +4,8 @@ import (
 	"encoding/binary"
 	"errors"
 
-	"coresight/internal/memacc"
-	"coresight/trace"
+	"github.com/awmorgan/coresight/internal/memacc"
+	"github.com/awmorgan/coresight/trace"
 )
 
 const opcodeBytes = 4

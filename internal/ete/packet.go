@@ -1,6 +1,6 @@
 package ete
 
-import "coresight/internal/etmv4"
+import "github.com/awmorgan/coresight/internal/etmv4"
 
 type PacketType = etmv4.PacketType
 type TraceInfo = etmv4.TraceInfo

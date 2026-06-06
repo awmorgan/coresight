@@ -1,7 +1,7 @@
 package snapshot
 
 import (
-	"coresight/trace"
+	"github.com/awmorgan/coresight/trace"
 	"maps"
 	"strconv"
 	"strings"

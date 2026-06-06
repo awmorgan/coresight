@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"coresight/internal/snapshot"
+	"github.com/awmorgan/coresight/internal/snapshot"
 )
 
 type snapshotLine struct {

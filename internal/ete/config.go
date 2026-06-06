@@ -3,8 +3,8 @@ package ete
 import (
 	"fmt"
 
-	"coresight/internal/etmv4"
-	"coresight/trace"
+	"github.com/awmorgan/coresight/internal/etmv4"
+	"github.com/awmorgan/coresight/trace"
 )
 
 type Config struct {

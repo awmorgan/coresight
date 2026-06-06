@@ -1,8 +1,8 @@
 package memacc
 
 import (
-	"coresight/trace"
 	"fmt"
+	"github.com/awmorgan/coresight/trace"
 )
 
 type BufferAccessor struct {

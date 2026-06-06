@@ -1,13 +1,13 @@
 package main
 
 import (
-	"coresight/internal/memacc"
-	"coresight/internal/pipeline"
-	"coresight/internal/printers"
-	"coresight/internal/snapshot"
-	"coresight/trace"
 	"errors"
 	"fmt"
+	"github.com/awmorgan/coresight/internal/memacc"
+	"github.com/awmorgan/coresight/internal/pipeline"
+	"github.com/awmorgan/coresight/internal/printers"
+	"github.com/awmorgan/coresight/internal/snapshot"
+	"github.com/awmorgan/coresight/trace"
 	"io"
 	"os"
 	"path/filepath"

@@ -9,9 +9,9 @@
 package memacc
 
 import (
-	"coresight/trace"
 	"errors"
 	"fmt"
+	"github.com/awmorgan/coresight/trace"
 	"math/bits"
 	"strings"
 )

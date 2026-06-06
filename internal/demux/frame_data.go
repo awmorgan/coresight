@@ -2,9 +2,9 @@ package demux
 
 import (
 	"bytes"
-	"coresight/trace"
 	"encoding/binary"
 	"errors"
+	"github.com/awmorgan/coresight/trace"
 )
 
 const (

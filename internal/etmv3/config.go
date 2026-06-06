@@ -1,8 +1,8 @@
 package etmv3
 
 import (
-	"coresight/trace"
 	"fmt"
+	"github.com/awmorgan/coresight/trace"
 )
 
 // Config represents the hardware configuration for an ETMv3 trace macrocell.

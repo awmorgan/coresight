@@ -1,6 +1,6 @@
 package demux
 
-import "coresight/trace"
+import "github.com/awmorgan/coresight/trace"
 
 const (
 	maxTraceID = trace.MaxTraceID

@@ -2,9 +2,9 @@ package coresight_test
 
 import (
 	"bytes"
-	"coresight"
-	"coresight/trace"
 	"fmt"
+	"github.com/awmorgan/coresight"
+	"github.com/awmorgan/coresight/trace"
 )
 
 func ExampleEngine_etmv4Decode() {

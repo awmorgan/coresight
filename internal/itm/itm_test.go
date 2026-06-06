@@ -1,10 +1,10 @@
 package itm_test
 
 import (
-	"coresight/internal/itm"
-	"coresight/internal/printers"
-	"coresight/trace"
 	"fmt"
+	"github.com/awmorgan/coresight/internal/itm"
+	"github.com/awmorgan/coresight/internal/printers"
+	"github.com/awmorgan/coresight/trace"
 	"io"
 	"os"
 	"strings"

@@ -1,8 +1,8 @@
 package etmv3
 
 import (
-	"coresight/trace"
 	"errors"
+	"github.com/awmorgan/coresight/trace"
 	"strconv"
 )
 

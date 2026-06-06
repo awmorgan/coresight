@@ -3,16 +3,16 @@ package coresight
 import (
 	"fmt"
 
-	"coresight/internal/demux"
-	"coresight/internal/etmv3"
-	"coresight/internal/etmv4"
-	"coresight/internal/idec"
-	"coresight/internal/itm"
-	"coresight/internal/memacc"
-	"coresight/internal/pipeline"
-	"coresight/internal/ptm"
-	"coresight/internal/stm"
-	"coresight/trace"
+	"github.com/awmorgan/coresight/internal/demux"
+	"github.com/awmorgan/coresight/internal/etmv3"
+	"github.com/awmorgan/coresight/internal/etmv4"
+	"github.com/awmorgan/coresight/internal/idec"
+	"github.com/awmorgan/coresight/internal/itm"
+	"github.com/awmorgan/coresight/internal/memacc"
+	"github.com/awmorgan/coresight/internal/pipeline"
+	"github.com/awmorgan/coresight/internal/ptm"
+	"github.com/awmorgan/coresight/internal/stm"
+	"github.com/awmorgan/coresight/trace"
 )
 
 // ElementSink is the public callback type. Because it is route-specific,

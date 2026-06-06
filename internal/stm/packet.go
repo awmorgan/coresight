@@ -3,7 +3,7 @@ package stm
 import (
 	"strconv"
 
-	"coresight/trace"
+	"github.com/awmorgan/coresight/trace"
 )
 
 type PktType int

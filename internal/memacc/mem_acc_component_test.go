@@ -3,10 +3,10 @@
 package memacc_test
 
 import (
-	"coresight/internal/memacc"
-	"coresight/trace"
 	"encoding/binary"
 	"errors"
+	"github.com/awmorgan/coresight/internal/memacc"
+	"github.com/awmorgan/coresight/trace"
 	"testing"
 )
 

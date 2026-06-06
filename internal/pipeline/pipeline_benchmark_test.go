@@ -1,13 +1,13 @@
 package pipeline_test
 
 import (
-	"coresight/internal/demux"
-	"coresight/internal/etmv4"
-	"coresight/internal/idec"
-	"coresight/internal/memacc"
-	"coresight/internal/pipeline"
-	"coresight/internal/ptm"
-	"coresight/trace"
+	"github.com/awmorgan/coresight/internal/demux"
+	"github.com/awmorgan/coresight/internal/etmv4"
+	"github.com/awmorgan/coresight/internal/idec"
+	"github.com/awmorgan/coresight/internal/memacc"
+	"github.com/awmorgan/coresight/internal/pipeline"
+	"github.com/awmorgan/coresight/internal/ptm"
+	"github.com/awmorgan/coresight/trace"
 	"os"
 	"testing"
 )

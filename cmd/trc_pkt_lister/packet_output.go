@@ -1,9 +1,9 @@
 package main
 
 import (
-	"coresight/internal/pipeline"
-	"coresight/trace"
 	"fmt"
+	"github.com/awmorgan/coresight/internal/pipeline"
+	"github.com/awmorgan/coresight/trace"
 	"io"
 	"slices"
 	"strconv"

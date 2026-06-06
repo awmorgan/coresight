@@ -5,7 +5,7 @@ import (
 	"io"
 	"testing"
 
-	"coresight/trace"
+	"github.com/awmorgan/coresight/trace"
 )
 
 func BenchmarkElementFormatter_InstrRange(b *testing.B) {

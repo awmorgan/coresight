@@ -1,8 +1,8 @@
 package demux_test
 
 import (
-	"coresight/internal/demux"
-	"coresight/trace"
+	"github.com/awmorgan/coresight/internal/demux"
+	"github.com/awmorgan/coresight/trace"
 	"testing"
 )
 

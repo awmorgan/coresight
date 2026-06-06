@@ -1,8 +1,8 @@
 package etmv4
 
 import (
-	"coresight/internal/protocol"
-	"coresight/trace"
+	"github.com/awmorgan/coresight/internal/protocol"
+	"github.com/awmorgan/coresight/trace"
 )
 
 type processState int

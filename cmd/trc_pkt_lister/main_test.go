@@ -3,9 +3,9 @@ package main
 import (
 	"bufio"
 	"compress/gzip"
-	"coresight/internal/memacc"
-	"coresight/internal/snapshot"
-	"coresight/internal/testutil"
+	"github.com/awmorgan/coresight/internal/memacc"
+	"github.com/awmorgan/coresight/internal/snapshot"
+	"github.com/awmorgan/coresight/internal/testutil"
 	"io"
 	"os"
 	"path/filepath"
