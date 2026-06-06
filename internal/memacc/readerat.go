@@ -1,0 +1,48 @@
+package memacc
+
+import (
+	"coresight/trace"
+	"io"
+)
+
+// ReaderAtAccessor implements Accessor using an io.ReaderAt source.
+type ReaderAtAccessor struct {
+	BaseAccessor
+	Source io.ReaderAt
+}
+
+// NewReaderAtAccessor creates a new ReaderAtAccessor.
+func NewReaderAtAccessor(startAddr trace.VAddr, size uint64, source io.ReaderAt, memSpace trace.MemSpaceAcc) *ReaderAtAccessor {
+	var endAddr trace.VAddr
+	if size == 0 {
+		endAddr = startAddr
+	} else {
+		endAddr = startAddr + trace.VAddr(size) - 1
+	}
+	return &ReaderAtAccessor{
+		BaseAccessor: BaseAccessor{
+			StartAddress: startAddr,
+			EndAddress:   endAddr,
+			MemSpaceAcc:  memSpace,
+		},
+		Source: source,
+	}
+}
+
+// ReadBytes implements the Accessor interface.
+func (r *ReaderAtAccessor) ReadBytes(address trace.VAddr, _ trace.MemSpaceAcc, _ uint8, reqBytes uint32, buffer []byte) uint32 {
+	if !r.AddrInRange(address) {
+		return 0
+	}
+	avail := uint32(uint64(r.EndAddress) - uint64(address) + 1)
+	bytesToRead := min(avail, reqBytes, uint32(len(buffer)))
+	if bytesToRead == 0 {
+		return 0
+	}
+	offset := address - r.StartAddress
+	n, err := r.Source.ReadAt(buffer[:bytesToRead], int64(offset))
+	if err != nil && err != io.EOF && n == 0 {
+		return 0
+	}
+	return uint32(n)
+}

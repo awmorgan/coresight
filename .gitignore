@@ -30,3 +30,8 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# Large test files extracted on demand
+cmd/trc_pkt_lister/testdata/bugfix-exact-match.ppl
+
+OpenCSD
