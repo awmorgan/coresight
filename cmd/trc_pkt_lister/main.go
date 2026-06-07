@@ -9,8 +9,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/awmorgan/coresight/internal/snapshot"
-	"github.com/awmorgan/coresight/trace"
+	"github.com/awmorgan/coresight"
 )
 
 func main() {
@@ -48,7 +47,7 @@ func run(args []string) (err error) {
 
 	fmt.Fprintf(out, "Trace Packet Lister : reading snapshot from path %s\n", opts.ssDir)
 
-	reader := snapshot.NewReader()
+	reader := coresight.NewSnapshotReader()
 	reader.SnapshotPath = opts.ssDir
 	if err := reader.Read(); err != nil {
 		return fmt.Errorf("trace packet lister: failed to read snapshot: %w", err)
@@ -163,7 +162,7 @@ func logCmdLine(out io.Writer, args []string) {
 	fmt.Fprintln(out)
 }
 
-func getSourceNames(reader *snapshot.Reader) []string {
+func getSourceNames(reader *coresight.SnapshotReader) []string {
 	if reader.Trace == nil {
 		return nil
 	}
@@ -174,26 +173,26 @@ func getSourceNames(reader *snapshot.Reader) []string {
 	return result
 }
 
-func parseMemSpace(space string) trace.MemSpaceAcc {
+func parseMemSpace(space string) coresight.MemSpaceAcc {
 	s := strings.TrimSpace(strings.ToLower(space))
 	switch s {
 	case "s", "secure":
-		return trace.MemSpaceS
+		return coresight.MemSpaceS
 	case "n", "nonsecure", "ns":
-		return trace.MemSpaceN
+		return coresight.MemSpaceN
 	case "r", "realm":
-		return trace.MemSpaceR
+		return coresight.MemSpaceR
 	case "el1s":
-		return trace.MemSpaceEL1S
+		return coresight.MemSpaceEL1S
 	case "el1n":
-		return trace.MemSpaceEL1N
+		return coresight.MemSpaceEL1N
 	case "el2":
-		return trace.MemSpaceEL2
+		return coresight.MemSpaceEL2
 	case "el3":
-		return trace.MemSpaceEL3
+		return coresight.MemSpaceEL3
 	case "root":
-		return trace.MemSpaceRoot
+		return coresight.MemSpaceRoot
 	default:
-		return trace.MemSpaceAny
+		return coresight.MemSpaceAny
 	}
 }

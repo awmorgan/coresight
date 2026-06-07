@@ -3,19 +3,14 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/awmorgan/coresight/internal/memacc"
-	"github.com/awmorgan/coresight/internal/pipeline"
-	"github.com/awmorgan/coresight/internal/printers"
-	"github.com/awmorgan/coresight/internal/protocol"
-	"github.com/awmorgan/coresight/internal/snapshot"
-	"github.com/awmorgan/coresight/trace"
+	"github.com/awmorgan/coresight"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
-func configureFrameDemux(pipe *pipeline.Pipeline, out io.Writer, opts options) error {
+func configureFrameDemux(pipe *coresight.Pipeline, out io.Writer, opts options) error {
 	demuxer := pipe.Demuxer
 	if demuxer == nil {
 		return nil
@@ -46,13 +41,13 @@ func configureFrameDemux(pipe *pipeline.Pipeline, out io.Writer, opts options) e
 		return fmt.Errorf("configure frame demuxer: %w", err)
 	}
 	if opts.outRawPacked || opts.outRawUnpacked {
-		rp := printers.NewRawFramePrinter(out)
+		rp := coresight.NewRawFramePrinter(out)
 		pipe.Demuxer.SetRawFrameHandler(rp.WriteRawFrame)
 	}
 	return nil
 }
 
-func prepareDecodeMode(builder *snapshot.PipelineBuilder, reader *snapshot.Reader, opts options) ([]string, error) {
+func prepareDecodeMode(builder *coresight.PipelineBuilder, reader *coresight.SnapshotReader, opts options) ([]string, error) {
 	if !opts.decode {
 		return nil, nil
 	}
@@ -70,7 +65,7 @@ func prepareDecodeMode(builder *snapshot.PipelineBuilder, reader *snapshot.Reade
 	return diagnostics, nil
 }
 
-func configureDecodeMode(out io.Writer, builder *snapshot.PipelineBuilder, opts options) error {
+func configureDecodeMode(out io.Writer, builder *coresight.PipelineBuilder, opts options) error {
 	if !opts.decode {
 		return nil
 	}
@@ -87,17 +82,17 @@ func configureDecodeMode(out io.Writer, builder *snapshot.PipelineBuilder, opts 
 	return nil
 }
 
-func mapMemoryRanges(mapper *memacc.GlobalMapper, ssDir string, reader *snapshot.Reader) error {
+func mapMemoryRanges(mapper *coresight.GlobalMapper, ssDir string, reader *coresight.SnapshotReader) error {
 	_, err := mapMemoryRangesWithDiagnostics(mapper, ssDir, reader)
 	return err
 }
 
-func mapMemoryRangesWithDiagnostics(mapper *memacc.GlobalMapper, ssDir string, reader *snapshot.Reader) ([]string, error) {
+func mapMemoryRangesWithDiagnostics(mapper *coresight.GlobalMapper, ssDir string, reader *coresight.SnapshotReader) ([]string, error) {
 	seenAccessors := make(map[string]struct{})
 	loadErrs := make([]string, 0)
 	diagnostics := make([]string, 0)
 
-	recordLoadErr := func(filePath string, memParams snapshot.MemoryDump, format string, args ...any) {
+	recordLoadErr := func(filePath string, memParams coresight.MemoryDump, format string, args ...any) {
 		msg := fmt.Sprintf(format, args...)
 		loadErrs = append(loadErrs, fmt.Sprintf(
 			"path=%s address=0x%x offset=%d length=%d space=%q: %s",
@@ -169,7 +164,7 @@ func mapMemoryRangesWithDiagnostics(mapper *memacc.GlobalMapper, ssDir string, r
 
 			accKey := fmt.Sprintf(
 				"%s|%s|0x%x|%d|%d",
-				memacc.MemSpaceString(space),
+				coresight.MemSpaceString(space),
 				normPath,
 				memParams.Address,
 				windowLen,
@@ -192,9 +187,9 @@ func mapMemoryRangesWithDiagnostics(mapper *memacc.GlobalMapper, ssDir string, r
 				continue
 			}
 
-			acc := memacc.NewBufferAccessor(trace.VAddr(memParams.Address), b, space, normPath)
-			if err := mapper.AddAccessor(acc, trace.BadCSSrcID); err != nil {
-				if !errors.Is(err, protocol.ErrMemAccOverlap) {
+			acc := coresight.NewBufferAccessor(coresight.VAddr(memParams.Address), b, space, normPath)
+			if err := mapper.AddAccessor(acc, coresight.BadCSSrcID); err != nil {
+				if !errors.Is(err, coresight.ErrMemAccOverlap) {
 					return diagnostics, fmt.Errorf("add memory accessor for %s @0x%x: %w", filePath, memParams.Address, err)
 				}
 			}

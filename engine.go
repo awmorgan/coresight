@@ -3,25 +3,14 @@ package coresight
 import (
 	"fmt"
 
-	"github.com/awmorgan/coresight/internal/demux"
-	"github.com/awmorgan/coresight/internal/etmv3"
-	"github.com/awmorgan/coresight/internal/etmv4"
-	"github.com/awmorgan/coresight/internal/idec"
-	"github.com/awmorgan/coresight/internal/itm"
-	"github.com/awmorgan/coresight/internal/memacc"
-	"github.com/awmorgan/coresight/internal/pipeline"
-	"github.com/awmorgan/coresight/internal/protocol"
-	"github.com/awmorgan/coresight/internal/ptm"
-	"github.com/awmorgan/coresight/internal/stm"
-	"github.com/awmorgan/coresight/trace"
 )
 
 // ElementSink is the public callback type. Because it is route-specific,
 // users can use Go closures to capture core-specific context out-of-band.
-type ElementSink func(elem trace.Element)
+type ElementSink func(elem Element)
 
 // RawFrameHandler is the callback type for observing raw frame bytes.
-type RawFrameHandler func(index uint64, elem trace.RawframeElem, data []byte, traceID uint8) error
+type RawFrameHandler func(index uint64, elem RawframeElem, data []byte, traceID uint8) error
 
 // DemuxConfig holds the framing demuxer options.
 type DemuxConfig struct {
@@ -42,37 +31,37 @@ type EngineConfig struct {
 }
 
 type Engine struct {
-	pipe        *pipeline.Pipeline
+	pipe        *Pipeline
 	framedInput bool
-	mapper      *memacc.GlobalMapper
-	index       trace.Index
+	mapper      *GlobalMapper
+	index       Index
 }
 
 // NewEngine creates a programmatic instance of the CoreSight decoding framework.
 func NewEngine(cfg EngineConfig) (*Engine, error) {
 	// 1. Initialize internal memory mapper.
-	mapper := memacc.NewGlobalMapper()
+	mapper := NewGlobalMapper()
 	for _, m := range cfg.Mappings {
-		var space trace.MemSpaceAcc
+		var space MemSpaceAcc
 		switch m.Space {
 		case SpaceSecure:
-			space = trace.MemSpaceS
+			space = MemSpaceS
 		case SpaceNonSecure:
-			space = trace.MemSpaceN
+			space = MemSpaceN
 		default:
-			space = trace.MemSpaceAny
+			space = MemSpaceAny
 		}
-		acc := memacc.NewReaderAtAccessor(trace.VAddr(m.BaseAddress), m.Size, m.Source, space)
-		if err := mapper.AddAccessor(acc, trace.BadCSSrcID); err != nil {
+		acc := NewReaderAtAccessor(VAddr(m.BaseAddress), m.Size, m.Source, space)
+		if err := mapper.AddAccessor(acc, BadCSSrcID); err != nil {
 			return nil, fmt.Errorf("failed to add memory accessor: %w", err)
 		}
 	}
 
 	// 2. Map demux options.
-	var demuxOpts demux.DemuxOptions
+	var demuxOpts DemuxOptions
 	if cfg.FramedInput {
 		if cfg.Demux != nil {
-			demuxOpts = demux.DemuxOptions{
+			demuxOpts = DemuxOptions{
 				HasFsyncs:      cfg.Demux.HasFsyncs,
 				HasHsyncs:      cfg.Demux.HasHsyncs,
 				FrameMemAlign:  cfg.Demux.FrameMemAlign,
@@ -81,17 +70,17 @@ func NewEngine(cfg EngineConfig) (*Engine, error) {
 				ResetOn4xFsync: cfg.Demux.ResetOn4xFsync,
 			}
 		} else {
-			demuxOpts = demux.DemuxOptions{FrameMemAlign: true}
+			demuxOpts = DemuxOptions{FrameMemAlign: true}
 		}
 	}
 
-	p, err := pipeline.NewPipeline(cfg.FramedInput, demuxOpts)
+	p, err := NewPipeline(cfg.FramedInput, demuxOpts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create pipeline: %w", err)
 	}
 
 	if cfg.FramedInput && cfg.Demux != nil && cfg.Demux.RawFrameHandler != nil {
-		p.Demuxer.SetRawFrameHandler(func(idx trace.Index, elem trace.RawframeElem, data []byte, traceID uint8) error {
+		p.Demuxer.SetRawFrameHandler(func(idx Index, elem RawframeElem, data []byte, traceID uint8) error {
 			return cfg.Demux.RawFrameHandler(uint64(idx), elem, data, traceID)
 		})
 	}
@@ -103,11 +92,11 @@ func NewEngine(cfg EngineConfig) (*Engine, error) {
 	}, nil
 }
 
-// Write feeds a block of raw binary trace data directly into the decoding pipeline.
+// Write feeds a block of raw binary trace data directly into the decoding 
 // Execution is entirely synchronous and runs down the call chain to the registered sinks.
 func (e *Engine) Write(p []byte) (int, error) {
 	n, err := e.pipe.Write(e.index, p)
-	e.index += trace.Index(n)
+	e.index += Index(n)
 	return int(n), err
 }
 
@@ -133,16 +122,16 @@ func (e *Engine) RegisterETMv3(traceID uint8, cfg ETMv3Config, sink ElementSink)
 	if traceID >= 128 {
 		return fmt.Errorf("invalid coresight trace ID: %d", traceID)
 	}
-	internalSink := func(elem trace.Element) { sink(elem) }
+	internalSink := func(elem Element) { sink(elem) }
 	c := makeETMv3Config(traceID, cfg)
-	dec, err := etmv3.NewDecoder(c, e.mapper, idec.DecodeInstruction)
+	dec, err := etmv3NewDecoder(c, e.mapper, DecodeInstruction)
 	if err != nil {
 		return fmt.Errorf("failed to create ETMv3 decoder: %w", err)
 	}
 	setupObservers(dec, cfg.PacketObserver, cfg.TraceEndObserver, internalSink)
-	e.pipe.AddRoute(pipeline.Route{
+	e.pipe.AddRoute(Route{
 		TraceID:  traceID,
-		Protocol: trace.ProtocolETMV3,
+		Protocol: ProtocolETMV3,
 		ByteSink: dec,
 	})
 	return nil
@@ -153,16 +142,16 @@ func (e *Engine) RegisterETMv4(traceID uint8, cfg ETMv4Config, sink ElementSink)
 	if traceID >= 128 {
 		return fmt.Errorf("invalid coresight trace ID: %d", traceID)
 	}
-	internalSink := func(elem trace.Element) { sink(elem) }
+	internalSink := func(elem Element) { sink(elem) }
 	c := makeETMv4Config(traceID, cfg)
-	dec, err := etmv4.NewDecoder(c, e.mapper, idec.DecodeInstruction)
+	dec, err := etmv4NewDecoder(c, e.mapper, DecodeInstruction)
 	if err != nil {
 		return fmt.Errorf("failed to create ETMv4 decoder: %w", err)
 	}
 	setupObservers(dec, cfg.PacketObserver, cfg.TraceEndObserver, internalSink)
-	e.pipe.AddRoute(pipeline.Route{
+	e.pipe.AddRoute(Route{
 		TraceID:  traceID,
-		Protocol: trace.ProtocolETMV4I,
+		Protocol: ProtocolETMV4I,
 		ByteSink: dec,
 	})
 	return nil
@@ -173,16 +162,16 @@ func (e *Engine) RegisterPTM(traceID uint8, cfg PTMConfig, sink ElementSink) err
 	if traceID >= 128 {
 		return fmt.Errorf("invalid coresight trace ID: %d", traceID)
 	}
-	internalSink := func(elem trace.Element) { sink(elem) }
+	internalSink := func(elem Element) { sink(elem) }
 	c := makePTMConfig(traceID, cfg)
-	dec, err := ptm.NewDecoder(c, e.mapper, idec.DecodeInstruction)
+	dec, err := ptmNewDecoder(c, e.mapper, DecodeInstruction)
 	if err != nil {
 		return fmt.Errorf("failed to create PTM decoder: %w", err)
 	}
 	setupObservers(dec, cfg.PacketObserver, cfg.TraceEndObserver, internalSink)
-	e.pipe.AddRoute(pipeline.Route{
+	e.pipe.AddRoute(Route{
 		TraceID:  traceID,
-		Protocol: trace.ProtocolPTM,
+		Protocol: ProtocolPTM,
 		ByteSink: dec,
 	})
 	return nil
@@ -193,16 +182,16 @@ func (e *Engine) RegisterSTM(traceID uint8, cfg STMConfig, sink ElementSink) err
 	if traceID >= 128 {
 		return fmt.Errorf("invalid coresight trace ID: %d", traceID)
 	}
-	internalSink := func(elem trace.Element) { sink(elem) }
+	internalSink := func(elem Element) { sink(elem) }
 	c := makeSTMConfig(traceID, cfg)
-	dec, err := stm.NewDecoder(c)
+	dec, err := stmNewDecoder(c)
 	if err != nil {
 		return fmt.Errorf("failed to create STM decoder: %w", err)
 	}
 	setupObservers(dec, cfg.PacketObserver, cfg.TraceEndObserver, internalSink)
-	e.pipe.AddRoute(pipeline.Route{
+	e.pipe.AddRoute(Route{
 		TraceID:  traceID,
-		Protocol: trace.ProtocolSTM,
+		Protocol: ProtocolSTM,
 		ByteSink: dec,
 	})
 	return nil
@@ -213,29 +202,29 @@ func (e *Engine) RegisterITM(traceID uint8, cfg ITMConfig, sink ElementSink) err
 	if traceID >= 128 {
 		return fmt.Errorf("invalid coresight trace ID: %d", traceID)
 	}
-	internalSink := func(elem trace.Element) { sink(elem) }
+	internalSink := func(elem Element) { sink(elem) }
 	c := makeITMConfig(traceID, cfg)
-	dec, err := itm.NewDecoder(c)
+	dec, err := itmNewDecoder(c)
 	if err != nil {
 		return fmt.Errorf("failed to create ITM decoder: %w", err)
 	}
 	setupObservers(dec, cfg.PacketObserver, cfg.TraceEndObserver, internalSink)
-	e.pipe.AddRoute(pipeline.Route{
+	e.pipe.AddRoute(Route{
 		TraceID:  traceID,
-		Protocol: trace.ProtocolITM,
+		Protocol: ProtocolITM,
 		ByteSink: dec,
 	})
 	return nil
 }
 
-func setupObservers(dec any, pktObs PacketObserver, endObs func(), sink protocol.ElementSink) {
-	if s, ok := any(dec).(interface{ SetElementSink(protocol.ElementSink) }); ok {
+func setupObservers(dec any, pktObs PacketObserver, endObs func(), sink internalElementSink) {
+	if s, ok := any(dec).(interface{ SetElementSink(internalElementSink) }); ok {
 		s.SetElementSink(sink)
 	}
 	if pktObs != nil {
-		if s, ok := any(dec).(interface{ SetPacketObserver(protocol.PacketObserver) }); ok {
-			s.SetPacketObserver(func(idx trace.Index, pkt fmt.Stringer, raw []byte) {
-				pktObs(uint64(idx), pkt, raw)
+		if s, ok := any(dec).(interface{ SetPacketObserver(PacketObserver) }); ok {
+			s.SetPacketObserver(func(idx uint64, pkt fmt.Stringer, raw []byte) {
+				pktObs(idx, pkt, raw)
 			})
 		}
 	}
@@ -246,8 +235,8 @@ func setupObservers(dec any, pktObs PacketObserver, endObs func(), sink protocol
 	}
 }
 
-func makeETMv4Config(traceID uint8, c ETMv4Config) *etmv4.Config {
-	cfg := etmv4.NewDefaultConfig()
+func makeETMv4Config(traceID uint8, c ETMv4Config) *etmv4Config {
+	cfg := etmv4NewDefaultConfig()
 	cfg.RegTraceIDR = uint32(traceID)
 	if c.IDR0 != 0 {
 		cfg.RegIDR0 = c.IDR0
@@ -268,10 +257,10 @@ func makeETMv4Config(traceID uint8, c ETMv4Config) *etmv4.Config {
 	cfg.RegIDR12 = c.IDR12
 	cfg.RegIDR13 = c.IDR13
 	cfg.RegDevArch = c.DevArch
-	if c.ArchVersion != trace.ArchUnknown {
+	if c.ArchVersion != ArchUnknown {
 		cfg.ArchVer = c.ArchVersion
 	}
-	if c.CoreProfile != trace.ProfileUnknown {
+	if c.CoreProfile != ProfileUnknown {
 		cfg.CoreProf = c.CoreProfile
 	}
 	cfg.ErrOnAA64BadOpcode = c.ErrOnAA64BadOpcode
@@ -280,8 +269,8 @@ func makeETMv4Config(traceID uint8, c ETMv4Config) *etmv4.Config {
 	return cfg
 }
 
-func makeETMv3Config(traceID uint8, c ETMv3Config) *etmv3.Config {
-	cfg := etmv3.NewDefaultConfig()
+func makeETMv3Config(traceID uint8, c ETMv3Config) *etmv3Config {
+	cfg := etmv3NewDefaultConfig()
 	cfg.RegTrcID = uint32(traceID)
 	if c.IDR != 0 {
 		cfg.RegIDR = c.IDR
@@ -292,39 +281,39 @@ func makeETMv3Config(traceID uint8, c ETMv3Config) *etmv3.Config {
 	if c.CCER != 0 {
 		cfg.RegCCER = c.CCER
 	}
-	if c.ArchVersion != trace.ArchUnknown {
+	if c.ArchVersion != ArchUnknown {
 		cfg.ArchVer = c.ArchVersion
 	}
-	if c.CoreProfile != trace.ProfileUnknown {
+	if c.CoreProfile != ProfileUnknown {
 		cfg.CoreProf = c.CoreProfile
 	}
 	return cfg
 }
 
-func makePTMConfig(traceID uint8, c PTMConfig) *ptm.Config {
+func makePTMConfig(traceID uint8, c PTMConfig) *ptmConfig {
 	idr := c.IDR
 	if idr == 0 {
 		idr = 0x4100F310
 	}
 	arch := c.ArchVersion
-	if arch == trace.ArchUnknown {
-		arch = trace.ArchV7
+	if arch == ArchUnknown {
+		arch = ArchV7
 	}
 	prof := c.CoreProfile
-	if prof == trace.ProfileUnknown {
-		prof = trace.ProfileCortexA
+	if prof == ProfileUnknown {
+		prof = ProfileCortexA
 	}
-	return ptm.ParseConfig(uint32(traceID), idr, c.Control, c.CCER, arch, prof)
+	return ptmParseConfig(uint32(traceID), idr, c.Control, c.CCER, arch, prof)
 }
 
-func makeSTMConfig(traceID uint8, c STMConfig) *stm.Config {
-	cfg := &stm.Config{RegTCSR: c.ControlRegister}
+func makeSTMConfig(traceID uint8, c STMConfig) *stmConfig {
+	cfg := &stmConfig{RegTCSR: c.ControlRegister}
 	cfg.SetTraceID(traceID)
 	return cfg
 }
 
-func makeITMConfig(traceID uint8, c ITMConfig) *itm.Config {
-	cfg := &itm.Config{RegTCR: c.ControlRegister}
+func makeITMConfig(traceID uint8, c ITMConfig) *itmConfig {
+	cfg := &itmConfig{RegTCR: c.ControlRegister}
 	cfg.SetTraceID(traceID)
 	return cfg
 }

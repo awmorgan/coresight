@@ -6,12 +6,10 @@ import (
 	"io"
 	"path/filepath"
 
-	"github.com/awmorgan/coresight/internal/pipeline"
-	"github.com/awmorgan/coresight/internal/printers"
-	"github.com/awmorgan/coresight/internal/snapshot"
+	"github.com/awmorgan/coresight"
 )
 
-func listTracePackets(out io.Writer, reader *snapshot.Reader, opts options, sourceNames []string) error {
+func listTracePackets(out io.Writer, reader *coresight.SnapshotReader, opts options, sourceNames []string) error {
 	builder, pipe, err := buildSnapshotDecodeTree(reader, opts)
 	if err != nil {
 		return err
@@ -35,7 +33,7 @@ func listTracePackets(out io.Writer, reader *snapshot.Reader, opts options, sour
 		}
 	}
 
-	genPrinter := printers.NewGenericElementPrinter(out)
+	genPrinter := coresight.NewGenericElementPrinter(out)
 	genPrinter.SetIDFilter(opts.idList)
 	if opts.profile {
 		genPrinter.SetMute(true)
@@ -66,10 +64,10 @@ func listTracePackets(out io.Writer, reader *snapshot.Reader, opts options, sour
 }
 
 func buildSnapshotDecodeTree(
-	reader *snapshot.Reader,
+	reader *coresight.SnapshotReader,
 	opts options,
-) (*snapshot.PipelineBuilder, *pipeline.Pipeline, error) {
-	builder := snapshot.NewPipelineBuilder(reader)
+) (*coresight.PipelineBuilder, *coresight.Pipeline, error) {
+	builder := coresight.NewPipelineBuilder(reader)
 	builder.SetErrOnAA64BadOpcode(opts.aa64OpcodeChk)
 	builder.SetInstrRangeLimit(opts.instrRangeLimit)
 	builder.SetSrcAddrNAtoms(opts.srcAddrNAtoms)
@@ -91,9 +89,9 @@ func buildSnapshotDecodeTree(
 
 func runSingleSession(
 	out io.Writer,
-	pipe *pipeline.Pipeline,
+	pipe *coresight.Pipeline,
 	fileName string,
-	genPrinter *printers.GenericElementPrinter,
+	genPrinter *coresight.GenericElementPrinter,
 	opts options,
 ) error {
 	return processTraceFile(out, pipe, fileName, genPrinter, opts)
@@ -101,10 +99,10 @@ func runSingleSession(
 
 func runMultiSession(
 	out io.Writer,
-	reader *snapshot.Reader,
-	pipe *pipeline.Pipeline,
+	reader *coresight.SnapshotReader,
+	pipe *coresight.Pipeline,
 	sourceNames []string,
-	genPrinter *printers.GenericElementPrinter,
+	genPrinter *coresight.GenericElementPrinter,
 	opts options,
 ) error {
 	total := len(sourceNames)

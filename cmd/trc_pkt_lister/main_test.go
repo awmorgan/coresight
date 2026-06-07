@@ -3,9 +3,7 @@ package main
 import (
 	"bufio"
 	"compress/gzip"
-	"github.com/awmorgan/coresight/internal/memacc"
-	"github.com/awmorgan/coresight/internal/snapshot"
-	"github.com/awmorgan/coresight/internal/testutil"
+	"github.com/awmorgan/coresight"
 	"io"
 	"os"
 	"path/filepath"
@@ -93,7 +91,7 @@ func TestTraceListerGoldens(t *testing.T) {
 				t.Fatalf("parse golden %s: %v", tc.goldenPath, err)
 			}
 
-			if diffIdx, gotLine, wantLine := testutil.FirstDiff(gotLines, wantLines); diffIdx != 0 {
+			if diffIdx, gotLine, wantLine := coresight.FirstDiff(gotLines, wantLines); diffIdx != 0 {
 				t.Errorf("Output mismatch at line %d\nwant: %s\n got: %s", diffIdx, wantLine, gotLine)
 				// output files for debugging and comparing files
 				repoRoot := filepath.Join("..", "..")
@@ -432,7 +430,7 @@ func comparableTraceListerOutputFromFile(path string) ([]string, error) {
 			continue
 		}
 
-		records := testutil.SplitIdxRecords(line)
+		records := coresight.SplitIdxRecords(line)
 		if len(records) > 1 {
 			out = append(out, records...)
 			continue
@@ -601,12 +599,12 @@ func TestMapMemoryRangesSameFileDifferentOffsetsBothMapped(t *testing.T) {
 		t.Fatalf("write memory file: %v", err)
 	}
 
-	reader := &snapshot.Reader{
-		ParsedDeviceList: map[string]*snapshot.Device{
+	reader := &coresight.SnapshotReader{
+		ParsedDeviceList: map[string]*coresight.Device{
 			"cpu_0": {
 				Name:  "cpu_0",
 				Class: "core",
-				Memory: []snapshot.MemoryDump{
+				Memory: []coresight.MemoryDump{
 					{
 						Path:    "mem.bin",
 						Address: 0x1000,
@@ -626,7 +624,7 @@ func TestMapMemoryRangesSameFileDifferentOffsetsBothMapped(t *testing.T) {
 		},
 	}
 
-	mapper := memacc.NewGlobalMapper()
+	mapper := coresight.NewGlobalMapper()
 	err := mapMemoryRanges(mapper, dir, reader)
 	if err != nil {
 		t.Fatalf("mapMemoryRanges returned error: %v", err)
@@ -648,12 +646,12 @@ func TestMapMemoryRangesBadOffsetReturnsError(t *testing.T) {
 		t.Fatalf("write memory file: %v", err)
 	}
 
-	reader := &snapshot.Reader{
-		ParsedDeviceList: map[string]*snapshot.Device{
+	reader := &coresight.SnapshotReader{
+		ParsedDeviceList: map[string]*coresight.Device{
 			"cpu_0": {
 				Name:  "cpu_0",
 				Class: "core",
-				Memory: []snapshot.MemoryDump{
+				Memory: []coresight.MemoryDump{
 					{
 						Path:    "mem.bin",
 						Address: 0x1000,
@@ -666,7 +664,7 @@ func TestMapMemoryRangesBadOffsetReturnsError(t *testing.T) {
 		},
 	}
 
-	mapper := memacc.NewGlobalMapper()
+	mapper := coresight.NewGlobalMapper()
 	err := mapMemoryRanges(mapper, dir, reader)
 	if err == nil {
 		t.Fatal("expected error for bad offset, got nil")
@@ -689,12 +687,12 @@ func TestMapMemoryRangesBadOffsetReturnsError(t *testing.T) {
 func TestMapMemoryRangesUnreadableFileIgnored(t *testing.T) {
 	dir := t.TempDir()
 
-	reader := &snapshot.Reader{
-		ParsedDeviceList: map[string]*snapshot.Device{
+	reader := &coresight.SnapshotReader{
+		ParsedDeviceList: map[string]*coresight.Device{
 			"cpu_0": {
 				Name:  "cpu_0",
 				Class: "core",
-				Memory: []snapshot.MemoryDump{
+				Memory: []coresight.MemoryDump{
 					{
 						Path:    "missing.bin",
 						Address: 0x1000,
@@ -707,7 +705,7 @@ func TestMapMemoryRangesUnreadableFileIgnored(t *testing.T) {
 		},
 	}
 
-	mapper := memacc.NewGlobalMapper()
+	mapper := coresight.NewGlobalMapper()
 	err := mapMemoryRanges(mapper, dir, reader)
 	if err != nil {
 		t.Fatalf("expected missing dump file to be ignored, got error: %v", err)
@@ -725,12 +723,12 @@ func TestMapMemoryRangesDuplicateSemanticMappingIgnored(t *testing.T) {
 		t.Fatalf("write memory file: %v", err)
 	}
 
-	reader := &snapshot.Reader{
-		ParsedDeviceList: map[string]*snapshot.Device{
+	reader := &coresight.SnapshotReader{
+		ParsedDeviceList: map[string]*coresight.Device{
 			"cpu_0": {
 				Name:  "cpu_0",
 				Class: "core",
-				Memory: []snapshot.MemoryDump{
+				Memory: []coresight.MemoryDump{
 					{
 						Path:    "mem.bin",
 						Address: 0x1000,
@@ -750,7 +748,7 @@ func TestMapMemoryRangesDuplicateSemanticMappingIgnored(t *testing.T) {
 		},
 	}
 
-	mapper := memacc.NewGlobalMapper()
+	mapper := coresight.NewGlobalMapper()
 	err := mapMemoryRanges(mapper, dir, reader)
 	if err != nil {
 		t.Fatalf("mapMemoryRanges returned error: %v", err)
