@@ -49,12 +49,12 @@ func TestCAPIPacketPrintGolden(t *testing.T) {
 		ArchV8,
 		ProfileCortexA,
 	)
-	dec, err := etmv4NewDecoder(cfg, mapper, DecodeInstruction)
+	dec, err := etmv4NewDecoder(cfg, mapper, decodeInstruction)
 	if err != nil {
 		t.Fatalf("new ETMv4 decoder: %v", err)
 	}
 
-	pipe, err := NewPipeline(true, DemuxOptions{FrameMemAlign: true})
+	pipe, err := newPipeline(true, DemuxOptions{FrameMemAlign: true})
 	if err != nil {
 		t.Fatalf("new pipeline: %v", err)
 	}

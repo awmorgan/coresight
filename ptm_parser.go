@@ -520,7 +520,7 @@ func (p *ptmDecoder) PacketISync() error {
 		if pktIndex == 5 {
 			altISA := (currByte >> 2) & 0x1
 			reason := (currByte >> 5) & 0x3
-			p.ctx.currPacket.ISyncReason = ISyncReason(reason)
+			p.ctx.currPacket.ISyncReason = iSyncReason(reason)
 
 			p.ctx.currPacket.Context.CurrNS = (currByte & PktISyncNSMask) != 0
 			p.ctx.currPacket.Context.CurrAltISA = (currByte & PktISyncAltISAMask) != 0
@@ -915,7 +915,7 @@ func (p *ptmDecoder) pktBranchAddr() error {
 		scratch := p.ctx.Reader.Scratch()
 		E1 := scratch[p.ctx.numAddrBytes]
 		ENum := uint16(E1>>1) & 0xF
-		excep := ExcpReserved
+		excep := excpReserved
 
 		p.ctx.currPacket.Context.CurrNS = (E1 & 0x1) != 0
 		p.ctx.currPacket.Context.Updated = true
@@ -926,11 +926,11 @@ func (p *ptmDecoder) pktBranchAddr() error {
 			ENum |= uint16(E2&0x1F) << 4
 		}
 		if ENum <= 0xF {
-			v7ARExceptions := []ArmV7Exception{
-				ExcpNoException, ExcpDebugHalt, ExcpSMC, ExcpHyp,
-				ExcpAsyncDAbort, ExcpJazelle, ExcpReserved, ExcpReserved,
-				ExcpReset, ExcpUndef, ExcpSVC, ExcpPrefAbort,
-				ExcpSyncDataAbort, ExcpGeneric, ExcpIRQ, ExcpFIQ,
+			v7ARExceptions := []armV7Exception{
+				excpNoException, excpDebugHalt, excpSMC, excpHyp,
+				excpAsyncDAbort, excpJazelle, excpReserved, excpReserved,
+				excpReset, excpUndef, excpSVC, excpPrefAbort,
+				excpSyncDataAbort, excpGeneric, excpIRQ, excpFIQ,
 			}
 			excep = v7ARExceptions[ENum]
 		}

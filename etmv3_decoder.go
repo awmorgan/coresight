@@ -30,7 +30,7 @@ type etmv3Decoder struct {
 	currState    etmv3DecodeState
 	unsyncInfo   UnsyncInfo
 
-	codeFollower *CodeFollower
+	codeFollower *codeFollower
 
 	peContext   PEContext
 	iAddr       uint64
@@ -59,11 +59,11 @@ func etmv3NewDecoder(cfg *etmv3Config, mem internalMemoryReader, instr internalI
 		Config:      cfg,
 		MemAccess:   mem,
 		InstrDecode: instr,
-		codeFollower: &CodeFollower{
+		codeFollower: &codeFollower{
 			MemAccess: mem,
 			IdDecode:  instr,
 			TraceID:   cfg.TraceID(),
-			Arch: ArchProfile{
+			Arch: archProfile{
 				Arch:    cfg.ArchVer,
 				Profile: cfg.CoreProf,
 			},
@@ -325,13 +325,13 @@ func (d *etmv3Decoder) processISync() error {
 	pkt := d.CurrPacketIn
 	ctxtUpdate := pkt.Context.UpdatedC || pkt.Context.UpdatedV || pkt.Context.Updated
 
-	if d.needIsync || pkt.ISyncInfo.Reason != ISyncPeriodic {
+	if d.needIsync || pkt.ISyncInfo.Reason != iSyncPeriodic {
 		elem := Element{ElemType: GenElemTraceOn}
 		elem.SetTraceOnReason(TraceOnNormal)
 		switch pkt.ISyncInfo.Reason {
-		case ISyncTraceRestartAfterOverflow:
+		case iSyncTraceRestartAfterOverflow:
 			elem.SetTraceOnReason(TraceOnOverflow)
-		case ISyncDebugExit:
+		case iSyncDebugExit:
 			elem.SetTraceOnReason(TraceOnExDebug)
 		}
 		d.OutputTraceElement(elem)
@@ -495,15 +495,15 @@ func (d *etmv3Decoder) processPHdr() error {
 			}
 
 			if atomsNum > 0 {
-				val := AtomN
+				val := atomN
 				if (enBits & 1) == 1 {
-					val = AtomE
+					val = atomE
 				}
 
 				d.codeFollower.Isa = pkt.CurrISA
 				d.codeFollower.InstrInfo.ISA = pkt.CurrISA
 
-				res, err := d.codeFollower.FollowSingleAtom(VAddr(d.iAddr), val)
+				res, err := d.codeFollower.followSingleAtom(VAddr(d.iAddr), val)
 				if err != nil && !errors.Is(err, ErrMemNacc) {
 					return err
 				}
@@ -513,7 +513,7 @@ func (d *etmv3Decoder) processPHdr() error {
 					elem.EndAddr = res.RangeEn
 					elem.ISA = pkt.CurrISA
 					elem.Payload.NumInstrRange = res.NumInstr
-					elem.SetLastInstrInfo(val == AtomE, res.InstrInfo.Type, res.InstrInfo.Subtype, res.InstrInfo.InstrSize)
+					elem.SetLastInstrInfo(val == atomE, res.InstrInfo.Type, res.InstrInfo.Subtype, res.InstrInfo.InstrSize)
 					elem.LastInstrCond = res.InstrInfo.IsConditional
 
 					d.iAddr = uint64(res.NextAddr)

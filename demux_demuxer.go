@@ -43,7 +43,7 @@ type Demuxer struct {
 	unpackBuf [16]byte
 }
 
-func NewDemuxer(streams []internalByteSink) *Demuxer {
+func newDemuxer(streams []internalByteSink) *Demuxer {
 	d := &Demuxer{
 		rawChanEnable: make([]bool, maxTraceID),
 		streams:       streams,

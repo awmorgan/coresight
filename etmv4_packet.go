@@ -672,7 +672,7 @@ func appendTraceValueWithPktBitsLimit(dst []byte, a etmv4Address, showPktBits bo
 		dst = append(dst, '?')
 	}
 	if validHex > 0 {
-		dst = etmv4AppendUpperHex(dst, uint64(a.Val)&BitMask(validBits), validHex)
+		dst = etmv4AppendUpperHex(dst, uint64(a.Val)&bitMask(validBits), validHex)
 	}
 	if validBits < totalBits {
 		dst = append(dst, " ("...)
@@ -681,7 +681,7 @@ func appendTraceValueWithPktBitsLimit(dst []byte, a etmv4Address, showPktBits bo
 	}
 	if showPktBits && a.PktBits > 0 && a.PktBits < limit {
 		dst = append(dst, " ~[0x"...)
-		dst = etmv4AppendUpperHex(dst, uint64(a.Val)&BitMask(a.PktBits), 0)
+		dst = etmv4AppendUpperHex(dst, uint64(a.Val)&bitMask(a.PktBits), 0)
 		dst = append(dst, ']')
 	}
 	return dst

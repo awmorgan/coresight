@@ -74,7 +74,7 @@ func NewEngine(cfg EngineConfig) (*Engine, error) {
 		}
 	}
 
-	p, err := NewPipeline(cfg.FramedInput, demuxOpts)
+	p, err := newPipeline(cfg.FramedInput, demuxOpts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create pipeline: %w", err)
 	}
@@ -124,7 +124,7 @@ func (e *Engine) RegisterETMv3(traceID uint8, cfg ETMv3Config, sink ElementSink)
 	}
 	internalSink := func(elem Element) { sink(elem) }
 	c := makeETMv3Config(traceID, cfg)
-	dec, err := etmv3NewDecoder(c, e.mapper, DecodeInstruction)
+	dec, err := etmv3NewDecoder(c, e.mapper, decodeInstruction)
 	if err != nil {
 		return fmt.Errorf("failed to create ETMv3 decoder: %w", err)
 	}
@@ -144,7 +144,7 @@ func (e *Engine) RegisterETMv4(traceID uint8, cfg ETMv4Config, sink ElementSink)
 	}
 	internalSink := func(elem Element) { sink(elem) }
 	c := makeETMv4Config(traceID, cfg)
-	dec, err := etmv4NewDecoder(c, e.mapper, DecodeInstruction)
+	dec, err := etmv4NewDecoder(c, e.mapper, decodeInstruction)
 	if err != nil {
 		return fmt.Errorf("failed to create ETMv4 decoder: %w", err)
 	}
@@ -164,7 +164,7 @@ func (e *Engine) RegisterPTM(traceID uint8, cfg PTMConfig, sink ElementSink) err
 	}
 	internalSink := func(elem Element) { sink(elem) }
 	c := makePTMConfig(traceID, cfg)
-	dec, err := ptmNewDecoder(c, e.mapper, DecodeInstruction)
+	dec, err := ptmNewDecoder(c, e.mapper, decodeInstruction)
 	if err != nil {
 		return fmt.Errorf("failed to create PTM decoder: %w", err)
 	}

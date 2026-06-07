@@ -76,7 +76,7 @@ type ptmContext struct {
 
 // ptmExcep represents an exception inside a PTM packet.
 type ptmExcep struct {
-	Type    ArmV7Exception
+	Type    armV7Exception
 	Number  uint16
 	Present bool
 }
@@ -97,7 +97,7 @@ type ptmPacket struct {
 
 	Context ptmContext
 	Atom    ptmAtomPkt
-	ISyncReason ISyncReason
+	ISyncReason iSyncReason
 
 	CycleCount uint32
 	CCValid    bool
@@ -178,7 +178,7 @@ func (p *ptmPacket) UpdateISA(currISA ISA) {
 	p.CurrISA = currISA
 }
 
-func (p *ptmPacket) SetException(exType ArmV7Exception, exNum uint16) {
+func (p *ptmPacket) SetException(exType armV7Exception, exNum uint16) {
 	p.Exception.Present = true
 	p.Exception.Type = exType
 	p.Exception.Number = exNum
@@ -250,7 +250,7 @@ func (p *ptmPacket) String() string {
 func (p *ptmPacket) writeDetails(sb *strings.Builder) {
 	switch p.Type {
 	case PacketBadSequence:
-		fmt.Fprintf(sb, "[%s]; ", PacketTypeName(p.ErrType))
+		fmt.Fprintf(sb, "[%s]; ", packetTypeName(p.ErrType))
 	case PacketAtom:
 		sb.WriteString(p.getAtomStr())
 	case PacketContextID:
@@ -433,12 +433,12 @@ func ptmPacketInfo(t ptmPacketType) packetTypeInfo {
 	return packetTypeInfo{"UNKNOWN", "Unknown packet type"}
 }
 
-// PacketTypeName returns the canonical packet-type name used in raw/golden output.
-func PacketTypeName(t ptmPacketType) string {
+// packetTypeName returns the canonical packet-type name used in raw/golden output.
+func packetTypeName(t ptmPacketType) string {
 	return ptmPacketInfo(t).name
 }
 
-func iSyncReasonName(reason ISyncReason) string {
+func iSyncReasonName(reason iSyncReason) string {
 	idx := int(reason)
 	if idx >= 0 && idx < len(iSyncReasonNames) {
 		return iSyncReasonNames[idx]
@@ -502,13 +502,13 @@ type ptmAtomPkt struct {
 }
 
 // Pop returns the next atom value and updates the packet state.
-func (a *ptmAtomPkt) Pop() AtmVal {
+func (a *ptmAtomPkt) Pop() atmVal {
 	if a.Num == 0 {
-		return AtomN
+		return atomN
 	}
-	val := AtomN
+	val := atomN
 	if (a.EnBits & 0x1) != 0 {
-		val = AtomE
+		val = atomE
 	}
 	a.EnBits >>= 1
 	a.Num--

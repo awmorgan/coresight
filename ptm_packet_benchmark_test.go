@@ -36,7 +36,7 @@ func BenchmarkPtmPacketString_ISync(b *testing.B) {
 		AddrVal:     VAddr(0xc0012345),
 		CurrISA:     ISAThumb2,
 		Context:     ptmContext{CurrNS: true, UpdatedC: true, CtxtID: 0x12345678},
-		ISyncReason: ISyncPeriodic,
+		ISyncReason: iSyncPeriodic,
 		CycleCount:  12,
 		CCValid:     true,
 	}

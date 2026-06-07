@@ -5,23 +5,23 @@ import (
 
 )
 
-type QSuppType int
+type qSuppType int
 
 const (
-	QNone QSuppType = iota
-	QICountOnly
-	QNoICountOnly
-	QFull
+	qNone qSuppType = iota
+	qICountOnly
+	qNoICountOnly
+	qFull
 )
 
-type CondITrace int
+type condITrace int
 
 const (
-	CondTraceDisabled CondITrace = iota
-	CondTraceLoad
-	CondTraceStore
-	CondTraceLoadStore
-	CondTraceAll
+	condTraceDisabled condITrace = iota
+	condTraceLoad
+	condTraceStore
+	condTraceLoadStore
+	condTraceAll
 )
 
 // etmv4Config represents the ETMv4 instruction trace register configuration.
@@ -109,10 +109,10 @@ func (c *etmv4Config) TimeStampSize() uint32 {
 func (c *etmv4Config) CommitOpt1() bool  { return (c.RegIDR0&0x20000000) != 0 && c.HasCycleCountI() }
 func (c *etmv4Config) CommTransP0() bool { return (c.RegIDR0 & 0x40000000) == 0 }
 
-func (c *etmv4Config) QSuppType() QSuppType {
-	return [...]QSuppType{QNone, QICountOnly, QNoICountOnly, QFull}[(c.RegIDR0>>15)&0x3]
+func (c *etmv4Config) QSuppType() qSuppType {
+	return [...]qSuppType{qNone, qICountOnly, qNoICountOnly, qFull}[(c.RegIDR0>>15)&0x3]
 }
-func (c *etmv4Config) HasQElem() bool { return c.QSuppType() != QNone }
+func (c *etmv4Config) HasQElem() bool { return c.QSuppType() != qNone }
 
 func (c *etmv4Config) IASizeMax() uint32 {
 	if c.RegIDR2&0x1F == 0x8 {
@@ -163,18 +163,18 @@ func (c *etmv4Config) EnabledTS() bool        { return (c.RegConfigR & (1 << 11)
 func (c *etmv4Config) EnabledRetStack() bool  { return (c.RegConfigR & (1 << 12)) != 0 }
 func (c *etmv4Config) EnabledQE() bool        { return (c.RegConfigR & (0x3 << 13)) != 0 }
 
-func (c *etmv4Config) EnabledCondITrace() CondITrace {
+func (c *etmv4Config) EnabledCondITrace() condITrace {
 	switch (c.RegConfigR >> 8) & 0x7 {
 	case 1:
-		return CondTraceLoad
+		return condTraceLoad
 	case 2:
-		return CondTraceStore
+		return condTraceStore
 	case 3:
-		return CondTraceLoadStore
+		return condTraceLoadStore
 	case 7:
-		return CondTraceAll
+		return condTraceAll
 	default:
-		return CondTraceDisabled
+		return condTraceDisabled
 	}
 }
 

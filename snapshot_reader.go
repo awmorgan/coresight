@@ -60,7 +60,7 @@ func (r *SnapshotReader) Read() error {
 
 	r.SnapshotFound = true
 
-	devList, err := ParseDeviceList(file)
+	devList, err := parseDeviceList(file)
 	if err != nil {
 		return fmt.Errorf("parse device list %s: %w", iniPath, err)
 	}
@@ -87,7 +87,7 @@ func (r *SnapshotReader) loadDevice(devName string, iniFileName string) error {
 	}
 	defer devFile.Close()
 
-	parsedDev, err := ParseSingleDevice(devFile)
+	parsedDev, err := parseSingleDevice(devFile)
 	if err != nil {
 		return fmt.Errorf("failed to parse device %s: %w", devName, err)
 	}
@@ -128,14 +128,14 @@ func (r *SnapshotReader) readTraceMetadata(name string) error {
 	}
 	defer file.Close()
 
-	trace, err := ParseTraceMetaData(file)
+	trace, err := parseTraceMetaData(file)
 	if err != nil {
 		return fmt.Errorf("parse trace metadata %s: %w", path, err)
 	}
 
 	r.Trace = trace
 	for _, buf := range trace.Buffers {
-		tree, ok := SourceTree(buf.BufferName, trace)
+		tree, ok := sourceTree(buf.BufferName, trace)
 		if ok {
 			r.SourceTrees[buf.BufferName] = tree
 		}

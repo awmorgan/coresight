@@ -1,21 +1,21 @@
 package coresight
 
 
-// DecodeInfo provides supplementary decode information
-type DecodeInfo struct {
+// decodeInfo provides supplementary decode information
+type decodeInfo struct {
 	ArchVersion  ArchVersion
 	InstrSubType InstrSubtype
 }
 
-// IsWideThumb tests if a halfword is the first half of a 32-bit instruction,
+// isWideThumb tests if a halfword is the first half of a 32-bit instruction,
 // as opposed to a complete 16-bit instruction.
-func IsWideThumb(insthw uint16) bool {
+func isWideThumb(insthw uint16) bool {
 	return (insthw & 0xF800) >= 0xE800
 }
 
-// InstARMIsDirectBranch tests whether an instruction is a direct (aka immediate) branch.
+// instARMIsDirectBranch tests whether an instruction is a direct (aka immediate) branch.
 // Performance event 0x0D counts these.
-func InstARMIsDirectBranch(inst uint32) bool {
+func instARMIsDirectBranch(inst uint32) bool {
 	switch {
 	case (inst & 0xf0000000) == 0xf0000000:
 		// NV space
@@ -28,12 +28,12 @@ func InstARMIsDirectBranch(inst uint32) bool {
 	}
 }
 
-func InstARMWfiWfe(inst uint32) bool {
+func instARMWfiWfe(inst uint32) bool {
 	// WFI & WFE may be traced as branches in etm4.3 ++
 	return inst&0xf0000000 != 0xf0000000 && inst&0x0ffffffe == 0x0320f002
 }
 
-func InstARMIsIndirectBranch(inst uint32, info *DecodeInfo) bool {
+func instARMIsIndirectBranch(inst uint32, info *decodeInfo) bool {
 	switch {
 	case (inst & 0xf0000000) == 0xf0000000:
 		// NV space
@@ -88,12 +88,12 @@ func InstARMIsIndirectBranch(inst uint32, info *DecodeInfo) bool {
 	}
 }
 
-func InstThumbIsDirectBranch(inst uint32, info *DecodeInfo) bool {
-	isBranch, _, _ := InstThumbIsDirectBranchLink(inst, info)
+func instThumbIsDirectBranch(inst uint32, info *decodeInfo) bool {
+	isBranch, _, _ := instThumbIsDirectBranchLink(inst, info)
 	return isBranch
 }
 
-func InstThumbIsDirectBranchLink(inst uint32, info *DecodeInfo) (isBranch, isLink, isCond bool) {
+func instThumbIsDirectBranchLink(inst uint32, info *decodeInfo) (isBranch, isLink, isCond bool) {
 	switch {
 	case (inst&0xf0000000) == 0xd0000000 && (inst&0x0e000000) != 0x0e000000:
 		// B<c> (encoding T1)
@@ -129,18 +129,18 @@ func InstThumbIsDirectBranchLink(inst uint32, info *DecodeInfo) (isBranch, isLin
 	}
 }
 
-func InstThumbWfiWfe(inst uint32) bool {
+func instThumbWfiWfe(inst uint32) bool {
 	// WFI, WFE may be branches in etm4.3++.
 	return inst&0xfffffffe == 0xf3af8002 || // encoding T2
 		inst&0xffef0000 == 0xbf200000 // encoding T1
 }
 
-func InstThumbIsIndirectBranch(inst uint32, info *DecodeInfo) bool {
-	isBranch, _ := InstThumbIsIndirectBranchLink(inst, info)
+func instThumbIsIndirectBranch(inst uint32, info *decodeInfo) bool {
+	isBranch, _ := instThumbIsIndirectBranchLink(inst, info)
 	return isBranch
 }
 
-func InstThumbIsIndirectBranchLink(inst uint32, info *DecodeInfo) (isBranch, isLink bool) {
+func instThumbIsIndirectBranchLink(inst uint32, info *decodeInfo) (isBranch, isLink bool) {
 	// See e.g. PFT Table 2-3 and Table 2-5
 	switch {
 	case (inst & 0xff000000) == 0x47000000:
@@ -203,12 +203,12 @@ func InstThumbIsIndirectBranchLink(inst uint32, info *DecodeInfo) (isBranch, isL
 	}
 }
 
-func InstA64IsDirectBranch(inst uint32, info *DecodeInfo) bool {
-	isBranch, _ := InstA64IsDirectBranchLink(inst, info)
+func instA64IsDirectBranch(inst uint32, info *decodeInfo) bool {
+	isBranch, _ := instA64IsDirectBranchLink(inst, info)
 	return isBranch
 }
 
-func InstA64IsCmpBr(inst uint32) bool {
+func instA64IsCmpBr(inst uint32) bool {
 	opcode := inst & 0xFF000000
 	desc := inst & 0x0000C000
 
@@ -227,12 +227,12 @@ func InstA64IsCmpBr(inst uint32) bool {
 	}
 }
 
-func InstA64CmpBrDestination(inst uint32, addr64 uint64) uint64 {
+func instA64CmpBrDestination(inst uint32, addr64 uint64) uint64 {
 	// label imm9 - 13:5
 	return addr64 + uint64(int64(int32((inst&0x00003fe0)<<18)>>21))
 }
 
-func InstA64IsDirectBranchLink(inst uint32, info *DecodeInfo) (isBranch, isLink bool) {
+func instA64IsDirectBranchLink(inst uint32, info *decodeInfo) (isBranch, isLink bool) {
 	switch {
 	case (inst & 0x7c000000) == 0x34000000,
 		(inst & 0xff000000) == 0x54000000:
@@ -245,7 +245,7 @@ func InstA64IsDirectBranchLink(inst uint32, info *DecodeInfo) (isBranch, isLink 
 			return true, true
 		}
 		return true, false
-	case InstA64IsCmpBr(inst):
+	case instA64IsCmpBr(inst):
 		// CB <cc>, CBB <cc>, CBH <cc>
 		return true, false
 	default:
@@ -253,25 +253,25 @@ func InstA64IsDirectBranchLink(inst uint32, info *DecodeInfo) (isBranch, isLink 
 	}
 }
 
-func InstA64WfiWfe(inst uint32, info *DecodeInfo) bool {
+func instA64WfiWfe(inst uint32, info *decodeInfo) bool {
 	// WFI, WFE may be traced as branches in etm 4.3++.
 	if inst&0xffffffdf == 0xd503205f {
 		return true
 	}
 	// WFIT / WFET for later archs.
-	return IsArchMinVer(info.ArchVersion, ArchAA64) && inst&0xffffffc0 == 0xd5031000
+	return isArchMinVer(info.ArchVersion, ArchAA64) && inst&0xffffffc0 == 0xd5031000
 }
 
-func InstA64Tstart(inst uint32) bool {
+func instA64Tstart(inst uint32) bool {
 	return (inst & 0xffffffe0) == 0xd5233060
 }
 
-func InstA64IsIndirectBranch(inst uint32, info *DecodeInfo) bool {
-	isBranch, _ := InstA64IsIndirectBranchLink(inst, info)
+func instA64IsIndirectBranch(inst uint32, info *decodeInfo) bool {
+	isBranch, _ := instA64IsIndirectBranchLink(inst, info)
 	return isBranch
 }
 
-func InstA64IsIndirectBranchLink(inst uint32, info *DecodeInfo) (isBranch, isLink bool) {
+func instA64IsIndirectBranchLink(inst uint32, info *decodeInfo) (isBranch, isLink bool) {
 	switch {
 	case (inst & 0xffdffc1f) == 0xd61f0000:
 		// BR, BLR
@@ -288,7 +288,7 @@ func InstA64IsIndirectBranchLink(inst uint32, info *DecodeInfo) (isBranch, isLin
 		// ERET
 		info.InstrSubType = SInstrV8Eret
 		return true, false
-	case IsArchMinVer(info.ArchVersion, ArchV8r3):
+	case isArchMinVer(info.ArchVersion, ArchV8r3):
 		// new pointer auth instr for v8.3 arch
 		switch {
 		case (inst & 0xffdff800) == 0xd71f0800:
@@ -333,7 +333,7 @@ func InstA64IsIndirectBranchLink(inst uint32, info *DecodeInfo) (isBranch, isLin
 	}
 }
 
-func InstARMBranchDestination(addr uint32, inst uint32) (pnpc uint32, ok bool) {
+func instARMBranchDestination(addr uint32, inst uint32) (pnpc uint32, ok bool) {
 	if (inst & 0x0e000000) == 0x0a000000 {
 		pnpc = addr + 8 + uint32(int32((inst&0xffffff)<<8)>>6)
 		if (inst & 0xf0000000) == 0xf0000000 {
@@ -345,7 +345,7 @@ func InstARMBranchDestination(addr uint32, inst uint32) (pnpc uint32, ok bool) {
 	return 0, false
 }
 
-func InstThumbBranchDestination(addr uint32, inst uint32) (pnpc uint32, ok bool) {
+func instThumbBranchDestination(addr uint32, inst uint32) (pnpc uint32, ok bool) {
 	switch {
 	case (inst&0xf0000000) == 0xd0000000 && (inst&0x0e000000) != 0x0e000000:
 		// B<c> (encoding T1)
@@ -412,7 +412,7 @@ func InstThumbBranchDestination(addr uint32, inst uint32) (pnpc uint32, ok bool)
 	}
 }
 
-func InstA64BranchDestination(addr uint64, inst uint32, pnpc *uint64) bool {
+func instA64BranchDestination(addr uint64, inst uint32, pnpc *uint64) bool {
 	var npc uint64
 	switch {
 	case (inst & 0xff000000) == 0x54000000:
@@ -427,8 +427,8 @@ func InstA64BranchDestination(addr uint64, inst uint32, pnpc *uint64) bool {
 	case (inst & 0x7e000000) == 0x36000000:
 		// TB
 		npc = addr + uint64(int64(int32((inst&0x0007ffe0)<<13)>>16))
-	case InstA64IsCmpBr(inst):
-		npc = InstA64CmpBrDestination(inst, addr)
+	case instA64IsCmpBr(inst):
+		npc = instA64CmpBrDestination(inst, addr)
 	default:
 		return false
 	}
@@ -438,19 +438,19 @@ func InstA64BranchDestination(addr uint64, inst uint32, pnpc *uint64) bool {
 	return true
 }
 
-func InstARMIsBranch(inst uint32, info *DecodeInfo) bool {
-	return InstARMIsIndirectBranch(inst, info) || InstARMIsDirectBranch(inst)
+func instARMIsBranch(inst uint32, info *decodeInfo) bool {
+	return instARMIsIndirectBranch(inst, info) || instARMIsDirectBranch(inst)
 }
 
-func InstThumbIsBranch(inst uint32, info *DecodeInfo) bool {
-	return InstThumbIsIndirectBranch(inst, info) || InstThumbIsDirectBranch(inst, info)
+func instThumbIsBranch(inst uint32, info *decodeInfo) bool {
+	return instThumbIsIndirectBranch(inst, info) || instThumbIsDirectBranch(inst, info)
 }
 
-func InstA64IsBranch(inst uint32, info *DecodeInfo) bool {
-	return InstA64IsIndirectBranch(inst, info) || InstA64IsDirectBranch(inst, info)
+func instA64IsBranch(inst uint32, info *decodeInfo) bool {
+	return instA64IsIndirectBranch(inst, info) || instA64IsDirectBranch(inst, info)
 }
 
-func InstARMIsBranchAndLink(inst uint32, info *DecodeInfo) bool {
+func instARMIsBranchAndLink(inst uint32, info *decodeInfo) bool {
 	switch {
 	case (inst&0xf0000000) == 0xf0000000 && (inst&0xfe000000) == 0xfa000000, // BLX (imm)
 		(inst & 0x0f000000) == 0x0b000000, // BL
@@ -462,7 +462,7 @@ func InstARMIsBranchAndLink(inst uint32, info *DecodeInfo) bool {
 	}
 }
 
-func InstThumbIsBranchAndLink(inst uint32, info *DecodeInfo) bool {
+func instThumbIsBranchAndLink(inst uint32, info *decodeInfo) bool {
 	switch {
 	case (inst & 0xff800000) == 0x47800000, // BLX (reg)
 		(inst & 0xf800c000) == 0xf000c000: // BL, BLX (imm)
@@ -473,13 +473,13 @@ func InstThumbIsBranchAndLink(inst uint32, info *DecodeInfo) bool {
 	}
 }
 
-func InstA64IsBranchAndLink(inst uint32, info *DecodeInfo) bool {
+func instA64IsBranchAndLink(inst uint32, info *decodeInfo) bool {
 	switch {
 	case (inst & 0xfffffc1f) == 0xd63f0000, // BLR
 		(inst & 0xfc000000) == 0x94000000: // BL
 		info.InstrSubType = SInstrBrLink
 		return true
-	case IsArchMinVer(info.ArchVersion, ArchV8r3):
+	case isArchMinVer(info.ArchVersion, ArchV8r3):
 		// new pointer auth instr for v8.3 arch
 		switch {
 		case (inst & 0xfffff800) == 0xd73f0800, // BLRAA, BLRBB
@@ -494,11 +494,11 @@ func InstA64IsBranchAndLink(inst uint32, info *DecodeInfo) bool {
 	}
 }
 
-func InstARMIsConditional(inst uint32) bool {
+func instARMIsConditional(inst uint32) bool {
 	return (inst & 0xe0000000) != 0xe0000000
 }
 
-func InstThumbIsConditional(inst uint32) bool {
+func instThumbIsConditional(inst uint32) bool {
 	switch {
 	case (inst&0xf0000000) == 0xd0000000 && (inst&0x0e000000) != 0x0e000000:
 		// B<c> (encoding T1)
@@ -514,7 +514,7 @@ func InstThumbIsConditional(inst uint32) bool {
 	}
 }
 
-func InstThumbIsIT(inst uint32) uint32 {
+func instThumbIsIT(inst uint32) uint32 {
 	if (inst&0xff000000) != 0xbf000000 || (inst&0x000f0000) == 0x00000000 {
 		return 0
 	}
@@ -532,32 +532,32 @@ func InstThumbIsIT(inst uint32) uint32 {
 	}
 }
 
-func InstA64IsConditional(inst uint32) bool {
+func instA64IsConditional(inst uint32) bool {
 	return inst&0x7c000000 == 0x34000000 || // CB, TB
 		inst&0xff000000 == 0x54000000 // B.cond, BC.cond
 }
 
-type ArmBarrierT int
+type armBarrierT int
 
 const (
-	ArmBarrierNone ArmBarrierT = iota
-	ArmBarrierIsb
-	ArmBarrierDmb
-	ArmBarrierDsb
+	armBarrierNone armBarrierT = iota
+	armBarrierIsb
+	armBarrierDmb
+	armBarrierDsb
 )
 
-func InstARMBarrier(inst uint32) ArmBarrierT {
+func instARMBarrier(inst uint32) armBarrierT {
 	switch {
 	case inst&0xfff00000 == 0xf5700000:
 		return decodeSystemBarrier(inst & 0xf0)
 	case inst&0x0fff0f00 == 0x0e070f00:
 		return decodeCP15Barrier(inst & 0xff)
 	default:
-		return ArmBarrierNone
+		return armBarrierNone
 	}
 }
 
-func InstThumbBarrier(inst uint32) ArmBarrierT {
+func instThumbBarrier(inst uint32) armBarrierT {
 	switch {
 	case inst&0xffffff00 == 0xf3bf8f00:
 		return decodeSystemBarrier(inst & 0xf0)
@@ -565,57 +565,57 @@ func InstThumbBarrier(inst uint32) ArmBarrierT {
 		// Thumb2 CP15 barriers are unlikely... 1156T2 only?
 		return decodeCP15Barrier(inst & 0xff)
 	default:
-		return ArmBarrierNone
+		return armBarrierNone
 	}
 }
 
-func decodeSystemBarrier(value uint32) ArmBarrierT {
+func decodeSystemBarrier(value uint32) armBarrierT {
 	switch value {
 	case 0x40:
-		return ArmBarrierDsb
+		return armBarrierDsb
 	case 0x50:
-		return ArmBarrierDmb
+		return armBarrierDmb
 	case 0x60:
-		return ArmBarrierIsb
+		return armBarrierIsb
 	default:
-		return ArmBarrierNone
+		return armBarrierNone
 	}
 }
 
-func decodeCP15Barrier(value uint32) ArmBarrierT {
+func decodeCP15Barrier(value uint32) armBarrierT {
 	switch value {
 	case 0x9a:
-		return ArmBarrierDsb // mcr p15,0,Rt,c7,c10,4
+		return armBarrierDsb // mcr p15,0,Rt,c7,c10,4
 	case 0xba:
-		return ArmBarrierDmb // mcr p15,0,Rt,c7,c10,5
+		return armBarrierDmb // mcr p15,0,Rt,c7,c10,5
 	case 0x95:
-		return ArmBarrierIsb // mcr p15,0,Rt,c7,c5,4
+		return armBarrierIsb // mcr p15,0,Rt,c7,c5,4
 	default:
-		return ArmBarrierNone
+		return armBarrierNone
 	}
 }
 
-func InstA64Barrier(inst uint32) ArmBarrierT {
+func instA64Barrier(inst uint32) armBarrierT {
 	if (inst & 0xfffff09f) != 0xd503309f {
-		return ArmBarrierNone
+		return armBarrierNone
 	}
 	switch inst & 0x60 {
 	case 0x0:
-		return ArmBarrierDsb
+		return armBarrierDsb
 	case 0x20:
-		return ArmBarrierDmb
+		return armBarrierDmb
 	case 0x40:
-		return ArmBarrierIsb
+		return armBarrierIsb
 	default:
-		return ArmBarrierNone
+		return armBarrierNone
 	}
 }
 
-func InstARMIsUDF(inst uint32) bool {
+func instARMIsUDF(inst uint32) bool {
 	return (inst & 0xfff000f0) == 0xe7f000f0
 }
 
-func InstThumbIsUDF(inst uint32) bool {
+func instThumbIsUDF(inst uint32) bool {
 	switch {
 	case (inst & 0xff000000) == 0xde000000:
 		return true // T1
@@ -626,7 +626,7 @@ func InstThumbIsUDF(inst uint32) bool {
 	}
 }
 
-func InstA64IsUDF(inst uint32) bool {
+func instA64IsUDF(inst uint32) bool {
 	// No A64 encodings are formally allocated as permanently undefined,
 	// but gocsd treats the low and high 21-bit regions as undefined.
 	return (inst&0xffe00000) == 0x00000000 ||

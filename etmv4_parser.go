@@ -354,7 +354,7 @@ func (d *etmv4Decoder) iPktTimestamp(lastByte byte) error {
 		d.ctx.currPacket.setTimestamp(ts, bits)
 		if d.ctx.raw[0]&1 != 0 {
 			cc, _ := extractContField(d.ctx.raw, 1+n, 3)
-			d.ctx.currPacket.CycleCount = cc & uint32(BitMask(int(d.Config.CCSize())))
+			d.ctx.currPacket.CycleCount = cc & uint32(bitMask(int(d.Config.CCSize())))
 			d.ctx.currPacket.CCValid = true
 		}
 		d.ctx.processState = etmv4StateSendPkt
@@ -603,7 +603,7 @@ func (d *etmv4Decoder) iPktShortAddr(lastByte byte) error {
 	if len(d.ctx.raw) == 3 || lastByte&0x80 == 0 {
 		value, bits, _ := extractShortAddr(d.ctx.raw, 1, d.ctx.addrIS)
 		addr := d.ctx.currPacket.Addr
-		mask := BitMask(bits)
+		mask := bitMask(bits)
 		addr.Val = VAddr((uint64(addr.Val) & ^mask) | (uint64(value) & mask))
 		addr.IS = d.ctx.addrIS
 		addr.PktBits = bits
@@ -706,7 +706,7 @@ func (d *etmv4Decoder) iPktQ(lastByte byte) error {
 			} else if d.ctx.addrShort {
 				v, bits, consumed := extractShortAddr(d.ctx.raw, idx, d.ctx.addrIS)
 				addr := d.ctx.currPacket.Addr
-				mask := BitMask(bits)
+				mask := bitMask(bits)
 				addr.Val = VAddr((uint64(addr.Val) & ^mask) | (uint64(v) & mask))
 				addr.IS = d.ctx.addrIS
 				addr.PktBits = bits
@@ -775,7 +775,7 @@ func (d *etmv4Decoder) iAtom(lastByte byte) error {
 	case PktAtomF6:
 		eCount := (h & 0x1F) + 3
 		count = eCount + 1
-		pattern = uint32(BitMask(int(eCount)))
+		pattern = uint32(bitMask(int(eCount)))
 		if h&0x20 == 0 {
 			pattern |= 1 << eCount
 		}
@@ -813,7 +813,7 @@ func (d *etmv4Decoder) setLongAddr(idx int, is uint8, is64 bool) {
 	} else {
 		pktBits = 32
 		if d.ctx.currPacket.Context.SF {
-			value = (uint64(d.ctx.currPacket.Addr.Val) & ^BitMask(32)) | (value & BitMask(32))
+			value = (uint64(d.ctx.currPacket.Addr.Val) & ^bitMask(32)) | (value & bitMask(32))
 		}
 	}
 	d.ctx.currPacket.pushAddr(etmv4Address{Val: VAddr(value), IS: is, Size: size, ValidBits: valid, PktBits: pktBits})
@@ -973,7 +973,7 @@ func (d *etmv4Decoder) buildPacketTable() {
 		set(byte(0x38+i), PktCancelF3, (*etmv4Decoder).iPktSpeclRes)
 	}
 	condFn := (*etmv4Decoder).iPktUnsupported
-	if d.Config.HasCondTrace() && d.Config.EnabledCondITrace() != CondTraceDisabled {
+	if d.Config.HasCondTrace() && d.Config.EnabledCondITrace() != condTraceDisabled {
 		condFn = (*etmv4Decoder).iPktNoPayload
 	}
 	for _, h := range []byte{0x40, 0x41, 0x42} {

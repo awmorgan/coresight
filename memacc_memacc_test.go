@@ -45,12 +45,12 @@ func runMemBuffDemo(t *testing.T, sb *strings.Builder, mapper *GlobalMapper) uin
 	t.Helper()
 
 	cfg := memBuffDemoConfig()
-	dec, err := etmv4NewDecoder(cfg, mapper, DecodeInstruction)
+	dec, err := etmv4NewDecoder(cfg, mapper, decodeInstruction)
 	if err != nil {
 		t.Fatalf("NewDecoder: %v", err)
 	}
 
-	pipe, err := NewPipeline(true, DemuxOptions{
+	pipe, err := newPipeline(true, DemuxOptions{
 		FrameMemAlign: true,
 	})
 	if err != nil {

@@ -67,7 +67,7 @@ func BenchmarkEtmv3PacketString_ISync(b *testing.B) {
 			UpdatedC: true,
 			CtxtID:   0x12345678,
 		},
-		ISyncInfo:  ISyncInfo{Reason: ISyncPeriodic},
+		ISyncInfo:  etmv3ISyncInfo{Reason: iSyncPeriodic},
 		CycleCount: 12,
 	}
 	for b.Loop() {
@@ -85,7 +85,7 @@ func BenchmarkEtmv3PacketAppendStringTo_ISync(b *testing.B) {
 			UpdatedC: true,
 			CtxtID:   0x12345678,
 		},
-		ISyncInfo:  ISyncInfo{Reason: ISyncPeriodic},
+		ISyncInfo:  etmv3ISyncInfo{Reason: iSyncPeriodic},
 		CycleCount: 12,
 	}
 	buf := make([]byte, 0, 160)

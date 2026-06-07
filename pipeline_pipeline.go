@@ -16,10 +16,10 @@ type Pipeline struct {
 	FramedInput    bool
 }
 
-func NewPipeline(framedInput bool, opts DemuxOptions) (*Pipeline, error) {
+func newPipeline(framedInput bool, opts DemuxOptions) (*Pipeline, error) {
 	p := &Pipeline{FramedInput: framedInput}
 	if framedInput {
-		p.Demuxer = NewDemuxer(p.sinksByTraceID[:])
+		p.Demuxer = newDemuxer(p.sinksByTraceID[:])
 		if err := p.Demuxer.Configure(opts); err != nil {
 			return nil, err
 		}

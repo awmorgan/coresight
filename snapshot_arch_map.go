@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-var defaultCoreMap = map[string]ArchProfile{
+var defaultCoreMap = map[string]archProfile{
 	// Cortex-A Series
 	"Cortex-A77": {Arch: ArchV8r3, Profile: ProfileCortexA},
 	"Cortex-A76": {Arch: ArchV8r3, Profile: ProfileCortexA},
@@ -44,23 +44,23 @@ var defaultCoreMap = map[string]ArchProfile{
 	"Cortex-M0":  {Arch: ArchV7, Profile: ProfileCortexM},
 }
 
-var unknownArchProfile = ArchProfile{Arch: ArchUnknown, Profile: ProfileUnknown}
+var unknownArchProfile = archProfile{Arch: ArchUnknown, Profile: ProfileUnknown}
 
-// CoreArchProfileMap maps core names to architecture profiles.
-type CoreArchProfileMap struct {
-	coreMap map[string]ArchProfile
+// coreArchProfileMap maps core names to architecture profiles.
+type coreArchProfileMap struct {
+	coreMap map[string]archProfile
 }
 
-// NewCoreArchProfileMap creates a new map.
-func NewCoreArchProfileMap() *CoreArchProfileMap {
-	m := make(map[string]ArchProfile, len(defaultCoreMap))
+// newCoreArchProfileMap creates a new map.
+func newCoreArchProfileMap() *coreArchProfileMap {
+	m := make(map[string]archProfile, len(defaultCoreMap))
 	maps.Copy(m, defaultCoreMap)
 
-	return &CoreArchProfileMap{coreMap: m}
+	return &coreArchProfileMap{coreMap: m}
 }
 
 // ArchProfile returns the architecture profile for a given core name.
-func (m *CoreArchProfileMap) ArchProfile(coreName string) (ArchProfile, bool) {
+func (m *coreArchProfileMap) ArchProfile(coreName string) (archProfile, bool) {
 	if val, ok := m.coreMap[coreName]; ok {
 		return val, true
 	}
@@ -68,7 +68,7 @@ func (m *CoreArchProfileMap) ArchProfile(coreName string) (ArchProfile, bool) {
 	return getPatternMatchCoreName(coreName)
 }
 
-func getPatternMatchCoreName(coreName string) (ArchProfile, bool) {
+func getPatternMatchCoreName(coreName string) (archProfile, bool) {
 	if rest, ok := strings.CutPrefix(coreName, "ARMv"); ok {
 		return parseARMvCoreName(rest)
 	}
@@ -78,7 +78,7 @@ func getPatternMatchCoreName(coreName string) (ArchProfile, bool) {
 	return unknownArchProfile, false
 }
 
-func parseARMvCoreName(rest string) (ArchProfile, bool) {
+func parseARMvCoreName(rest string) (archProfile, bool) {
 	version, profile, ok := strings.Cut(rest, "-")
 	if !ok || profile == "" {
 		return unknownArchProfile, false
@@ -89,7 +89,7 @@ func parseARMvCoreName(rest string) (ArchProfile, bool) {
 		return unknownArchProfile, false
 	}
 
-	ap := ArchProfile{}
+	ap := archProfile{}
 	if !setProfileFromByte(&ap, profile[0]) {
 		return unknownArchProfile, false
 	}
@@ -99,13 +99,13 @@ func parseARMvCoreName(rest string) (ArchProfile, bool) {
 	return ap, true
 }
 
-func parseARMDashCoreName(rest string) (ArchProfile, bool) {
+func parseARMDashCoreName(rest string) (archProfile, bool) {
 	archName, profile, hasProfile := strings.Cut(rest, "-")
 	if !strings.EqualFold(archName, "aa64") {
 		return unknownArchProfile, false
 	}
 
-	ap := ArchProfile{Arch: ArchAA64, Profile: ProfileCortexA}
+	ap := archProfile{Arch: ArchAA64, Profile: ProfileCortexA}
 	if !hasProfile || profile == "" {
 		return ap, true
 	}
@@ -138,7 +138,7 @@ func parseARMVersion(version string) (major, minor int, ok bool) {
 	return major, minor, true
 }
 
-func setArchFromARMVersion(ap *ArchProfile, major, minor int) bool {
+func setArchFromARMVersion(ap *archProfile, major, minor int) bool {
 	switch {
 	case major == 7:
 		ap.Arch = ArchV7
@@ -154,7 +154,7 @@ func setArchFromARMVersion(ap *ArchProfile, major, minor int) bool {
 	return true
 }
 
-func setProfileFromByte(ap *ArchProfile, profile byte) bool {
+func setProfileFromByte(ap *archProfile, profile byte) bool {
 	switch profile {
 	case 'A':
 		ap.Profile = ProfileCortexA

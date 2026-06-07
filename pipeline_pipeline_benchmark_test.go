@@ -37,11 +37,11 @@ func BenchmarkPTM_PipelineDecode_Snowball(b *testing.B) {
 
 	b.ResetTimer()
 	for b.Loop() {
-		dec, err := ptmNewDecoder(cfg, mapper, DecodeInstruction)
+		dec, err := ptmNewDecoder(cfg, mapper, decodeInstruction)
 		if err != nil {
 			b.Fatal(err)
 		}
-		pipe, err := NewPipeline(true, DemuxOptions{FrameMemAlign: true})
+		pipe, err := newPipeline(true, DemuxOptions{FrameMemAlign: true})
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -84,11 +84,11 @@ func BenchmarkETMv4_PipelineDecode_Juno(b *testing.B) {
 
 	b.ResetTimer()
 	for b.Loop() {
-		dec, err := etmv4NewDecoder(cfg, mapper, DecodeInstruction)
+		dec, err := etmv4NewDecoder(cfg, mapper, decodeInstruction)
 		if err != nil {
 			b.Fatal(err)
 		}
-		pipe, err := NewPipeline(true, DemuxOptions{FrameMemAlign: true})
+		pipe, err := newPipeline(true, DemuxOptions{FrameMemAlign: true})
 		if err != nil {
 			b.Fatal(err)
 		}

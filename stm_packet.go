@@ -107,7 +107,7 @@ func (p *stmPacket) SetTimestamp(ts uint64, updatedBits uint8) {
 	if updatedBits == 64 {
 		p.Timestamp = ts
 	} else {
-		mask := BitMask(int(updatedBits))
+		mask := bitMask(int(updatedBits))
 		p.Timestamp &= ^mask
 		p.Timestamp |= ts & mask
 	}
@@ -170,7 +170,7 @@ func (p *stmPacket) AppendStringTo(dst []byte) []byte {
 		dst = append(dst, "; TS=0x"...)
 		dst = stmAppendUpperHex(dst, p.Timestamp, 16)
 		dst = append(dst, " ~[0x"...)
-		dst = stmAppendUpperHex(dst, p.TSUpdate&BitMask(int(p.PktTSBits)), 0)
+		dst = stmAppendUpperHex(dst, p.TSUpdate&bitMask(int(p.PktTSBits)), 0)
 		dst = append(dst, ']')
 	}
 	return dst

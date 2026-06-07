@@ -49,9 +49,9 @@ func parseMemoryDump(secName string, sec map[string]string) (MemoryDump, error) 
 	}, nil
 }
 
-// ParseSingleDevice parses a device .ini file.
-func ParseSingleDevice(input io.Reader) (*Device, error) {
-	ini, err := ParseIni(input)
+// parseSingleDevice parses a device .ini file.
+func parseSingleDevice(input io.Reader) (*Device, error) {
+	ini, err := parseIni(input)
 	if err != nil {
 		return nil, err
 	}
@@ -106,9 +106,9 @@ func ParseSingleDevice(input io.Reader) (*Device, error) {
 	return parsed, nil
 }
 
-// ParseDeviceList parses a ini file.
-func ParseDeviceList(input io.Reader) (*ParsedDevices, error) {
-	ini, err := ParseIni(input)
+// parseDeviceList parses a ini file.
+func parseDeviceList(input io.Reader) (*ParsedDevices, error) {
+	ini, err := parseIni(input)
 	if err != nil {
 		return nil, err
 	}
@@ -140,9 +140,9 @@ func ParseDeviceList(input io.Reader) (*ParsedDevices, error) {
 	return parsed, nil
 }
 
-// ParseTraceMetaData parses the trace metadata .ini file.
-func ParseTraceMetaData(input io.Reader) (*Trace, error) {
-	ini, err := ParseIni(input)
+// parseTraceMetaData parses the trace metadata .ini file.
+func parseTraceMetaData(input io.Reader) (*Trace, error) {
+	ini, err := parseIni(input)
 	if err != nil {
 		return nil, err
 	}
@@ -188,8 +188,8 @@ func ParseTraceMetaData(input io.Reader) (*Trace, error) {
 	return parsed, nil
 }
 
-// SourceTree builds a source tree for a single buffer.
-func SourceTree(bufferName string, metadata *Trace) (*TraceBufferSourceTree, bool) {
+// sourceTree builds a source tree for a single buffer.
+func sourceTree(bufferName string, metadata *Trace) (*TraceBufferSourceTree, bool) {
 	if metadata == nil {
 		return nil, false
 	}

@@ -38,7 +38,7 @@ const (
 )
 
 type etmv3Excep struct {
-	Type    ArmV7Exception
+	Type    armV7Exception
 	Number  uint16
 	Present bool
 }
@@ -55,7 +55,7 @@ type etmv3Context struct {
 	VMID            uint8
 }
 
-type Data struct {
+type etmv3Data struct {
 	Value      uint32
 	Addr       uint64
 	OooTag     uint8
@@ -65,8 +65,8 @@ type Data struct {
 	UpdateDVal bool
 }
 
-type ISyncInfo struct {
-	Reason        ISyncReason
+type etmv3ISyncInfo struct {
+	Reason        iSyncReason
 	HasCycleCount bool
 	HasLSipAddr   bool
 	NoAddress     bool
@@ -87,7 +87,7 @@ type etmv3Packet struct {
 
 	Context   etmv3Context
 	Addr      uint64
-	ISyncInfo ISyncInfo
+	ISyncInfo etmv3ISyncInfo
 	Exception etmv3Excep
 
 	ExceptionCancel bool
@@ -98,7 +98,7 @@ type etmv3Packet struct {
 	Timestamp    uint64
 	TsUpdateBits uint8
 
-	Data        Data
+	Data        etmv3Data
 	AddrPktBits int
 
 	Err error
@@ -113,7 +113,7 @@ func (p *etmv3Packet) Clear() {
 	p.Context.UpdatedC = false
 	p.Context.UpdatedV = false
 	p.Exception = etmv3Excep{}
-	p.ISyncInfo = ISyncInfo{}
+	p.ISyncInfo = etmv3ISyncInfo{}
 	p.ExceptionCancel = false
 	p.Atom = etmv3AtomPkt{}
 	p.PHdrFmt = 0
@@ -129,7 +129,7 @@ func (p *etmv3Packet) ResetState() {
 	p.CurrISA = ISAArm
 	p.PrevISA = ISAArm
 	p.Context = etmv3Context{}
-	p.Data = Data{}
+	p.Data = etmv3Data{}
 }
 
 func (p *etmv3Packet) IsBadPacket() bool {
@@ -161,13 +161,13 @@ func (p *etmv3Packet) UpdateTimestamp(tsVal uint64, updateBits uint8) {
 	p.TsUpdateBits = updateBits
 }
 
-func (p *etmv3Packet) SetException(exType ArmV7Exception, num uint16) {
+func (p *etmv3Packet) SetException(exType armV7Exception, num uint16) {
 	p.Exception.Type = exType
 	p.Exception.Number = num
 	p.Exception.Present = true
 }
 
-func (p *etmv3Packet) SetExceptionWithCancel(exType ArmV7Exception, num uint16, cancel bool) {
+func (p *etmv3Packet) SetExceptionWithCancel(exType armV7Exception, num uint16, cancel bool) {
 	p.SetException(exType, num)
 	p.ExceptionCancel = cancel
 }

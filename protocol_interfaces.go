@@ -24,4 +24,4 @@ type internalMemoryReader interface {
 }
 
 // internalInstructionDecoder defines the interface for decoding instructions from opcodes.
-type internalInstructionDecoder func(instrInfo *InstrInfo) error
+type internalInstructionDecoder func(instrInfo *instrInfo) error

@@ -1,21 +1,21 @@
 package coresight
 
 
-type RetStackElement struct {
+type retStackElement struct {
 	RetAddr VAddr
 	RetISA  ISA
 }
 
 const retStackCap = 16
 
-// AddrReturnStack tracks return addresses for branch instructions.
-type AddrReturnStack struct {
+// addrReturnStack tracks return addresses for branch instructions.
+type addrReturnStack struct {
 	Active bool
-	Stack  []RetStackElement
+	Stack  []retStackElement
 }
 
-// Push adds an address/ISA pair to the stack, dropping the oldest if at capacity.
-func (s *AddrReturnStack) Push(addr VAddr, isa ISA) {
+// push adds an address/ISA pair to the stack, dropping the oldest if at capacity.
+func (s *addrReturnStack) push(addr VAddr, isa ISA) {
 	if !s.Active {
 		return
 	}
@@ -24,11 +24,11 @@ func (s *AddrReturnStack) Push(addr VAddr, isa ISA) {
 		copy(s.Stack, s.Stack[1:])
 		s.Stack = s.Stack[:retStackCap-1]
 	}
-	s.Stack = append(s.Stack, RetStackElement{RetAddr: addr, RetISA: isa})
+	s.Stack = append(s.Stack, retStackElement{RetAddr: addr, RetISA: isa})
 }
 
-// Pop removes and returns the top entry.
-func (s *AddrReturnStack) Pop() (VAddr, ISA, bool) {
+// pop removes and returns the top entry.
+func (s *addrReturnStack) pop() (VAddr, ISA, bool) {
 	if !s.Active || len(s.Stack) == 0 {
 		return VAddr(VAMask), 0, false
 	}
@@ -38,7 +38,7 @@ func (s *AddrReturnStack) Pop() (VAddr, ISA, bool) {
 	return elem.RetAddr, elem.RetISA, true
 }
 
-// Flush clears the stack state.
-func (s *AddrReturnStack) Flush() {
+// flush clears the stack state.
+func (s *addrReturnStack) flush() {
 	s.Stack = s.Stack[:0]
 }

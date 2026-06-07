@@ -7,25 +7,25 @@ import (
 	"unicode"
 )
 
-type IniFile struct {
+type iniFile struct {
 	Sections     map[string]map[string]string
 	SectionVals  map[string]map[string][]string
 	SectionOrder []string
 }
 
-func NewIniFile() *IniFile {
-	return &IniFile{
+func newIniFile() *iniFile {
+	return &iniFile{
 		Sections:     make(map[string]map[string]string),
 		SectionVals:  make(map[string]map[string][]string),
 		SectionOrder: []string{},
 	}
 }
 
-func (ini *IniFile) Section(sectionName string) map[string]string {
+func (ini *iniFile) section(sectionName string) map[string]string {
 	return ini.Sections[sectionName]
 }
 
-func (ini *IniFile) ensureSection(name string) {
+func (ini *iniFile) ensureSection(name string) {
 	if _, ok := ini.Sections[name]; ok {
 		return
 	}
@@ -37,8 +37,8 @@ func (ini *IniFile) ensureSection(name string) {
 	}
 }
 
-func ParseIni(r io.Reader) (*IniFile, error) {
-	ini := NewIniFile()
+func parseIni(r io.Reader) (*iniFile, error) {
+	ini := newIniFile()
 	scanner := bufio.NewScanner(r)
 	section := ""
 

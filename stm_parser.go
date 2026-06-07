@@ -388,7 +388,7 @@ func (d *stmDecoder) stmExtractTS() error {
 		if newBits == 64 {
 			gray = d.ctx.tsUpdateValue
 		} else {
-			mask := BitMask(int(newBits))
+			mask := bitMask(int(newBits))
 			gray &= ^mask
 			gray |= d.ctx.tsUpdateValue & mask
 		}

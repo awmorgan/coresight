@@ -24,15 +24,15 @@ const (
 	itmPktReserved
 )
 
-type DwtEcntr uint8
+type dwtEcntr uint8
 
 const (
-	DwtEcntrCPI DwtEcntr = 0x01
-	DwtEcntrEXC DwtEcntr = 0x02
-	DwtEcntrSLP DwtEcntr = 0x04
-	DwtEcntrLSU DwtEcntr = 0x08
-	DwtEcntrFLD DwtEcntr = 0x10
-	DwtEcntrCYC DwtEcntr = 0x20
+	dwtEcntrCPI dwtEcntr = 0x01
+	dwtEcntrEXC dwtEcntr = 0x02
+	dwtEcntrSLP dwtEcntr = 0x04
+	dwtEcntrLSU dwtEcntr = 0x08
+	dwtEcntrFLD dwtEcntr = 0x10
+	dwtEcntrCYC dwtEcntr = 0x20
 )
 
 type itmPacket struct {
@@ -164,15 +164,15 @@ func (p *itmPacket) writeHexVal(sb *strings.Builder) {
 }
 
 var dwtFlags = [...]struct {
-	bit DwtEcntr
+	bit dwtEcntr
 	str string
 }{
-	{DwtEcntrCPI, "CPI"},
-	{DwtEcntrEXC, "EXC"},
-	{DwtEcntrSLP, "Sleep"},
-	{DwtEcntrLSU, "LSU"},
-	{DwtEcntrFLD, "Fold"},
-	{DwtEcntrCYC, "CYC"},
+	{dwtEcntrCPI, "CPI"},
+	{dwtEcntrEXC, "EXC"},
+	{dwtEcntrSLP, "Sleep"},
+	{dwtEcntrLSU, "LSU"},
+	{dwtEcntrFLD, "Fold"},
+	{dwtEcntrCYC, "CYC"},
 }
 
 var dwtExcepFn = [...]string{"reserved", "entered", "exited", "returned to"}

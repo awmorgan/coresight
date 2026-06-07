@@ -669,13 +669,13 @@ func (d *etmv3Decoder) extractExceptionData(offset int) int {
 		}
 	}
 
-	excepType := ExcpReserved
+	excepType := excpReserved
 	if d.Config.V7MArch() {
 		exceptionNum &= 0x1FF
 		if int(exceptionNum) < len(exceptionTypesCM) {
 			excepType = exceptionTypesCM[exceptionNum]
 		} else {
-			excepType = ExcpCMIRQn
+			excepType = excpCMIRQn
 		}
 	} else {
 		exceptionNum &= 0xF
@@ -715,7 +715,7 @@ func (d *etmv3Decoder) onISyncPacket() {
 	infoByte := scratch[currIdx]
 	currIdx++
 
-	d.ctx.currPacket.ISyncInfo.Reason = ISyncReason((infoByte >> 5) & 0x3)
+	d.ctx.currPacket.ISyncInfo.Reason = iSyncReason((infoByte >> 5) & 0x3)
 	j := (infoByte >> 4) & 0x1
 	var altISA uint8
 	if d.Config.MinorRev() >= 3 {
@@ -861,23 +861,23 @@ func (d *etmv3Decoder) extractTimestamp(offset int) (val uint64, tsBits uint8) {
 	return val, tsBits
 }
 
-var exceptionTypeARMdeprecated = []ArmV7Exception{
-	ExcpReset, ExcpIRQ, ExcpReserved, ExcpReserved,
-	ExcpJazelle, ExcpFIQ, ExcpAsyncDAbort, ExcpDebugHalt,
+var exceptionTypeARMdeprecated = []armV7Exception{
+	excpReset, excpIRQ, excpReserved, excpReserved,
+	excpJazelle, excpFIQ, excpAsyncDAbort, excpDebugHalt,
 }
 
-var exceptionTypesStd = []ArmV7Exception{
-	ExcpNoException, ExcpDebugHalt, ExcpSMC, ExcpHyp,
-	ExcpAsyncDAbort, ExcpJazelle, ExcpReserved, ExcpReserved,
-	ExcpReset, ExcpUndef, ExcpSVC, ExcpPrefAbort,
-	ExcpSyncDataAbort, ExcpGeneric, ExcpIRQ, ExcpFIQ,
+var exceptionTypesStd = []armV7Exception{
+	excpNoException, excpDebugHalt, excpSMC, excpHyp,
+	excpAsyncDAbort, excpJazelle, excpReserved, excpReserved,
+	excpReset, excpUndef, excpSVC, excpPrefAbort,
+	excpSyncDataAbort, excpGeneric, excpIRQ, excpFIQ,
 }
 
-var exceptionTypesCM = []ArmV7Exception{
-	ExcpNoException, ExcpCMIRQn, ExcpCMIRQn, ExcpCMIRQn,
-	ExcpCMIRQn, ExcpCMIRQn, ExcpCMIRQn, ExcpCMIRQn,
-	ExcpCMIRQn, ExcpCMUsageFault, ExcpCMNMI, ExcpSVC,
-	ExcpCMDebugMonitor, ExcpCMMemManage, ExcpCMPendSV, ExcpCMSysTick,
-	ExcpReserved, ExcpReset, ExcpReserved, ExcpCMHardFault,
-	ExcpReserved, ExcpCMBusFault, ExcpReserved, ExcpReserved,
+var exceptionTypesCM = []armV7Exception{
+	excpNoException, excpCMIRQn, excpCMIRQn, excpCMIRQn,
+	excpCMIRQn, excpCMIRQn, excpCMIRQn, excpCMIRQn,
+	excpCMIRQn, excpCMUsageFault, excpCMNMI, excpSVC,
+	excpCMDebugMonitor, excpCMMemManage, excpCMPendSV, excpCMSysTick,
+	excpReserved, excpReset, excpReserved, excpCMHardFault,
+	excpReserved, excpCMBusFault, excpReserved, excpReserved,
 }

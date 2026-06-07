@@ -1,9 +1,9 @@
 package coresight
 
 
-// DecodeInstruction processes an instruction based on its ISA.
-func DecodeInstruction(instrInfo *InstrInfo) error {
-	info := DecodeInfo{
+// decodeInstruction processes an instruction based on its ISA.
+func decodeInstruction(instrInfo *instrInfo) error {
+	info := decodeInfo{
 		InstrSubType: SInstrNone,
 		ArchVersion:  instrInfo.PeType.Arch,
 	}
@@ -24,19 +24,19 @@ func DecodeInstruction(instrInfo *InstrInfo) error {
 	return err
 }
 
-func resetInstrInfo(instrInfo *InstrInfo) {
+func resetInstrInfo(instrInfo *instrInfo) {
 	instrInfo.Type = InstrOther
 	instrInfo.NextISA = instrInfo.ISA
 	instrInfo.IsLink = false
 	instrInfo.IsConditional = false
 }
 
-func applyBarrier(instrInfo *InstrInfo, barrier ArmBarrierT) bool {
+func applyBarrier(instrInfo *instrInfo, barrier armBarrierT) bool {
 	switch barrier {
-	case ArmBarrierIsb:
+	case armBarrierIsb:
 		instrInfo.Type = InstrIsb
 		return true
-	case ArmBarrierDsb, ArmBarrierDmb:
+	case armBarrierDsb, armBarrierDmb:
 		if instrInfo.DsbDmbWaypoints != 0 {
 			instrInfo.Type = InstrDsbDmb
 		}
@@ -50,44 +50,44 @@ func canonicalThumbOpcode(opcode uint32) uint32 {
 	return (opcode>>16)&0xFFFF | (opcode&0xFFFF)<<16
 }
 
-func setThumbInstrSize(instrInfo *InstrInfo) {
-	if IsWideThumb(uint16(instrInfo.Opcode >> 16)) {
+func setThumbInstrSize(instrInfo *instrInfo) {
+	if isWideThumb(uint16(instrInfo.Opcode >> 16)) {
 		instrInfo.InstrSize = 4
 		return
 	}
 	instrInfo.InstrSize = 2
 }
 
-func decodeA32(instrInfo *InstrInfo, info *DecodeInfo) error {
+func decodeA32(instrInfo *instrInfo, info *decodeInfo) error {
 	resetInstrInfo(instrInfo)
 	instrInfo.InstrSize = 4
 	instrInfo.ThumbItConditions = 0 // not Thumb
 
 	switch {
-	case InstARMIsIndirectBranch(instrInfo.Opcode, info):
+	case instARMIsIndirectBranch(instrInfo.Opcode, info):
 		instrInfo.Type = InstrBrIndirect
-		instrInfo.IsLink = InstARMIsBranchAndLink(instrInfo.Opcode, info)
+		instrInfo.IsLink = instARMIsBranchAndLink(instrInfo.Opcode, info)
 
-	case InstARMIsDirectBranch(instrInfo.Opcode):
-		branchAddr, _ := InstARMBranchDestination(uint32(instrInfo.InstrAddr), instrInfo.Opcode)
+	case instARMIsDirectBranch(instrInfo.Opcode):
+		branchAddr, _ := instARMBranchDestination(uint32(instrInfo.InstrAddr), instrInfo.Opcode)
 		instrInfo.Type = InstrBr
 		if branchAddr&0x1 != 0 {
 			instrInfo.NextISA = ISAThumb2
 			branchAddr &^= 0x1
 		}
 		instrInfo.BranchAddr = VAddr(branchAddr)
-		instrInfo.IsLink = InstARMIsBranchAndLink(instrInfo.Opcode, info)
+		instrInfo.IsLink = instARMIsBranchAndLink(instrInfo.Opcode, info)
 
-	case applyBarrier(instrInfo, InstARMBarrier(instrInfo.Opcode)):
-	case instrInfo.WfiWfeBranch != 0 && InstARMWfiWfe(instrInfo.Opcode):
+	case applyBarrier(instrInfo, instARMBarrier(instrInfo.Opcode)):
+	case instrInfo.WfiWfeBranch != 0 && instARMWfiWfe(instrInfo.Opcode):
 		instrInfo.Type = InstrWfiWfe
 	}
 
-	instrInfo.IsConditional = InstARMIsConditional(instrInfo.Opcode)
+	instrInfo.IsConditional = instARMIsConditional(instrInfo.Opcode)
 	return nil
 }
 
-func decodeA64(instrInfo *InstrInfo, info *DecodeInfo) error {
+func decodeA64(instrInfo *instrInfo, info *decodeInfo) error {
 	resetInstrInfo(instrInfo)
 	instrInfo.InstrSize = 4
 	instrInfo.ThumbItConditions = 0
@@ -95,19 +95,19 @@ func decodeA64(instrInfo *InstrInfo, info *DecodeInfo) error {
 	switch {
 	case decodeA64IndirectBranch(instrInfo, info):
 	case decodeA64DirectBranch(instrInfo, info):
-	case applyBarrier(instrInfo, InstA64Barrier(instrInfo.Opcode)):
-	case instrInfo.WfiWfeBranch != 0 && InstA64WfiWfe(instrInfo.Opcode, info):
+	case applyBarrier(instrInfo, instA64Barrier(instrInfo.Opcode)):
+	case instrInfo.WfiWfeBranch != 0 && instA64WfiWfe(instrInfo.Opcode, info):
 		instrInfo.Type = InstrWfiWfe
-	case IsArchMinVer(info.ArchVersion, ArchAA64) && InstA64Tstart(instrInfo.Opcode):
+	case isArchMinVer(info.ArchVersion, ArchAA64) && instA64Tstart(instrInfo.Opcode):
 		instrInfo.Type = InstrTstart
 	}
 
-	instrInfo.IsConditional = InstA64IsConditional(instrInfo.Opcode)
+	instrInfo.IsConditional = instA64IsConditional(instrInfo.Opcode)
 	return nil
 }
 
-func decodeA64IndirectBranch(instrInfo *InstrInfo, info *DecodeInfo) bool {
-	isBranch, isLink := InstA64IsIndirectBranchLink(instrInfo.Opcode, info)
+func decodeA64IndirectBranch(instrInfo *instrInfo, info *decodeInfo) bool {
+	isBranch, isLink := instA64IsIndirectBranchLink(instrInfo.Opcode, info)
 	if !isBranch {
 		return false
 	}
@@ -116,21 +116,21 @@ func decodeA64IndirectBranch(instrInfo *InstrInfo, info *DecodeInfo) bool {
 	return true
 }
 
-func decodeA64DirectBranch(instrInfo *InstrInfo, info *DecodeInfo) bool {
-	isBranch, isLink := InstA64IsDirectBranchLink(instrInfo.Opcode, info)
+func decodeA64DirectBranch(instrInfo *instrInfo, info *decodeInfo) bool {
+	isBranch, isLink := instA64IsDirectBranchLink(instrInfo.Opcode, info)
 	if !isBranch {
 		return false
 	}
 
 	var branchAddr uint64
-	InstA64BranchDestination(uint64(instrInfo.InstrAddr), instrInfo.Opcode, &branchAddr)
+	instA64BranchDestination(uint64(instrInfo.InstrAddr), instrInfo.Opcode, &branchAddr)
 	instrInfo.Type = InstrBr
 	instrInfo.BranchAddr = VAddr(branchAddr)
 	instrInfo.IsLink = isLink
 	return true
 }
 
-func decodeT32(instrInfo *InstrInfo, info *DecodeInfo) error {
+func decodeT32(instrInfo *instrInfo, info *decodeInfo) error {
 	instrInfo.Opcode = canonicalThumbOpcode(instrInfo.Opcode)
 	resetInstrInfo(instrInfo)
 	setThumbInstrSize(instrInfo)
@@ -138,25 +138,25 @@ func decodeT32(instrInfo *InstrInfo, info *DecodeInfo) error {
 	switch {
 	case decodeT32DirectBranch(instrInfo, info):
 	case decodeT32IndirectBranch(instrInfo, info):
-	case applyBarrier(instrInfo, InstThumbBarrier(instrInfo.Opcode)):
-	case instrInfo.WfiWfeBranch != 0 && InstThumbWfiWfe(instrInfo.Opcode):
+	case applyBarrier(instrInfo, instThumbBarrier(instrInfo.Opcode)):
+	case instrInfo.WfiWfeBranch != 0 && instThumbWfiWfe(instrInfo.Opcode):
 		instrInfo.Type = InstrWfiWfe
 	}
 
-	if InstThumbIsConditional(instrInfo.Opcode) {
+	if instThumbIsConditional(instrInfo.Opcode) {
 		instrInfo.IsConditional = true
 	}
 	updateThumbITBlock(instrInfo)
 	return nil
 }
 
-func decodeT32DirectBranch(instrInfo *InstrInfo, info *DecodeInfo) bool {
-	isBranch, isLink, isCond := InstThumbIsDirectBranchLink(instrInfo.Opcode, info)
+func decodeT32DirectBranch(instrInfo *instrInfo, info *decodeInfo) bool {
+	isBranch, isLink, isCond := instThumbIsDirectBranchLink(instrInfo.Opcode, info)
 	if !isBranch {
 		return false
 	}
 
-	branchAddr, _ := InstThumbBranchDestination(uint32(instrInfo.InstrAddr), instrInfo.Opcode)
+	branchAddr, _ := instThumbBranchDestination(uint32(instrInfo.InstrAddr), instrInfo.Opcode)
 	instrInfo.Type = InstrBr
 	instrInfo.BranchAddr = VAddr(branchAddr &^ 0x1)
 	instrInfo.IsLink = isLink
@@ -167,8 +167,8 @@ func decodeT32DirectBranch(instrInfo *InstrInfo, info *DecodeInfo) bool {
 	return true
 }
 
-func decodeT32IndirectBranch(instrInfo *InstrInfo, info *DecodeInfo) bool {
-	isBranch, isLink := InstThumbIsIndirectBranchLink(instrInfo.Opcode, info)
+func decodeT32IndirectBranch(instrInfo *instrInfo, info *decodeInfo) bool {
+	isBranch, isLink := instThumbIsIndirectBranchLink(instrInfo.Opcode, info)
 	if !isBranch {
 		return false
 	}
@@ -177,7 +177,7 @@ func decodeT32IndirectBranch(instrInfo *InstrInfo, info *DecodeInfo) bool {
 	return true
 }
 
-func updateThumbITBlock(instrInfo *InstrInfo) {
+func updateThumbITBlock(instrInfo *instrInfo) {
 	if instrInfo.TrackItBlock == 0 {
 		return
 	}
@@ -187,6 +187,6 @@ func updateThumbITBlock(instrInfo *InstrInfo) {
 		return
 	}
 	if instrInfo.Type == InstrOther {
-		instrInfo.ThumbItConditions = uint8(InstThumbIsIT(instrInfo.Opcode))
+		instrInfo.ThumbItConditions = uint8(instThumbIsIT(instrInfo.Opcode))
 	}
 }

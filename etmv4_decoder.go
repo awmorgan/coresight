@@ -32,7 +32,7 @@ const (
 type pendingP0 struct {
 	kind      pendingP0Kind
 	index     Index
-	atom      AtmVal
+	atom      atmVal
 	exception *etmv4Packet
 	packet    *etmv4Packet
 	element   *Element
@@ -76,8 +76,8 @@ type etmv4Decoder struct {
 	pendingRawPrefix  string
 	pendingP0         []pendingP0
 
-	codeFollower       *CodeFollower
-	returnStack        AddrReturnStack
+	codeFollower       *codeFollower
+	returnStack        addrReturnStack
 	retStackPopPending bool
 	flushBuf           []Element
 }
@@ -91,13 +91,13 @@ func etmv4NewDecoder(cfg *etmv4Config, mem internalMemoryReader, instr internalI
 		Config:      cfg,
 		MemAccess:   mem,
 		InstrDecode: instr,
-		codeFollower: &CodeFollower{
+		codeFollower: &codeFollower{
 			MemAccess:          mem,
 			IdDecode:           instr,
 			TraceID:            cfg.TraceID(),
 			ErrOnAA64BadOpcode: cfg.ErrOnAA64BadOpcode,
 			InstrRangeLimit:    cfg.InstrRangeLimit,
-			Arch: ArchProfile{
+			Arch: archProfile{
 				Arch:    cfg.ArchVer,
 				Profile: cfg.CoreProf,
 			},
@@ -202,7 +202,7 @@ func (d *etmv4Decoder) resetDecoder() {
 	d.pendingRawPrefix = ""
 	clear(d.pendingP0)
 	d.pendingP0 = d.pendingP0[:0]
-	d.returnStack.Flush()
+	d.returnStack.flush()
 	d.retStackPopPending = false
 }
 
@@ -486,7 +486,7 @@ func (d *etmv4Decoder) processExceptionPacket(pkt *etmv4Packet, retAddr VAddr, f
 		d.flushPendingElements()
 	}
 	if d.needAddr && d.retStackPopPending {
-		if retAddr, retISA, ok := d.returnStack.Pop(); ok {
+		if retAddr, retISA, ok := d.returnStack.pop(); ok {
 			d.iAddr = retAddr
 			d.lastIS = isaToIS(retISA)
 			d.codeFollower.InstrInfo.ISA = retISA
@@ -504,13 +504,13 @@ func (d *etmv4Decoder) processExceptionPacket(pkt *etmv4Packet, retAddr VAddr, f
 		rangeStart := d.iAddr
 		rangeEnd := d.iAddr
 		var numInstr uint32
-		var lastInfo InstrInfo
+		var lastInfo instrInfo
 		for rangeEnd < retAddr {
 			d.codeFollower.TempInstr = d.codeFollower.InstrInfo
 			d.codeFollower.TempInstr.ISA = isa
 			d.codeFollower.TempInstr.InstrAddr = rangeEnd
 			d.codeFollower.TempInstr.PeType = d.codeFollower.Arch
-			err := d.codeFollower.DecodeSingleOpCode(&d.codeFollower.TempInstr, d.Config.TraceID(), memSpace)
+			err := d.codeFollower.decodeSingleOpCode(&d.codeFollower.TempInstr, d.Config.TraceID(), memSpace)
 			if err != nil && !errors.Is(err, ErrMemNacc) {
 				return err
 			}
@@ -597,16 +597,16 @@ func (d *etmv4Decoder) processAtoms(pkt *etmv4Packet) error {
 		d.queueAtoms(pkt)
 		return d.commitOverSpecDepth()
 	}
-	return d.processAtomEntries(d.packetAtoms(pkt))
+	return d.processatomEntries(d.packetAtoms(pkt))
 }
 
 func (d *etmv4Decoder) packetAtoms(pkt *etmv4Packet) []pendingP0 {
 	atoms := make([]pendingP0, 0, pkt.Atom.Num)
 	bits := pkt.Atom.EnBits
 	for range int(pkt.Atom.Num) {
-		val := AtomN
+		val := atomN
 		if bits&1 != 0 {
-			val = AtomE
+			val = atomE
 		}
 		bits >>= 1
 		atoms = append(atoms, pendingP0{kind: pendingP0Atom, index: pkt.Index, atom: val})
@@ -617,9 +617,9 @@ func (d *etmv4Decoder) packetAtoms(pkt *etmv4Packet) []pendingP0 {
 func (d *etmv4Decoder) queueAtoms(pkt *etmv4Packet) {
 	bits := pkt.Atom.EnBits
 	for range int(pkt.Atom.Num) {
-		val := AtomN
+		val := atomN
 		if bits&1 != 0 {
-			val = AtomE
+			val = atomE
 		}
 		bits >>= 1
 		d.pendingP0 = append(d.pendingP0, pendingP0{kind: pendingP0Atom, index: pkt.Index, atom: val})
@@ -739,10 +739,10 @@ func (d *etmv4Decoder) resolveSpeculation(pkt *etmv4Packet) error {
 				continue
 			}
 			if newest.kind == pendingP0Atom {
-				if newest.atom == AtomE {
-					newest.atom = AtomN
+				if newest.atom == atomE {
+					newest.atom = atomN
 				} else {
-					newest.atom = AtomE
+					newest.atom = atomE
 				}
 				break
 			}
@@ -763,7 +763,7 @@ func (d *etmv4Decoder) processPendingP0Entries(entries []pendingP0) error {
 			for j < len(entries) && entries[j].kind == pendingP0Atom {
 				j++
 			}
-			if err := d.processAtomEntries(entries[i:j]); err != nil {
+			if err := d.processatomEntries(entries[i:j]); err != nil {
 				return err
 			}
 			i = j
@@ -820,13 +820,13 @@ func (d *etmv4Decoder) processPendingP0Entries(entries []pendingP0) error {
 	return nil
 }
 
-func (d *etmv4Decoder) processAtomEntries(atoms []pendingP0) error {
+func (d *etmv4Decoder) processatomEntries(atoms []pendingP0) error {
 	if len(atoms) == 0 {
 		return nil
 	}
 	d.flushPendingElements()
 	if d.needAddr && d.retStackPopPending {
-		if retAddr, retISA, ok := d.returnStack.Pop(); ok {
+		if retAddr, retISA, ok := d.returnStack.pop(); ok {
 			d.iAddr = retAddr
 			d.lastIS = isaToIS(retISA)
 			d.codeFollower.InstrInfo.ISA = retISA
@@ -844,7 +844,7 @@ func (d *etmv4Decoder) processAtomEntries(atoms []pendingP0) error {
 	d.codeFollower.InstrInfo.ISA = isa
 	for i, atom := range atoms {
 		val := atom.atom
-		res, err := d.codeFollower.FollowAtomWaypoint(d.iAddr, val)
+		res, err := d.codeFollower.followAtomWaypoint(d.iAddr, val)
 		if err != nil && !errors.Is(err, ErrMemNacc) {
 			d.handlePacketSequenceError(atom.index, err, "Error processing atom packet.")
 			return nil
@@ -862,21 +862,21 @@ func (d *etmv4Decoder) processAtomEntries(atoms []pendingP0) error {
 		elem.EndAddr = res.RangeEn
 		elem.ISA = isa
 		elem.Payload.NumInstrRange = res.NumInstr
-		elem.SetLastInstrInfo(val == AtomE, res.InstrInfo.Type, res.InstrInfo.Subtype, res.InstrInfo.InstrSize)
+		elem.SetLastInstrInfo(val == atomE, res.InstrInfo.Type, res.InstrInfo.Subtype, res.InstrInfo.InstrSize)
 		elem.LastInstrCond = res.InstrInfo.IsConditional
 		d.outputTraceElementAt(atom.index, elem)
-		if d.Config.IsETE() && val == AtomE && res.InstrInfo.Subtype == SInstrV8Eret {
+		if d.Config.IsETE() && val == atomE && res.InstrInfo.Subtype == SInstrV8Eret {
 			d.outputTraceElementAt(atom.index, Element{ElemType: GenElemExceptionRet})
 		}
 
-		if d.returnStack.Active && val == AtomE && res.InstrInfo.IsLink {
-			d.returnStack.Push(res.RangeEn, res.InstrInfo.ISA)
+		if d.returnStack.Active && val == atomE && res.InstrInfo.IsLink {
+			d.returnStack.push(res.RangeEn, res.InstrInfo.ISA)
 		}
-		if d.returnStack.Active && val == AtomE && res.InstrInfo.Type == InstrBrIndirect {
+		if d.returnStack.Active && val == atomE && res.InstrInfo.Type == InstrBrIndirect {
 			d.retStackPopPending = true
 		}
 		if d.retStackPopPending && i+1 < len(atoms) {
-			if retAddr, retISA, ok := d.returnStack.Pop(); ok {
+			if retAddr, retISA, ok := d.returnStack.pop(); ok {
 				res.NextAddr = retAddr
 				res.HasNext = true
 				res.InstrInfo.NextISA = retISA
@@ -937,12 +937,12 @@ func (d *etmv4Decoder) processSourceAddress(pkt *etmv4Packet) error {
 	switch srcInstrInfo.Type {
 	case InstrBr:
 		if srcInstrInfo.IsLink && d.returnStack.Active {
-			d.returnStack.Push(end, isa)
+			d.returnStack.push(end, isa)
 		}
 		d.iAddr = srcInstrInfo.BranchAddr
 	case InstrBrIndirect:
 		if srcInstrInfo.IsLink && d.returnStack.Active {
-			d.returnStack.Push(end, isa)
+			d.returnStack.push(end, isa)
 		}
 		d.needAddr = true
 		if d.returnStack.Active {
@@ -952,16 +952,16 @@ func (d *etmv4Decoder) processSourceAddress(pkt *etmv4Packet) error {
 	return nil
 }
 
-func (d *etmv4Decoder) decodeSourceAddressInstr(addr VAddr, isa ISA, memSpace MemSpaceAcc) (InstrInfo, error) {
+func (d *etmv4Decoder) decodeSourceAddressInstr(addr VAddr, isa ISA, memSpace MemSpaceAcc) (instrInfo, error) {
 	d.codeFollower.TempInstr = d.codeFollower.InstrInfo
 	d.codeFollower.TempInstr.ISA = isa
 	d.codeFollower.TempInstr.InstrAddr = addr
 	d.codeFollower.TempInstr.PeType = d.codeFollower.Arch
-	err := d.codeFollower.DecodeSingleOpCode(&d.codeFollower.TempInstr, d.Config.TraceID(), memSpace)
+	err := d.codeFollower.decodeSingleOpCode(&d.codeFollower.TempInstr, d.Config.TraceID(), memSpace)
 	return d.codeFollower.TempInstr, err
 }
 
-func (d *etmv4Decoder) outputSplitSourceAddressRanges(index Index, start, end VAddr, isa ISA, memSpace MemSpaceAcc, srcInstrInfo InstrInfo) error {
+func (d *etmv4Decoder) outputSplitSourceAddressRanges(index Index, start, end VAddr, isa ISA, memSpace MemSpaceAcc, srcInstrInfo instrInfo) error {
 	rangeStart := start
 	var numInstr uint32
 	for addr := start; addr < end; {
@@ -994,7 +994,7 @@ func (d *etmv4Decoder) outputSplitSourceAddressRanges(index Index, start, end VA
 	return nil
 }
 
-func (d *etmv4Decoder) outputSourceAddressRange(index Index, start, end VAddr, isa ISA, executed bool, instrInfo InstrInfo) {
+func (d *etmv4Decoder) outputSourceAddressRange(index Index, start, end VAddr, isa ISA, executed bool, instrInfo instrInfo) {
 	numInstr := uint32(1)
 	if isa != ISAThumb2 && end > start {
 		numInstr = uint32((end - start) / 4)
@@ -1002,7 +1002,7 @@ func (d *etmv4Decoder) outputSourceAddressRange(index Index, start, end VAddr, i
 	d.outputSourceAddressRangeWithCount(index, start, end, isa, numInstr, executed, instrInfo)
 }
 
-func (d *etmv4Decoder) outputSourceAddressRangeWithCount(index Index, start, end VAddr, isa ISA, numInstr uint32, executed bool, instrInfo InstrInfo) {
+func (d *etmv4Decoder) outputSourceAddressRangeWithCount(index Index, start, end VAddr, isa ISA, numInstr uint32, executed bool, instrInfo instrInfo) {
 	elem := Element{ElemType: GenElemInstrRange}
 	elem.StartAddr = start
 	elem.EndAddr = end
@@ -1213,7 +1213,7 @@ func (d *etmv4Decoder) processQElement(pkt *etmv4Packet) error {
 	var rangeStart = d.iAddr
 	var rangeEnd = d.iAddr
 	var numInstr uint32
-	var lastInfo InstrInfo
+	var lastInfo instrInfo
 	var isBranch bool
 	var err error
 
@@ -1222,7 +1222,7 @@ func (d *etmv4Decoder) processQElement(pkt *etmv4Packet) error {
 		d.codeFollower.TempInstr.ISA = isa
 		d.codeFollower.TempInstr.InstrAddr = rangeEnd
 		d.codeFollower.TempInstr.PeType = d.codeFollower.Arch
-		err = d.codeFollower.DecodeSingleOpCode(&d.codeFollower.TempInstr, d.Config.TraceID(), memSpace)
+		err = d.codeFollower.decodeSingleOpCode(&d.codeFollower.TempInstr, d.Config.TraceID(), memSpace)
 		if err != nil {
 			break
 		}

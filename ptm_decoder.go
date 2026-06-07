@@ -46,12 +46,12 @@ type ptmDecoder struct {
 	peContext      PEContext
 	currPeState    peAddrState
 	needIsync      bool
-	instrInfo      InstrInfo
+	instrInfo      instrInfo
 	memNaccPending bool
 	naccAddr       VAddr
 	iSyncPeCtxt    bool
 	atoms          ptmAtomPkt
-	returnStack    AddrReturnStack
+	returnStack    addrReturnStack
 
 	// Observational Sinks
 	internalEmitter
@@ -106,7 +106,7 @@ func (d *ptmDecoder) AccessMemory(address VAddr, traceID uint8, memSpace MemSpac
 }
 
 // InstrDecodeCall calls the attached instruction decoder.
-func (d *ptmDecoder) InstrDecodeCall(instrInfo *InstrInfo) error {
+func (d *ptmDecoder) InstrDecodeCall(instrInfo *instrInfo) error {
 	if d.InstrDecode != nil {
 		return d.InstrDecode(instrInfo)
 	}
@@ -336,13 +336,13 @@ func (d *ptmDecoder) processIsync() error {
 			d.peContext.SecurityLevel = SecSecure
 		}
 
-		if d.needIsync || pkt.ISyncReason != ISyncPeriodic {
+		if d.needIsync || pkt.ISyncReason != iSyncPeriodic {
 			elem := Element{ElemType: GenElemTraceOn}
 			elem.SetTraceOnReason(TraceOnNormal)
 			switch pkt.ISyncReason {
-			case ISyncTraceRestartAfterOverflow:
+			case iSyncTraceRestartAfterOverflow:
 				elem.SetTraceOnReason(TraceOnOverflow)
-			case ISyncDebugExit:
+			case iSyncDebugExit:
 				elem.SetTraceOnReason(TraceOnExDebug)
 			}
 			if pkt.CCValid {
@@ -353,7 +353,7 @@ func (d *ptmDecoder) processIsync() error {
 			d.iSyncPeCtxt = false
 		}
 		d.needIsync = false
-		d.returnStack.Flush()
+		d.returnStack.flush()
 	}
 
 	if d.iSyncPeCtxt {
@@ -388,7 +388,7 @@ func (d *ptmDecoder) processBranch() error {
 			d.OutputTraceElement(elem)
 		} else {
 			if d.currPeState.valid {
-				err = d.processAtomRange(AtomE, traceWaypoint, 0)
+				err = d.processAtomRange(atomE, traceWaypoint, 0)
 			}
 		}
 
@@ -405,7 +405,7 @@ func (d *ptmDecoder) processWPUpdate() error {
 	var err error
 
 	if d.currPeState.valid {
-		err = d.processAtomRange(AtomE, traceToAddrIncl, d.CurrPacketIn.AddrVal)
+		err = d.processAtomRange(atomE, traceToAddrIncl, d.CurrPacketIn.AddrVal)
 	}
 
 	d.checkPendingNacc()
@@ -442,7 +442,7 @@ func (d *ptmDecoder) checkPendingNacc() {
 	}
 }
 
-func (d *ptmDecoder) processAtomRange(A AtmVal, traceWPOp waypointTraceOp, nextAddrMatch VAddr) error {
+func (d *ptmDecoder) processAtomRange(A atmVal, traceWPOp waypointTraceOp, nextAddrMatch VAddr) error {
 	d.instrInfo.InstrAddr = d.currPeState.instrAddr
 	d.instrInfo.ISA = d.currPeState.isa
 
@@ -465,19 +465,19 @@ func (d *ptmDecoder) processAtomRange(A AtmVal, traceWPOp waypointTraceOp, nextA
 
 		switch d.instrInfo.Type {
 		case InstrBr:
-			if A == AtomE {
+			if A == atomE {
 				d.instrInfo.InstrAddr = d.instrInfo.BranchAddr
 				if d.instrInfo.IsLink {
-					d.returnStack.Push(nextAddr, d.instrInfo.ISA)
+					d.returnStack.push(nextAddr, d.instrInfo.ISA)
 				}
 			}
 		case InstrBrIndirect:
-			if A == AtomE {
+			if A == atomE {
 				d.currPeState.valid = false
 
 				// Match PTM OpenCSD: any indirect branch resulting in an ATOM E is treated as a ReturnStack Pop
 				if d.returnStack.Active && d.CurrPacketIn.Type == PacketAtom {
-					popAddr, nextIsa, ok := d.returnStack.Pop()
+					popAddr, nextIsa, ok := d.returnStack.pop()
 					if !ok {
 						return ErrRetStackOverflow // fatal
 					} else {
@@ -488,12 +488,12 @@ func (d *ptmDecoder) processAtomRange(A AtmVal, traceWPOp waypointTraceOp, nextA
 				}
 
 				if d.instrInfo.IsLink {
-					d.returnStack.Push(nextAddr, d.instrInfo.ISA)
+					d.returnStack.push(nextAddr, d.instrInfo.ISA)
 				}
 			}
 		}
 
-		elem.SetLastInstrInfo(A == AtomE, d.instrInfo.Type, d.instrInfo.Subtype, d.instrInfo.InstrSize)
+		elem.SetLastInstrInfo(A == atomE, d.instrInfo.Type, d.instrInfo.Subtype, d.instrInfo.InstrSize)
 		if d.CurrPacketIn.CCValid {
 			elem.SetCycleCount(d.CurrPacketIn.CycleCount)
 		}

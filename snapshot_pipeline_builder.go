@@ -8,9 +8,9 @@ import (
 )
 
 // archProfileMap is a package-level cache of the core architecture map (shared, read-only after init).
-var archProfileMap = NewCoreArchProfileMap()
+var archProfileMap = newCoreArchProfileMap()
 
-var snapshotNewPipeline = NewPipeline
+var snapshotNewPipeline = newPipeline
 
 // PipelineBuilder builds a pipeline from snapshot metadata.
 type PipelineBuilder struct {
@@ -87,7 +87,7 @@ func (b *PipelineBuilder) Build(sourceName string, packetProcOnly bool) (*Pipeli
 
 	b.packetProcOnly = packetProcOnly
 	b.diagnostics = nil
-	tree, ok := SourceTree(sourceName, b.reader.Trace)
+	tree, ok := sourceTree(sourceName, b.reader.Trace)
 	if !ok {
 		return nil, fmt.Errorf("source tree for buffer %q not found", sourceName)
 	}
@@ -116,7 +116,7 @@ func (b *PipelineBuilder) Build(sourceName string, packetProcOnly bool) (*Pipeli
 	if !packetProcOnly {
 		b.mapper = NewGlobalMapper()
 		b.memIf = b.mapper
-		b.instrDecode = DecodeInstruction
+		b.instrDecode = decodeInstruction
 	}
 
 	sourceSpecs, snapshotSkipped := b.sourceRouteSpecs(tree)

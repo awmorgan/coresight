@@ -138,7 +138,7 @@ func TestTraceDemuxGoldens(t *testing.T) {
 
 	// Helper to setup active decoder
 	setupDecoder := func(opts DemuxOptions) *Demuxer {
-		dec := NewDemuxer(streams)
+		dec := newDemuxer(streams)
 		_ = dec.Configure(opts)
 		fp := NewRawFramePrinter(&sb)
 		dec.SetRawFrameHandler(fp.WriteRawFrame)
