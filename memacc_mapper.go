@@ -1,11 +1,3 @@
-// Package memacc provides memory accessor registration and lookup for target-memory reads.
-//
-// Trace ID behavior in this package:
-//   - Accessor registration: trace ID is ignored.
-//   - Accessor lookup: trace ID is ignored; selection uses address and memory space only.
-//   - Cache partitioning: trace ID is part of cache keys and cache invalidation.
-//   - Callback dispatch: trace ID is forwarded to Accessor.ReadBytes, so callback-based
-//     accessors may use it to select source data.
 package coresight
 
 import (
