@@ -11,9 +11,6 @@ import (
 var (
 	// errNoAccessor indicates no memory accessor can service the request.
 	errNoAccessor = errors.New("no memory accessor")
-
-	// errAddressNotMapped indicates the address is not mapped in any accessor.
-	errAddressNotMapped = errors.New("address not mapped")
 )
 
 // GlobalMapper implements a global registry of memory accessors.
@@ -105,25 +102,6 @@ func (m *GlobalMapper) overlapsExisting(accessor Accessor) bool {
 		}
 	}
 	return false
-}
-
-func (m *GlobalMapper) removeAccessor(accessor Accessor) error {
-	for i, acc := range m.accessors {
-		if acc == accessor {
-			m.removeAccessorAt(i)
-			return nil
-		}
-	}
-	return errInvalidParamVal
-}
-
-func (m *GlobalMapper) removeAccessorAt(i int) {
-	if m.accessors[i] == m.last {
-		m.last = nil
-	}
-	m.accessors[i] = m.accessors[len(m.accessors)-1]
-	m.accessors[len(m.accessors)-1] = nil
-	m.accessors = m.accessors[:len(m.accessors)-1]
 }
 
 func (m *GlobalMapper) removeAllAccessors() {
