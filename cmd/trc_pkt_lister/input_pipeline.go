@@ -7,12 +7,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/awmorgan/coresight/internal/pipeline"
-	"github.com/awmorgan/coresight/internal/printers"
-	"github.com/awmorgan/coresight/trace"
+	"github.com/awmorgan/coresight"
 )
 
-func processTraceFile(out io.Writer, pipe *pipeline.Pipeline, fileName string, genPrinter *printers.GenericElementPrinter, opts options) error {
+func processTraceFile(out io.Writer, pipe *coresight.Pipeline, fileName string, genPrinter *coresight.GenericElementPrinter, opts options) error {
 	file, err := os.Open(fileName)
 	if err != nil {
 		return fmt.Errorf("trace packet lister: error: unable to open trace buffer %s: %w", fileName, err)
@@ -22,7 +20,7 @@ func processTraceFile(out io.Writer, pipe *pipeline.Pipeline, fileName string, g
 	start := time.Now()
 	buf := make([]byte, 4096)
 	var footer [8]byte
-	var traceIndex uint32
+	var traceIndex coresight.Index
 	dataPathFatal := false
 	haveDStreamFooter := false
 
@@ -35,8 +33,8 @@ func processTraceFile(out io.Writer, pipe *pipeline.Pipeline, fileName string, g
 		}
 
 		if n > 0 {
-			_, wErr := pipe.Write(trace.Index(traceIndex), buf[:n])
-			traceIndex += uint32(n)
+			_, wErr := pipe.Write(traceIndex, buf[:n])
+			traceIndex += coresight.Index(n)
 
 			if wErr != nil {
 				fmt.Fprintln(out, "Trace Packet Lister : Data Path fatal error")
@@ -62,7 +60,7 @@ func processTraceFile(out io.Writer, pipe *pipeline.Pipeline, fileName string, g
 
 	if !dataPathFatal {
 		if err := pipe.Close(); err != nil {
-			if errors.Is(err, trace.ErrDataDecodeFatal) {
+			if errors.Is(err, coresight.ErrDataDecodeFatal) {
 				fmt.Fprintln(out, "Trace Packet Lister : Data Path fatal error")
 				reportProcessedInput(out, traceIndex, start, genPrinter, opts)
 				return nil
@@ -106,7 +104,7 @@ func readDStreamFooter(out io.Writer, in io.Reader, footer []byte, opts options,
 	return ferr
 }
 
-func reportProcessedInput(out io.Writer, traceIndex uint32, start time.Time, genPrinter *printers.GenericElementPrinter, opts options) {
+func reportProcessedInput(out io.Writer, traceIndex coresight.Index, start time.Time, genPrinter *coresight.GenericElementPrinter, opts options) {
 	fmt.Fprintf(out, "Trace Packet Lister : Trace buffer done, processed %d bytes", traceIndex)
 	if opts.noTimePrint {
 		fmt.Fprintln(out, ".")
@@ -116,7 +114,7 @@ func reportProcessedInput(out io.Writer, traceIndex uint32, start time.Time, gen
 
 	if opts.stats {
 		fmt.Fprint(out, "\nReading packet decoder statistics....\n\n")
-		fmt.Fprintln(out, "Decode stats unavailable in Go port for this snapshot.")
+		fmt.Fprintln(out, "Decode stats unavailable in Go port for this coresight.")
 	}
 
 	if opts.profile {

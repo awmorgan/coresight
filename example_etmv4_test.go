@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/awmorgan/coresight"
-	"github.com/awmorgan/coresight/trace"
 )
 
 func ExampleEngine_etmv4Decode() {
@@ -43,16 +42,16 @@ func ExampleEngine_etmv4Decode() {
 	etmCfg := coresight.ETMv4Config{
 		IDR0:        0x28000EA1, // ID Register profile
 		ConfigR:     0x000000C1, // Trace configuration state
-		ArchVersion: trace.ArchAA64,
-		CoreProfile: trace.ProfileCortexA,
+		ArchVersion: coresight.ArchAA64,
+		CoreProfile: coresight.ProfileCortexA,
 		PacketObserver: func(index uint64, pkt fmt.Stringer, rawData []byte) {
 			// Optional: Inspect raw protocol packets prior to range reconstruction
 		},
 	}
 
 	// Connect decoder context to Trace ID 0x10
-	err = engine.RegisterETMv4(0x10, etmCfg, func(elem trace.Element) {
-		if elem.ElemType == trace.GenElemInstrRange {
+	err = engine.RegisterETMv4(0x10, etmCfg, func(elem coresight.Element) {
+		if elem.ElemType == coresight.GenElemInstrRange {
 			fmt.Printf("Executed instruction block from 0x%08X to 0x%08X (Instructions: %d)\n",
 				elem.StartAddr, elem.EndAddr, elem.Payload.NumInstrRange)
 		}

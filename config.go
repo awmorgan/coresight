@@ -2,8 +2,6 @@ package coresight
 
 import (
 	"fmt"
-
-	"github.com/awmorgan/coresight/trace"
 )
 
 // PacketObserver is the public type for observing raw packets off the decode path.
@@ -22,8 +20,8 @@ type ETMv4Config struct {
 	IDR12              uint32
 	IDR13              uint32
 	DevArch            uint32
-	ArchVersion        trace.ArchVersion
-	CoreProfile        trace.CoreProfile
+	ArchVersion        ArchVersion
+	CoreProfile        CoreProfile
 	ErrOnAA64BadOpcode bool
 	InstrRangeLimit    uint32
 	SrcAddrNAtoms      bool
@@ -37,8 +35,8 @@ type ETMv3Config struct {
 	IDR         uint32
 	Control     uint32
 	CCER        uint32
-	ArchVersion trace.ArchVersion
-	CoreProfile trace.CoreProfile
+	ArchVersion ArchVersion
+	CoreProfile CoreProfile
 
 	PacketObserver   PacketObserver
 	TraceEndObserver func()
@@ -49,8 +47,8 @@ type PTMConfig struct {
 	IDR         uint32
 	Control     uint32
 	CCER        uint32
-	ArchVersion trace.ArchVersion
-	CoreProfile trace.CoreProfile
+	ArchVersion ArchVersion
+	CoreProfile CoreProfile
 
 	PacketObserver   PacketObserver
 	TraceEndObserver func()

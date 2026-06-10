@@ -3,9 +3,8 @@ package main
 import (
 	"bufio"
 	"compress/gzip"
-	"github.com/awmorgan/coresight/internal/memacc"
-	"github.com/awmorgan/coresight/internal/snapshot"
-	"github.com/awmorgan/coresight/internal/testutil"
+	"github.com/awmorgan/coresight"
+	"github.com/awmorgan/coresight/snapshot"
 	"io"
 	"os"
 	"path/filepath"
@@ -93,10 +92,10 @@ func TestTraceListerGoldens(t *testing.T) {
 				t.Fatalf("parse golden %s: %v", tc.goldenPath, err)
 			}
 
-			if diffIdx, gotLine, wantLine := testutil.FirstDiff(gotLines, wantLines); diffIdx != 0 {
+			if diffIdx, gotLine, wantLine := firstDiff(gotLines, wantLines); diffIdx != 0 {
 				t.Errorf("Output mismatch at line %d\nwant: %s\n got: %s", diffIdx, wantLine, gotLine)
 				// output files for debugging and comparing files
-				repoRoot := filepath.Join("..", "..")
+				debugDir := t.TempDir()
 				gotBytes, err := os.ReadFile(outPath)
 				if err != nil {
 					t.Fatalf("read generated output %s: %v", outPath, err)
@@ -105,12 +104,15 @@ func TestTraceListerGoldens(t *testing.T) {
 				if err != nil {
 					t.Fatalf("read golden %s: %v", tc.goldenPath, err)
 				}
-				if err := os.WriteFile(filepath.Join(repoRoot, "got.txt"), gotBytes, 0644); err != nil {
+				gotFile := filepath.Join(debugDir, "got.txt")
+				wantFile := filepath.Join(debugDir, "want.txt")
+				if err := os.WriteFile(gotFile, gotBytes, 0644); err != nil {
 					t.Fatalf("copy generated output %s to got.txt: %v", outPath, err)
 				}
-				if err := os.WriteFile(filepath.Join(repoRoot, "want.txt"), wantBytes, 0644); err != nil {
+				if err := os.WriteFile(wantFile, wantBytes, 0644); err != nil {
 					t.Fatalf("copy golden %s to want.txt: %v", tc.goldenPath, err)
 				}
+				t.Logf("Mismatch debug files output to:\n  got:  %s\n  want: %s", gotFile, wantFile)
 			}
 
 			if t.Failed() {
@@ -432,7 +434,7 @@ func comparableTraceListerOutputFromFile(path string) ([]string, error) {
 			continue
 		}
 
-		records := testutil.SplitIdxRecords(line)
+		records := splitIdxRecords(line)
 		if len(records) > 1 {
 			out = append(out, records...)
 			continue
@@ -601,7 +603,7 @@ func TestMapMemoryRangesSameFileDifferentOffsetsBothMapped(t *testing.T) {
 		t.Fatalf("write memory file: %v", err)
 	}
 
-	reader := &snapshot.Reader{
+	reader := &snapshot.SnapshotReader{
 		ParsedDeviceList: map[string]*snapshot.Device{
 			"cpu_0": {
 				Name:  "cpu_0",
@@ -626,7 +628,7 @@ func TestMapMemoryRangesSameFileDifferentOffsetsBothMapped(t *testing.T) {
 		},
 	}
 
-	mapper := memacc.NewGlobalMapper()
+	mapper := coresight.NewGlobalMapper()
 	err := mapMemoryRanges(mapper, dir, reader)
 	if err != nil {
 		t.Fatalf("mapMemoryRanges returned error: %v", err)
@@ -648,7 +650,7 @@ func TestMapMemoryRangesBadOffsetReturnsError(t *testing.T) {
 		t.Fatalf("write memory file: %v", err)
 	}
 
-	reader := &snapshot.Reader{
+	reader := &snapshot.SnapshotReader{
 		ParsedDeviceList: map[string]*snapshot.Device{
 			"cpu_0": {
 				Name:  "cpu_0",
@@ -666,7 +668,7 @@ func TestMapMemoryRangesBadOffsetReturnsError(t *testing.T) {
 		},
 	}
 
-	mapper := memacc.NewGlobalMapper()
+	mapper := coresight.NewGlobalMapper()
 	err := mapMemoryRanges(mapper, dir, reader)
 	if err == nil {
 		t.Fatal("expected error for bad offset, got nil")
@@ -689,7 +691,7 @@ func TestMapMemoryRangesBadOffsetReturnsError(t *testing.T) {
 func TestMapMemoryRangesUnreadableFileIgnored(t *testing.T) {
 	dir := t.TempDir()
 
-	reader := &snapshot.Reader{
+	reader := &snapshot.SnapshotReader{
 		ParsedDeviceList: map[string]*snapshot.Device{
 			"cpu_0": {
 				Name:  "cpu_0",
@@ -707,7 +709,7 @@ func TestMapMemoryRangesUnreadableFileIgnored(t *testing.T) {
 		},
 	}
 
-	mapper := memacc.NewGlobalMapper()
+	mapper := coresight.NewGlobalMapper()
 	err := mapMemoryRanges(mapper, dir, reader)
 	if err != nil {
 		t.Fatalf("expected missing dump file to be ignored, got error: %v", err)
@@ -725,7 +727,7 @@ func TestMapMemoryRangesDuplicateSemanticMappingIgnored(t *testing.T) {
 		t.Fatalf("write memory file: %v", err)
 	}
 
-	reader := &snapshot.Reader{
+	reader := &snapshot.SnapshotReader{
 		ParsedDeviceList: map[string]*snapshot.Device{
 			"cpu_0": {
 				Name:  "cpu_0",
@@ -750,7 +752,7 @@ func TestMapMemoryRangesDuplicateSemanticMappingIgnored(t *testing.T) {
 		},
 	}
 
-	mapper := memacc.NewGlobalMapper()
+	mapper := coresight.NewGlobalMapper()
 	err := mapMemoryRanges(mapper, dir, reader)
 	if err != nil {
 		t.Fatalf("mapMemoryRanges returned error: %v", err)
@@ -763,4 +765,299 @@ func TestMapMemoryRangesDuplicateSemanticMappingIgnored(t *testing.T) {
 	if !strings.Contains(mappings, "0x1000:1003") {
 		t.Fatalf("unexpected mapped range: %s", mappings)
 	}
+}
+
+func firstDiff(got, want []string) (int, string, string) {
+	maxLen := max(len(want), len(got))
+	for i := range maxLen {
+		gotLine, wantLine := lineAt(got, i), lineAt(want, i)
+		if gotLine != wantLine {
+			return i + 1, gotLine, wantLine
+		}
+	}
+	return 0, "", ""
+}
+
+func lineAt(lines []string, i int) string {
+	if i >= len(lines) {
+		return ""
+	}
+	return lines[i]
+}
+
+func splitIdxRecords(line string) []string {
+	var records []string
+	for {
+		start := strings.Index(line, "Idx:")
+		if start < 0 {
+			return records
+		}
+		line = line[start:]
+
+		next := strings.Index(line[len("Idx:"):], "Idx:")
+		if next < 0 {
+			return appendRecord(records, line)
+		}
+
+		end := len("Idx:") + next
+		records = appendRecord(records, line[:end])
+		line = line[end:]
+	}
+}
+
+func appendRecord(records []string, record string) []string {
+	record = strings.TrimSpace(record)
+	if strings.HasPrefix(record, "Idx:") {
+		return append(records, record)
+	}
+	return records
+}
+
+func TestParseOptionsInstrRangeLimit(t *testing.T) {
+	testCases := []struct {
+		args      []string
+		expectErr bool
+		expected  uint32
+	}{
+		{[]string{"-instr_range_limit", "42"}, false, 42},
+		{[]string{"-instr_range_limit", "0"}, false, 0},
+		{[]string{"-instr_range_limit", "4294967295"}, false, 4294967295}, // math.MaxUint32
+		{[]string{"-instr_range_limit", "4294967296"}, true, 0},           // math.MaxUint32 + 1 (overflows 32-bit)
+		{[]string{"-instr_range_limit", "-1"}, true, 0},                   // negative
+		{[]string{"-instr_range_limit", "invalid"}, true, 0},
+	}
+
+	for _, tc := range testCases {
+		opts, err := parseOptions(tc.args)
+		if tc.expectErr {
+			if err == nil {
+				t.Errorf("parseOptions(%v) expected error, got nil", tc.args)
+			}
+		} else {
+			if err != nil {
+				t.Errorf("parseOptions(%v) unexpected error: %v", tc.args, err)
+			}
+			if opts.instrRangeLimit != tc.expected {
+				t.Errorf("parseOptions(%v) expected instrRangeLimit %d, got %d", tc.args, tc.expected, opts.instrRangeLimit)
+			}
+		}
+	}
+}
+
+func TestPipelineIndexDoesNotWrap(t *testing.T) {
+	sink := &indexRecordingSink{}
+	pipe, err := coresight.NewPipeline(false, coresight.DemuxOptions{})
+	if err != nil {
+		t.Fatalf("failed to create pipeline: %v", err)
+	}
+	if err := pipe.AddRoute(coresight.Route{
+		TraceID:  0,
+		Protocol: coresight.ProtocolETMV4I,
+		ByteSink: sink,
+	}); err != nil {
+		t.Fatalf("failed to add route: %v", err)
+	}
+
+	// Write at a very large index (5 GiB)
+	largeIndex := coresight.Index(0x140000000) // 5 GiB
+	_, err = pipe.Write(largeIndex, []byte{0x00, 0x01})
+	if err != nil {
+		t.Fatalf("unexpected pipe write error: %v", err)
+	}
+
+	if sink.lastIndex != largeIndex {
+		t.Fatalf("expected index %d, got wrapped index %d", largeIndex, sink.lastIndex)
+	}
+}
+
+type indexRecordingSink struct {
+	lastIndex coresight.Index
+}
+
+func (s *indexRecordingSink) Write(index coresight.Index, dataBlock []byte) (uint32, error) {
+	s.lastIndex = index
+	return uint32(len(dataBlock)), nil
+}
+
+func (s *indexRecordingSink) Close() error                      { return nil }
+func (s *indexRecordingSink) Flush() error                      { return nil }
+func (s *indexRecordingSink) Reset(index coresight.Index) error { return nil }
+
+func TestCliSnapshotWarnings(t *testing.T) {
+	// 1. Unrelated warning case: ETM_0 and CPU_0 exist, but ITM_0 (unrelated) fails to load.
+	// The run should print the warning and succeed.
+	t.Run("UnrelatedWarningSucceeds", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		// Write cstrace.bin
+		if err := os.WriteFile(filepath.Join(tmpDir, "cstrace.bin"), []byte{0x00}, 0644); err != nil {
+			t.Fatalf("failed to write cstrace: %v", err)
+		}
+
+		// Write snapshot.ini
+		snapshotIni := `[snapshot]
+version=1.0
+
+[device_list]
+ETM_0=device_0.ini
+CPU_0=device_2.ini
+ITM_0=device_1.ini
+
+[trace]
+metadata=trace.ini
+`
+		if err := os.WriteFile(filepath.Join(tmpDir, "snapshot.ini"), []byte(snapshotIni), 0644); err != nil {
+			t.Fatalf("failed to write snapshot.ini: %v", err)
+		}
+
+		// Write trace.ini
+		traceIni := `[trace_buffers]
+buffers=ETB_0
+
+[ETB_0]
+name=ETB_0
+file=cstrace.bin
+format=source_data
+
+[source_buffers]
+ETM_0=ETB_0
+
+[core_trace_sources]
+CPU_0=ETM_0
+`
+		if err := os.WriteFile(filepath.Join(tmpDir, "trace.ini"), []byte(traceIni), 0644); err != nil {
+			t.Fatalf("failed to write trace.ini: %v", err)
+		}
+
+		// Write device_0.ini (ETM_0)
+		device0Ini := `[device]
+name=ETM_0
+class=Source
+type=ETM4
+
+[regs]
+TRCTRACEIDR=0x10
+TRCIDR0=0x28000ea1
+TRCIDR1=0x4100f402
+TRCIDR2=0x00000488
+TRCCONFIGR=0x00000010
+`
+		if err := os.WriteFile(filepath.Join(tmpDir, "device_0.ini"), []byte(device0Ini), 0644); err != nil {
+			t.Fatalf("failed to write device_0.ini: %v", err)
+		}
+
+		// Write device_2.ini (CPU_0)
+		device2Ini := `[device]
+name=CPU_0
+class=core
+type=Cortex-A53
+`
+		if err := os.WriteFile(filepath.Join(tmpDir, "device_2.ini"), []byte(device2Ini), 0644); err != nil {
+			t.Fatalf("failed to write device_2.ini: %v", err)
+		}
+
+		// Run lister on ETB_0. It should succeed because ETM_0 and CPU_0 are loaded,
+		// even though ITM_0 failed to load (no device_1.ini).
+		logFile := filepath.Join(t.TempDir(), "out.ppl")
+		args := []string{
+			"-ss_dir", tmpDir,
+			"-src_name", "ETB_0",
+			"-logfilename", logFile,
+		}
+		err := run(args)
+		if err != nil {
+			t.Fatalf("expected success, got err: %v", err)
+		}
+
+		// Verify warning was printed to logfile
+		content, err := os.ReadFile(logFile)
+		if err != nil {
+			t.Fatalf("failed to read logfile: %v", err)
+		}
+		if !strings.Contains(string(content), "Trace Packet Lister : Warning:") {
+			t.Errorf("expected output to contain warning prefix, got:\n%s", string(content))
+		}
+		if !strings.Contains(string(content), "device_1.ini") {
+			t.Errorf("expected output to mention device_1.ini warning, got:\n%s", string(content))
+		}
+	})
+
+	// 2. Related warning case: ETM_0 (required) fails to load.
+	// The run should fail.
+	t.Run("RelatedWarningFails", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		// Write cstrace.bin
+		if err := os.WriteFile(filepath.Join(tmpDir, "cstrace.bin"), []byte{0x00}, 0644); err != nil {
+			t.Fatalf("failed to write cstrace: %v", err)
+		}
+
+		// Write snapshot.ini (missing device_0.ini for ETM_0)
+		snapshotIni := `[snapshot]
+version=1.0
+
+[device_list]
+ETM_0=device_0.ini
+CPU_0=device_2.ini
+
+[trace]
+metadata=trace.ini
+`
+		if err := os.WriteFile(filepath.Join(tmpDir, "snapshot.ini"), []byte(snapshotIni), 0644); err != nil {
+			t.Fatalf("failed to write snapshot.ini: %v", err)
+		}
+
+		// Write trace.ini
+		traceIni := `[trace_buffers]
+buffers=ETB_0
+
+[ETB_0]
+name=ETB_0
+file=cstrace.bin
+format=source_data
+
+[source_buffers]
+ETM_0=ETB_0
+
+[core_trace_sources]
+CPU_0=ETM_0
+`
+		if err := os.WriteFile(filepath.Join(tmpDir, "trace.ini"), []byte(traceIni), 0644); err != nil {
+			t.Fatalf("failed to write trace.ini: %v", err)
+		}
+
+		// Write device_2.ini (CPU_0)
+		device2Ini := `[device]
+name=CPU_0
+class=core
+type=Cortex-A53
+`
+		if err := os.WriteFile(filepath.Join(tmpDir, "device_2.ini"), []byte(device2Ini), 0644); err != nil {
+			t.Fatalf("failed to write device_2.ini: %v", err)
+		}
+
+		// Run lister on ETB_0. It should fail because ETM_0 is missing.
+		logFile := filepath.Join(t.TempDir(), "out.ppl")
+		args := []string{
+			"-ss_dir", tmpDir,
+			"-src_name", "ETB_0",
+			"-logfilename", logFile,
+		}
+		err := run(args)
+		if err == nil {
+			t.Fatal("expected failure due to missing ETM_0 device, but got success")
+		}
+		if !strings.Contains(err.Error(), "trace packet lister: failed to read snapshot data needed for the selected decode path") {
+			t.Errorf("expected specific error message, got: %v", err)
+		}
+
+		// Verify warning was printed to logfile
+		content, err := os.ReadFile(logFile)
+		if err != nil {
+			t.Fatalf("failed to read logfile: %v", err)
+		}
+		if !strings.Contains(string(content), "Trace Packet Lister : Warning:") {
+			t.Errorf("expected output to contain warning prefix, got:\n%s", string(content))
+		}
+	})
 }

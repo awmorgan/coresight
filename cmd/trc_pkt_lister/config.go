@@ -7,7 +7,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/awmorgan/coresight/trace"
+	"github.com/awmorgan/coresight"
 )
 
 const defaultLogFile = "trc_pkt_lister.ppl"
@@ -53,10 +53,26 @@ func (i *idListValue) Set(value string) error {
 		return fmt.Errorf("invalid ID number %s", value)
 	}
 	id := uint8(v)
-	if !trace.IsValidCSSrcID(id) {
+	if !coresight.IsValidCSSrcID(id) {
 		return fmt.Errorf("invalid ID number 0x%x", id)
 	}
 	*i = append(*i, id)
+	return nil
+}
+
+// uint32Value implements flag.Value to enforce 32-bit bounds.
+type uint32Value uint32
+
+func (u *uint32Value) String() string {
+	return strconv.FormatUint(uint64(*u), 10)
+}
+
+func (u *uint32Value) Set(value string) error {
+	v, err := strconv.ParseUint(value, 0, 32)
+	if err != nil {
+		return fmt.Errorf("invalid instruction range limit %s: must be a 32-bit unsigned integer", value)
+	}
+	*u = uint32Value(v)
 	return nil
 }
 
@@ -84,8 +100,7 @@ func parseOptions(args []string) (options, error) {
 	fs.BoolVar(&opts.dstreamFormat, "dstream_format", false, "Input is DSTREAM framed")
 	fs.BoolVar(&opts.aa64OpcodeChk, "aa64_opcode_chk", false, "Treat AA64 opcodes with zero top 16 bits as invalid")
 	fs.BoolVar(&opts.srcAddrNAtoms, "src_addr_n", false, "Split ETE source address ranges on N atoms")
-	var instrRangeLimit uint
-	fs.UintVar(&instrRangeLimit, "instr_range_limit", 0, "Limit consecutive instructions decoded in one range")
+	fs.Var((*uint32Value)(&opts.instrRangeLimit), "instr_range_limit", "Limit consecutive instructions decoded in one range")
 
 	fs.Var((*idListValue)(&opts.idList), "id", "Set an ID to list (may be used multiple times)")
 
@@ -130,9 +145,7 @@ func parseOptions(args []string) (options, error) {
 	if os.Getenv("OPENCSD_ERR_ON_AA64_BAD_OPCODE") != "" {
 		opts.aa64OpcodeChk = true
 	}
-	if instrRangeLimit > 0 {
-		opts.instrRangeLimit = uint32(instrRangeLimit)
-	}
+
 	if envLimit := os.Getenv("OPENCSD_INSTR_RANGE_LIMIT"); envLimit != "" {
 		limit, err := strconv.ParseUint(envLimit, 0, 32)
 		if err != nil {

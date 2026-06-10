@@ -3,7 +3,6 @@ package coresight_test
 import (
 	"bytes"
 	"github.com/awmorgan/coresight"
-	"github.com/awmorgan/coresight/trace"
 	"os"
 	"testing"
 )
@@ -38,17 +37,17 @@ func TestEngineETMv4Golden(t *testing.T) {
 	defer engine.Close()
 
 	// 4. Register ETMv4 decoder using typed method
-	var decodedElements []trace.Element
+	var decodedElements []coresight.Element
 	etmConfig := coresight.ETMv4Config{
 		IDR0:        0x28000ea1,
 		IDR1:        0x4100f402,
 		IDR2:        0x00000488,
 		ConfigR:     0x000000c1,
-		ArchVersion: trace.ArchV8,
-		CoreProfile: trace.ProfileCortexA,
+		ArchVersion: coresight.ArchV8,
+		CoreProfile: coresight.ProfileCortexA,
 	}
 
-	err = engine.RegisterETMv4(0x10, etmConfig, func(elem trace.Element) {
+	err = engine.RegisterETMv4(0x10, etmConfig, func(elem coresight.Element) {
 		decodedElements = append(decodedElements, elem)
 	})
 	if err != nil {
@@ -96,7 +95,7 @@ func TestEngineETMv4Golden(t *testing.T) {
 
 func TestEngineRegisterAllDecoders(t *testing.T) {
 	engine, err := coresight.NewEngine(coresight.EngineConfig{
-		FramedInput: false,
+		FramedInput: true,
 	})
 	if err != nil {
 		t.Fatalf("failed to create engine: %v", err)
@@ -104,14 +103,14 @@ func TestEngineRegisterAllDecoders(t *testing.T) {
 
 	// ITM
 	itmConfig := coresight.ITMConfig{ControlRegister: 0x00010000} // trace ID 1
-	err = engine.RegisterITM(1, itmConfig, func(elem trace.Element) {})
+	err = engine.RegisterITM(1, itmConfig, func(elem coresight.Element) {})
 	if err != nil {
 		t.Errorf("failed to register ITM: %v", err)
 	}
 
 	// STM
 	stmConfig := coresight.STMConfig{ControlRegister: 0x00020000} // trace ID 2
-	err = engine.RegisterSTM(2, stmConfig, func(elem trace.Element) {})
+	err = engine.RegisterSTM(2, stmConfig, func(elem coresight.Element) {})
 	if err != nil {
 		t.Errorf("failed to register STM: %v", err)
 	}
@@ -120,10 +119,10 @@ func TestEngineRegisterAllDecoders(t *testing.T) {
 	etmv3Config := coresight.ETMv3Config{
 		Control:     0x1000,
 		IDR:         0x4100F240,
-		ArchVersion: trace.ArchV7,
-		CoreProfile: trace.ProfileCortexA,
+		ArchVersion: coresight.ArchV7,
+		CoreProfile: coresight.ProfileCortexA,
 	}
-	err = engine.RegisterETMv3(3, etmv3Config, func(elem trace.Element) {})
+	err = engine.RegisterETMv3(3, etmv3Config, func(elem coresight.Element) {})
 	if err != nil {
 		t.Errorf("failed to register ETMv3: %v", err)
 	}
@@ -132,10 +131,10 @@ func TestEngineRegisterAllDecoders(t *testing.T) {
 	ptmConfig := coresight.PTMConfig{
 		Control:     0,
 		IDR:         0x4100F310,
-		ArchVersion: trace.ArchV7,
-		CoreProfile: trace.ProfileCortexA,
+		ArchVersion: coresight.ArchV7,
+		CoreProfile: coresight.ProfileCortexA,
 	}
-	err = engine.RegisterPTM(4, ptmConfig, func(elem trace.Element) {})
+	err = engine.RegisterPTM(4, ptmConfig, func(elem coresight.Element) {})
 	if err != nil {
 		t.Errorf("failed to register PTM: %v", err)
 	}

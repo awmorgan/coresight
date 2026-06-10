@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/awmorgan/coresight"
-	"github.com/awmorgan/coresight/trace"
 )
 
 // This example demonstrates how to initialize the CoreSight engine,
@@ -30,11 +29,11 @@ func ExampleEngine_basic() {
 	}
 
 	// 3. Register the STM decoder on Trace ID 2.
-	err = engine.RegisterSTM(2, stmConfig, func(elem trace.Element) {
+	err = engine.RegisterSTM(2, stmConfig, func(elem coresight.Element) {
 		switch elem.ElemType {
-		case trace.GenElemNoSync:
+		case coresight.GenElemNoSync:
 			fmt.Printf("STM Trace: Decoder initialized (reason: %d)\n", elem.Payload.UnsyncEOTInfo)
-		case trace.GenElemEOTrace:
+		case coresight.GenElemEOTrace:
 			fmt.Printf("STM Trace: Decoder reached end-of-trace (reason: %d)\n", elem.Payload.UnsyncEOTInfo)
 		default:
 			fmt.Printf("STM Trace: Decoded element: %d\n", elem.ElemType)
@@ -80,11 +79,11 @@ func ExampleEngine_RegisterITM() {
 	}
 
 	// Register the ITM decoder on Trace ID 1.
-	err = engine.RegisterITM(1, itmConfig, func(elem trace.Element) {
+	err = engine.RegisterITM(1, itmConfig, func(elem coresight.Element) {
 		switch elem.ElemType {
-		case trace.GenElemNoSync:
+		case coresight.GenElemNoSync:
 			fmt.Printf("ITM Trace: Decoder initialized (reason: %d)\n", elem.Payload.UnsyncEOTInfo)
-		case trace.GenElemEOTrace:
+		case coresight.GenElemEOTrace:
 			fmt.Printf("ITM Trace: Decoder reached end-of-trace (reason: %d)\n", elem.Payload.UnsyncEOTInfo)
 		default:
 			fmt.Printf("ITM Trace: Decoded element: %d\n", elem.ElemType)
@@ -146,16 +145,16 @@ func ExampleEngine_RegisterETMv4() {
 		IDR1:        0x4100f402,
 		IDR2:        0x00000488,
 		ConfigR:     0x000000c1,
-		ArchVersion: trace.ArchV8,
-		CoreProfile: trace.ProfileCortexA,
+		ArchVersion: coresight.ArchV8,
+		CoreProfile: coresight.ProfileCortexA,
 	}
 
 	// 4. Register ETMv4 on Trace ID 0x10.
-	err = engine.RegisterETMv4(0x10, etmConfig, func(elem trace.Element) {
+	err = engine.RegisterETMv4(0x10, etmConfig, func(elem coresight.Element) {
 		switch elem.ElemType {
-		case trace.GenElemNoSync:
+		case coresight.GenElemNoSync:
 			fmt.Printf("ETMv4 Trace: Decoder initialized (reason: %d)\n", elem.Payload.UnsyncEOTInfo)
-		case trace.GenElemEOTrace:
+		case coresight.GenElemEOTrace:
 			fmt.Printf("ETMv4 Trace: Decoder reached end-of-trace (reason: %d)\n", elem.Payload.UnsyncEOTInfo)
 		default:
 			fmt.Printf("ETMv4 Trace: Decoded element: %d\n", elem.ElemType)
@@ -187,7 +186,7 @@ func ExampleEngine_framed() {
 	// 1. Configure the demuxer options.
 	demuxCfg := &coresight.DemuxConfig{
 		FrameMemAlign: true,
-		RawFrameHandler: func(index uint64, elem trace.RawframeElem, data []byte, traceID uint8) error {
+		RawFrameHandler: func(index uint64, elem coresight.RawframeElem, data []byte, traceID uint8) error {
 			// Print details of intercepted raw frame bytes.
 			fmt.Printf("Frame: index=%d traceID=0x%02x len=%d\n", index, traceID, len(data))
 			return nil
@@ -209,7 +208,7 @@ func ExampleEngine_framed() {
 	stmConfig := coresight.STMConfig{
 		ControlRegister: 0,
 	}
-	err = engine.RegisterSTM(2, stmConfig, func(elem trace.Element) {
+	err = engine.RegisterSTM(2, stmConfig, func(elem coresight.Element) {
 		// Decoded STM elements from the framed stream will end up here.
 	})
 	if err != nil {
@@ -244,7 +243,7 @@ func ExampleEngine_multiSourceDemux() {
 		FramedInput: true,
 		Demux: &coresight.DemuxConfig{
 			FrameMemAlign: true,
-			RawFrameHandler: func(index uint64, elem trace.RawframeElem, data []byte, traceID uint8) error {
+			RawFrameHandler: func(index uint64, elem coresight.RawframeElem, data []byte, traceID uint8) error {
 				// Optional hook to audit raw interleaved channels
 				return nil
 			},
@@ -260,8 +259,8 @@ func ExampleEngine_multiSourceDemux() {
 
 	// Bind an ITM module to route events coming from Source ID 1
 	itmCfg := coresight.ITMConfig{ControlRegister: 0x1}
-	err = engine.RegisterITM(1, itmCfg, func(elem trace.Element) {
-		if elem.ElemType == trace.GenElemInstrumentation {
+	err = engine.RegisterITM(1, itmCfg, func(elem coresight.Element) {
+		if elem.ElemType == coresight.GenElemInstrumentation {
 			fmt.Printf("[Source ID 1 - ITM] Instrumentation value parsed\n")
 		}
 	})
@@ -272,7 +271,7 @@ func ExampleEngine_multiSourceDemux() {
 
 	// Bind an STM module to simultaneously extract trace data assigned to Source ID 2
 	stmCfg := coresight.STMConfig{ControlRegister: 0x0}
-	err = engine.RegisterSTM(2, stmCfg, func(elem trace.Element) {
+	err = engine.RegisterSTM(2, stmCfg, func(elem coresight.Element) {
 		fmt.Printf("[Source ID 2 - STM] Captured system trace element: %d\n", elem.ElemType)
 	})
 	if err != nil {

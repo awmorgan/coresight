@@ -6,12 +6,11 @@ import (
 	"io"
 	"path/filepath"
 
-	"github.com/awmorgan/coresight/internal/pipeline"
-	"github.com/awmorgan/coresight/internal/printers"
-	"github.com/awmorgan/coresight/internal/snapshot"
+	"github.com/awmorgan/coresight"
+	"github.com/awmorgan/coresight/snapshot"
 )
 
-func listTracePackets(out io.Writer, reader *snapshot.Reader, opts options, sourceNames []string) error {
+func listTracePackets(out io.Writer, reader *snapshot.SnapshotReader, opts options, sourceNames []string) error {
 	builder, pipe, err := buildSnapshotDecodeTree(reader, opts)
 	if err != nil {
 		return err
@@ -35,7 +34,7 @@ func listTracePackets(out io.Writer, reader *snapshot.Reader, opts options, sour
 		}
 	}
 
-	genPrinter := printers.NewGenericElementPrinter(out)
+	genPrinter := coresight.NewGenericElementPrinter(out)
 	genPrinter.SetIDFilter(opts.idList)
 	if opts.profile {
 		genPrinter.SetMute(true)
@@ -66,9 +65,9 @@ func listTracePackets(out io.Writer, reader *snapshot.Reader, opts options, sour
 }
 
 func buildSnapshotDecodeTree(
-	reader *snapshot.Reader,
+	reader *snapshot.SnapshotReader,
 	opts options,
-) (*snapshot.PipelineBuilder, *pipeline.Pipeline, error) {
+) (*snapshot.PipelineBuilder, *coresight.Pipeline, error) {
 	builder := snapshot.NewPipelineBuilder(reader)
 	builder.SetErrOnAA64BadOpcode(opts.aa64OpcodeChk)
 	builder.SetInstrRangeLimit(opts.instrRangeLimit)
@@ -91,9 +90,9 @@ func buildSnapshotDecodeTree(
 
 func runSingleSession(
 	out io.Writer,
-	pipe *pipeline.Pipeline,
+	pipe *coresight.Pipeline,
 	fileName string,
-	genPrinter *printers.GenericElementPrinter,
+	genPrinter *coresight.GenericElementPrinter,
 	opts options,
 ) error {
 	return processTraceFile(out, pipe, fileName, genPrinter, opts)
@@ -101,10 +100,10 @@ func runSingleSession(
 
 func runMultiSession(
 	out io.Writer,
-	reader *snapshot.Reader,
-	pipe *pipeline.Pipeline,
+	reader *snapshot.SnapshotReader,
+	pipe *coresight.Pipeline,
 	sourceNames []string,
-	genPrinter *printers.GenericElementPrinter,
+	genPrinter *coresight.GenericElementPrinter,
 	opts options,
 ) error {
 	total := len(sourceNames)
@@ -115,7 +114,12 @@ func runMultiSession(
 			fmt.Fprintf(out, "Trace Packet Lister : ERROR : Multi-session decode for buffer %s - buffer not found. Aborting.\n\n", sourceName)
 			break
 		}
-		binFile := filepath.Join(reader.SnapshotPath, srcTree.BufferInfo.DataFileName)
+		safeDataFile, err := snapshot.SafeRelativePath(srcTree.BufferInfo.DataFileName)
+		if err != nil {
+			fmt.Fprintf(out, "Trace Packet Lister : ERROR : Multi-session decode for buffer %s - invalid file path: %v. Aborting.\n\n", sourceName, err)
+			return err
+		}
+		binFile := filepath.Join(reader.SnapshotPath, safeDataFile)
 
 		if err := processTraceFile(out, pipe, binFile, genPrinter, opts); err != nil {
 			fmt.Fprintf(out, "Trace Packet Lister : ERROR : Multi-session decode for buffer %s failed. Aborting.\n\n", sourceName)

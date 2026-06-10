@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/awmorgan/coresight"
-	"github.com/awmorgan/coresight/trace"
 )
 
 // This example demonstrates how to configure and register an ETMv3 (Embedded Trace Macrocell v3)
@@ -39,16 +38,16 @@ func ExampleEngine_RegisterETMv3() {
 	etmv3Cfg := coresight.ETMv3Config{
 		IDR:         0x4100F240,
 		Control:     0x00001000,
-		ArchVersion: trace.ArchV7,
-		CoreProfile: trace.ProfileCortexA,
+		ArchVersion: coresight.ArchV7,
+		CoreProfile: coresight.ProfileCortexA,
 	}
 
 	// Register ETMv3 on Trace ID 3.
-	err = engine.RegisterETMv3(3, etmv3Cfg, func(elem trace.Element) {
+	err = engine.RegisterETMv3(3, etmv3Cfg, func(elem coresight.Element) {
 		switch elem.ElemType {
-		case trace.GenElemNoSync:
+		case coresight.GenElemNoSync:
 			fmt.Printf("ETMv3: Decoder initialized\n")
-		case trace.GenElemEOTrace:
+		case coresight.GenElemEOTrace:
 			fmt.Printf("ETMv3: End of trace\n")
 		}
 	})

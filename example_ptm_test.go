@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/awmorgan/coresight"
-	"github.com/awmorgan/coresight/trace"
 )
 
 // This example demonstrates how to configure and initialize a PTM (Program Trace Macrocell)
@@ -47,22 +46,22 @@ func ExampleEngine_RegisterPTM() {
 		IDR:         0x4100F310, // Standard PTM version identification signature
 		Control:     0x20001000, // Enable Return Stack logic and baseline tracing
 		CCER:        0x00400000, // Configure Waypoint generation behavior
-		ArchVersion: trace.ArchV7,
-		CoreProfile: trace.ProfileCortexA,
+		ArchVersion: coresight.ArchV7,
+		CoreProfile: coresight.ProfileCortexA,
 		PacketObserver: func(index uint64, pkt fmt.Stringer, rawData []byte) {
 			// Optional callback to trace or inspect protocol packets at low levels
 		},
 	}
 
 	// Register the PTM module for CoreSight Trace ID 0x1A
-	err = engine.RegisterPTM(0x1A, ptmCfg, func(elem trace.Element) {
+	err = engine.RegisterPTM(0x1A, ptmCfg, func(elem coresight.Element) {
 		switch elem.ElemType {
-		case trace.GenElemTraceOn:
+		case coresight.GenElemTraceOn:
 			fmt.Printf("[PTM] Trace streaming started (Reason: %d)\n", elem.Payload.UnsyncEOTInfo)
-		case trace.GenElemInstrRange:
+		case coresight.GenElemInstrRange:
 			fmt.Printf("[PTM] Range executed: 0x%04X -> 0x%04X (Instructions: %d, LastType: %d)\n",
 				elem.StartAddr, elem.EndAddr, elem.Payload.NumInstrRange, elem.LastInstrType)
-		case trace.GenElemAddrNacc:
+		case coresight.GenElemAddrNacc:
 			fmt.Printf("[PTM] Memory access error at address: 0x%04X\n", elem.StartAddr)
 		}
 	})

@@ -2,8 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/awmorgan/coresight/internal/pipeline"
-	"github.com/awmorgan/coresight/trace"
+	"github.com/awmorgan/coresight"
 	"io"
 	"slices"
 	"strconv"
@@ -19,7 +18,7 @@ type genericRawPrinter struct {
 }
 
 type traceErrorPrefixer interface {
-	TraceErrorPrefix(trace.Index, uint8) string
+	TraceErrorPrefix(coresight.Index, uint8) string
 }
 
 type packetAppender interface {
@@ -28,7 +27,7 @@ type packetAppender interface {
 
 func (p *genericRawPrinter) SetMute(bool) {}
 
-func (p *genericRawPrinter) ObservePacket(indexSOP trace.Index, pkt fmt.Stringer, rawData []byte) {
+func (p *genericRawPrinter) ObservePacket(indexSOP uint64, pkt fmt.Stringer, rawData []byte) {
 	if len(rawData) == 0 {
 		return
 	}
@@ -45,25 +44,25 @@ func (p *genericRawPrinter) ObservePacket(indexSOP trace.Index, pkt fmt.Stringer
 
 	prefix := ""
 	if pfx, ok := pkt.(traceErrorPrefixer); ok {
-		prefix = pfx.TraceErrorPrefix(indexSOP, p.id)
+		prefix = pfx.TraceErrorPrefix(coresight.Index(indexSOP), p.id)
 	}
 
 	if p.showRawBytes {
-		p.writePrefix(prefix, indexSOP)
+		p.writePrefix(prefix, coresight.Index(indexSOP))
 		io.WriteString(p.writer, " [")
 		p.writeRawBytes(rawData)
 		io.WriteString(p.writer, "];\t")
 		p.writer.Write(p.pktBuf)
 		io.WriteString(p.writer, "\n")
 	} else {
-		p.writePrefix(prefix, indexSOP)
+		p.writePrefix(prefix, coresight.Index(indexSOP))
 		io.WriteString(p.writer, "\t")
 		p.writer.Write(p.pktBuf)
 		io.WriteString(p.writer, "\n")
 	}
 }
 
-func (p *genericRawPrinter) writePrefix(prefix string, index trace.Index) {
+func (p *genericRawPrinter) writePrefix(prefix string, index coresight.Index) {
 	p.prefixBuf = p.prefixBuf[:0]
 	if prefix != "" {
 		p.prefixBuf = append(p.prefixBuf, prefix...)
@@ -101,19 +100,21 @@ func (p *genericRawPrinter) PrintTraceReset() {
 	fmt.Fprintf(p.writer, "ID:%x\tRESET operation on trace decode path\n", p.id)
 }
 
-func attachPacketPrinters(out io.Writer, pipe *pipeline.Pipeline, opts options) int {
+func attachPacketPrinters(out io.Writer, pipe *coresight.Pipeline, opts options) int {
 	attached := 0
 
-	forEachPacketPrinterRoute(pipe, opts, func(route pipeline.Route) {
+	forEachPacketPrinterRoute(pipe, opts, func(route coresight.Route) {
 		csID := route.TraceID
-		protocolName := trace.ProtocolName(route.Protocol)
+		protocolName := coresight.ProtocolName(route.Protocol)
 		mon := &genericRawPrinter{
 			writer:       out,
 			id:           csID,
 			showRawBytes: opts.decode || opts.pktMon,
 		}
 
-		if setter, ok := route.ByteSink.(interface{ SetPacketObserver(trace.PacketObserver) }); ok {
+		if setter, ok := route.ByteSink.(interface {
+			SetPacketObserver(coresight.PacketObserver)
+		}); ok {
 			setter.SetPacketObserver(mon.ObservePacket)
 			if endSetter, ok := route.ByteSink.(interface{ SetTraceEndObserver(func()) }); ok {
 				endSetter.SetTraceEndObserver(mon.ObserveTraceEnd)
@@ -128,12 +129,12 @@ func attachPacketPrinters(out io.Writer, pipe *pipeline.Pipeline, opts options) 
 	return attached
 }
 
-func reportResetOperation(out io.Writer, pipe *pipeline.Pipeline, opts options) {
+func reportResetOperation(out io.Writer, pipe *coresight.Pipeline, opts options) {
 	if opts.decodeOnly {
 		return
 	}
 
-	forEachPacketPrinterRoute(pipe, opts, func(route pipeline.Route) {
+	forEachPacketPrinterRoute(pipe, opts, func(route coresight.Route) {
 		mon := &genericRawPrinter{
 			writer: out,
 			id:     route.TraceID,
@@ -142,14 +143,14 @@ func reportResetOperation(out io.Writer, pipe *pipeline.Pipeline, opts options) 
 	})
 }
 
-func forEachPacketPrinterRoute(pipe *pipeline.Pipeline, opts options, fn func(pipeline.Route)) {
+func forEachPacketPrinterRoute(pipe *coresight.Pipeline, opts options, fn func(coresight.Route)) {
 	idFilter := make(map[uint8]bool, len(opts.idList))
 	for _, id := range opts.idList {
 		idFilter[id] = true
 	}
 
 	routes := slices.Clone(pipe.Routes)
-	slices.SortFunc(routes, func(a, b pipeline.Route) int {
+	slices.SortFunc(routes, func(a, b coresight.Route) int {
 		return int(a.TraceID) - int(b.TraceID)
 	})
 
