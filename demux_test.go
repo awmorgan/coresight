@@ -1,6 +1,7 @@
 package coresight
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"strings"
@@ -283,4 +284,253 @@ func TestTraceDemuxGoldens(t *testing.T) {
 			t.Fatalf("Line count mismatch. Expected %d lines, got %d", len(expectedLines), len(actualLines))
 		}
 	}
+}
+
+type mockStream struct {
+	chunks []byte
+}
+
+func (m *mockStream) Write(index Index, dataBlock []byte) (uint32, error) {
+	m.chunks = append(m.chunks, dataBlock...)
+	return uint32(len(dataBlock)), nil
+}
+
+func (m *mockStream) Close() error { return nil }
+func (m *mockStream) Flush() error { return nil }
+func (m *mockStream) Reset(index Index) error { return nil }
+
+func runDemuxTest(opts DemuxOptions, data []byte, step int, callClose bool, shortWriteLoop bool) (string, map[uint8][]byte, error) {
+	var sb strings.Builder
+	streams := make([]ByteSink, 128)
+	mockStreams := make(map[uint8]*mockStream)
+	for i := range streams {
+		ms := &mockStream{}
+		streams[i] = ms
+		mockStreams[uint8(i)] = ms
+	}
+
+	dec := newDemuxer(streams)
+	if err := dec.Configure(opts); err != nil {
+		return "", nil, err
+	}
+	fp := NewRawFramePrinter(&sb)
+	dec.SetRawFrameHandler(fp.WriteRawFrame)
+
+	if shortWriteLoop {
+		total := 0
+		available := 0
+		for total < len(data) {
+			available += step
+			if available > len(data) {
+				available = len(data)
+			}
+			chunk := data[total:available]
+			n, err := dec.Write(Index(total), chunk)
+			if err != nil {
+				return sb.String(), nil, err
+			}
+			total += int(n)
+			if available == len(data) && n == 0 && total < len(data) {
+				break
+			}
+		}
+	} else {
+		var currentIdx Index
+		for i := 0; i < len(data); i += step {
+			end := i + step
+			if end > len(data) {
+				end = len(data)
+			}
+			chunk := data[i:end]
+			_, err := dec.Write(currentIdx, chunk)
+			if err != nil {
+				return sb.String(), nil, err
+			}
+			currentIdx += Index(len(chunk))
+		}
+	}
+
+	var closeErr error
+	if callClose {
+		closeErr = dec.Close()
+	}
+
+	resStreams := make(map[uint8][]byte)
+	for id, ms := range mockStreams {
+		if len(ms.chunks) > 0 {
+			resStreams[id] = ms.chunks
+		}
+	}
+
+	return sb.String(), resStreams, closeErr
+}
+
+func TestTraceDemuxStreaming(t *testing.T) {
+	bufMemAlign := []byte{
+		idByteID(0x10), 0x01, idByteData(0x02), 0x03,
+		idByteData(0x04), 0x05, idByteData(0x06), 0x07,
+		idByteID(0x20), 0x08, idByteData(0x09), 0x0A,
+		idByteData(0x0B), 0x0C, idByteData(0x0D),
+		flagsByte(0, 0, 0, 0, 0, 1, 1, 1),
+		idByteData(0x0E), 0x0F, idByteID(0x30), 0x10,
+		idByteData(0x11), 0x12, idByteData(0x13), 0x14,
+		idByteData(0x15), 0x16, idByteID(0x10), 0x17,
+		idByteData(0x18), 0x19, idByteData(0x20),
+		flagsByte(0, 0, 1, 1, 1, 1, 0, 0),
+	}
+
+	memAlignOpts := DemuxOptions{
+		FrameMemAlign:  true,
+		PackedRawOut:   true,
+		UnpackedRawOut: true,
+	}
+
+	// 1. Get baseline (single block)
+	baselinePrinter, baselineStreams, err := runDemuxTest(memAlignOpts, bufMemAlign, len(bufMemAlign), true, false)
+	if err != nil {
+		t.Fatalf("Failed to run baseline: %v", err)
+	}
+
+	// Helper to compare outputs against baseline
+	compareOutputs := func(name string, printer string, streams map[uint8][]byte, err error) {
+		t.Helper()
+		if err != nil {
+			t.Errorf("[%s] unexpected error: %v", name, err)
+			return
+		}
+		if printer != baselinePrinter {
+			t.Errorf("[%s] printer output mismatch\nBaseline:\n%s\nActual:\n%s", name, baselinePrinter, printer)
+		}
+		for id, baselineData := range baselineStreams {
+			actualData := streams[id]
+			if !bytes.Equal(actualData, baselineData) {
+				t.Errorf("[%s] stream %d mismatch: expected %v, got %v", name, id, baselineData, actualData)
+			}
+		}
+	}
+
+	// 2. Test byte-by-byte chunking
+	t.Run("ByteByByte_NonRewriting", func(t *testing.T) {
+		printer, streams, err := runDemuxTest(memAlignOpts, bufMemAlign, 1, true, false)
+		compareOutputs("ByteByByte_NonRewriting", printer, streams, err)
+	})
+
+	t.Run("ByteByByte_Rewriting", func(t *testing.T) {
+		printer, streams, err := runDemuxTest(memAlignOpts, bufMemAlign, 1, true, true)
+		compareOutputs("ByteByByte_Rewriting", printer, streams, err)
+	})
+
+	// 3. Test two bytes at a time
+	t.Run("TwoBytes_NonRewriting", func(t *testing.T) {
+		printer, streams, err := runDemuxTest(memAlignOpts, bufMemAlign, 2, true, false)
+		compareOutputs("TwoBytes_NonRewriting", printer, streams, err)
+	})
+
+	t.Run("TwoBytes_Rewriting", func(t *testing.T) {
+		printer, streams, err := runDemuxTest(memAlignOpts, bufMemAlign, 2, true, true)
+		compareOutputs("TwoBytes_Rewriting", printer, streams, err)
+	})
+
+	// 4. Test split at every offset from 1 through frame size minus 1
+	for k := 1; k < 16; k++ {
+		t.Run(fmt.Sprintf("SplitAt_%d_NonRewriting", k), func(t *testing.T) {
+			// Simulates writing bufMemAlign[:k] and bufMemAlign[k:]
+			// We can do this with non-rewriting loop using chunks
+			var sb strings.Builder
+			streams := make([]ByteSink, 128)
+			mockStreams := make(map[uint8]*mockStream)
+			for i := range streams {
+				ms := &mockStream{}
+				streams[i] = ms
+				mockStreams[uint8(i)] = ms
+			}
+
+			dec := newDemuxer(streams)
+			if err := dec.Configure(memAlignOpts); err != nil {
+				t.Fatalf("Configure failed: %v", err)
+			}
+			fp := NewRawFramePrinter(&sb)
+			dec.SetRawFrameHandler(fp.WriteRawFrame)
+
+			// Write first chunk
+			_, err := dec.Write(0, bufMemAlign[:k])
+			if err != nil {
+				t.Fatalf("Write 1 failed: %v", err)
+			}
+			// Write second chunk
+			_, err = dec.Write(Index(k), bufMemAlign[k:])
+			if err != nil {
+				t.Fatalf("Write 2 failed: %v", err)
+			}
+			if err := dec.Close(); err != nil {
+				t.Fatalf("Close failed: %v", err)
+			}
+
+			resStreams := make(map[uint8][]byte)
+			for id, ms := range mockStreams {
+				if len(ms.chunks) > 0 {
+					resStreams[id] = ms.chunks
+				}
+			}
+			compareOutputs(fmt.Sprintf("SplitAt_%d_NonRewriting", k), sb.String(), resStreams, nil)
+		})
+
+		t.Run(fmt.Sprintf("SplitAt_%d_Rewriting", k), func(t *testing.T) {
+			// Simulates a rewriting client:
+			// Write bufMemAlign[:k] (alignment is 16, so n = 0 is returned)
+			// Write bufMemAlign since it rewrites from 0.
+			var sb strings.Builder
+			streams := make([]ByteSink, 128)
+			mockStreams := make(map[uint8]*mockStream)
+			for i := range streams {
+				ms := &mockStream{}
+				streams[i] = ms
+				mockStreams[uint8(i)] = ms
+			}
+
+			dec := newDemuxer(streams)
+			if err := dec.Configure(memAlignOpts); err != nil {
+				t.Fatalf("Configure failed: %v", err)
+			}
+			fp := NewRawFramePrinter(&sb)
+			dec.SetRawFrameHandler(fp.WriteRawFrame)
+
+			// Write first chunk
+			n1, err := dec.Write(0, bufMemAlign[:k])
+			if err != nil {
+				t.Fatalf("Write 1 failed: %v", err)
+			}
+			if n1 != 0 {
+				t.Fatalf("Expected n1 = 0, got %d", n1)
+			}
+
+			// Rewrite since n1 was 0
+			_, err = dec.Write(0, bufMemAlign)
+			if err != nil {
+				t.Fatalf("Write 2 failed: %v", err)
+			}
+			if err := dec.Close(); err != nil {
+				t.Fatalf("Close failed: %v", err)
+			}
+
+			resStreams := make(map[uint8][]byte)
+			for id, ms := range mockStreams {
+				if len(ms.chunks) > 0 {
+					resStreams[id] = ms.chunks
+				}
+			}
+			compareOutputs(fmt.Sprintf("SplitAt_%d_Rewriting", k), sb.String(), resStreams, nil)
+		})
+	}
+
+	// 5. Test incomplete frame at Close returns errDfrmtrIncompleteTail
+	t.Run("IncompleteFrameAtClose", func(t *testing.T) {
+		incompleteInput := append([]byte(nil), bufMemAlign...)
+		incompleteInput = append(incompleteInput, 0xAA) // 1 extra byte
+
+		_, _, err := runDemuxTest(memAlignOpts, incompleteInput, len(incompleteInput), true, false)
+		if err != errDfrmtrIncompleteTail {
+			t.Errorf("Expected errDfrmtrIncompleteTail error on Close, got: %v", err)
+		}
+	})
 }

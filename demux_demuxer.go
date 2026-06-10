@@ -41,6 +41,10 @@ type Demuxer struct {
 	inBlock []byte
 
 	unpackBuf [16]byte
+
+	pending                     []byte
+	lastWriteEndIndex           Index
+	lastWriteProcessedEndIndex  Index
 }
 
 func newDemuxer(streams []ByteSink) *Demuxer {
@@ -154,6 +158,10 @@ func (d *Demuxer) resetStateParams() {
 	d.exFrmBytes = 0
 	d.fsyncStartEOB = false
 	d.trcCurrIdxSof = BadIndex
+
+	d.pending = nil
+	d.lastWriteEndIndex = 0
+	d.lastWriteProcessedEndIndex = 0
 }
 
 // Write processes the raw trace byte stream, demuxing frames into individual trace streams.
@@ -166,39 +174,82 @@ func (d *Demuxer) Write(index Index, dataBlock []byte) (uint32, error) {
 		return 0, errDfrmtrNotConfigured
 	}
 
-	processSize := uint32(len(dataBlock))
-	processSize -= processSize % d.alignment
-	if processSize == 0 {
-		return uint32(len(dataBlock)), nil
+	if len(d.pending) > 0 {
+		if index == d.lastWriteProcessedEndIndex {
+			d.pending = nil
+		} else if index != d.lastWriteEndIndex {
+			d.pending = nil
+		}
 	}
 
-	d.trcCurrIdx = index
-	d.inBlock = dataBlock[:processSize]
+	origPendingLen := len(d.pending)
+	var combinedBlock []byte
+	if origPendingLen > 0 {
+		combinedBlock = make([]byte, origPendingLen+len(dataBlock))
+		copy(combinedBlock, d.pending)
+		copy(combinedBlock[origPendingLen:], dataBlock)
+	} else {
+		combinedBlock = dataBlock
+	}
+
+	totalLen := uint32(len(combinedBlock))
+	processSize := totalLen - (totalLen % d.alignment)
+	if processSize == 0 {
+		d.pending = append(d.pending, dataBlock...)
+		d.lastWriteEndIndex = index + Index(len(dataBlock))
+		d.lastWriteProcessedEndIndex = index
+		return 0, nil
+	}
+
+	processedFromDataBlock := int(processSize) - origPendingLen
+
+	remainingTail := combinedBlock[processSize:]
+	if len(remainingTail) > 0 {
+		newPending := make([]byte, len(remainingTail))
+		copy(newPending, remainingTail)
+		d.pending = newPending
+	} else {
+		d.pending = nil
+	}
+
+	d.trcCurrIdx = index - Index(origPendingLen)
+	d.inBlock = combinedBlock[:processSize]
 
 	if !d.checkForSync() {
-		return uint32(len(dataBlock)), nil
+		d.lastWriteEndIndex = index + Index(len(dataBlock))
+		d.lastWriteProcessedEndIndex = index + Index(processedFromDataBlock)
+		return uint32(processedFromDataBlock), nil
 	}
 
 	for len(d.inBlock) > 0 {
 		processing, err := d.extractFrame()
 		if err != nil {
-			return uint32(len(dataBlock)), err
+			d.lastWriteEndIndex = index + Index(len(dataBlock))
+			d.lastWriteProcessedEndIndex = index + Index(processedFromDataBlock)
+			return uint32(processedFromDataBlock), err
 		}
 		if processing {
 			if err := d.unpackAndOutputFrame(); err != nil {
-				return uint32(len(dataBlock)), err
+				d.lastWriteEndIndex = index + Index(len(dataBlock))
+				d.lastWriteProcessedEndIndex = index + Index(processedFromDataBlock)
+				return uint32(processedFromDataBlock), err
 			}
 		} else {
 			break
 		}
 	}
 
-	return uint32(len(dataBlock)), nil
+	d.lastWriteEndIndex = index + Index(len(dataBlock))
+	d.lastWriteProcessedEndIndex = index + Index(processedFromDataBlock)
+	return uint32(processedFromDataBlock), nil
 }
 
 // Close forwards an EOT operation through the legacy multiplexer.
 func (d *Demuxer) Close() error {
 	d.updateRawOutputState()
+	if len(d.pending) > 0 {
+		return errDfrmtrIncompleteTail
+	}
 	return d.closeAllIDs()
 }
 

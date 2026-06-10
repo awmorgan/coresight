@@ -27,4 +27,5 @@ var (
 	errDcdInterfaceUnused  = errors.New("attempt to connect or use and interface not supported by this decoder")
 	errInvalidOpcode       = errors.New("illegal Opcode found while decoding program memory")
 	errIRangeLimitOverrun  = errors.New("an optional limit on consecutive instructions in range during decode has been exceeded")
+	errDfrmtrIncompleteTail = errors.New("incomplete trailing bytes in frame stream at close")
 )
