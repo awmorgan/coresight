@@ -13,30 +13,30 @@ type Accessor interface {
 	Range() (VAddr, VAddr)
 }
 
-// BaseAccessor implements the common logic for memory accessors.
-type BaseAccessor struct {
+// baseAccessor implements the common logic for memory accessors.
+type baseAccessor struct {
 	StartAddress VAddr
 	EndAddress   VAddr
 	MemSpaceAcc  MemSpaceAcc
 }
 
-func (b *BaseAccessor) AddrInRange(address VAddr) bool {
+func (b *baseAccessor) AddrInRange(address VAddr) bool {
 	return address >= b.StartAddress && address <= b.EndAddress
 }
 
-func (b *BaseAccessor) MemSpace() MemSpaceAcc {
+func (b *baseAccessor) MemSpace() MemSpaceAcc {
 	return b.MemSpaceAcc
 }
 
-func (b *BaseAccessor) Range() (VAddr, VAddr) {
+func (b *baseAccessor) Range() (VAddr, VAddr) {
 	return b.StartAddress, b.EndAddress
 }
 
-func (b *BaseAccessor) String() string {
+func (b *baseAccessor) String() string {
 	return fmt.Sprintf("Range::0x%x:%x; Mem Space::%s", b.StartAddress, b.EndAddress, MemSpaceString(b.MemSpaceAcc))
 }
 
-// MemSpaceString formats memSpace using the OpenCSD memory-space names.
+// MemSpaceString formats memSpace as a string.
 func MemSpaceString(memSpace MemSpaceAcc) string {
 	if name, ok := namedMemSpace(memSpace); ok {
 		return name

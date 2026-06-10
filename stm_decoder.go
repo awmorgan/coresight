@@ -61,7 +61,7 @@ func (d *stmDecoder) Close() error {
 		_ = d.outputPacket()
 	}
 	elem := Element{ElemType: GenElemEOTrace}
-	elem.SetUnsyncEndReason(UnsyncEOT)
+	elem.setUnsyncEndReason(UnsyncEOT)
 	d.OutputTraceElement(elem)
 	d.EmitTraceEnd()
 	return nil
@@ -110,7 +110,7 @@ func (d *stmDecoder) processPacket(pktIn *stmPacket) error {
 		switch d.currState {
 		case stmDecodeNoSync:
 			elem := Element{ElemType: GenElemNoSync}
-			elem.SetUnsyncEndReason(d.unsyncInfo)
+			elem.setUnsyncEndReason(d.unsyncInfo)
 			d.OutputTraceElement(elem)
 			d.currState = stmDecodeWaitSync
 		case stmDecodeWaitSync:
@@ -140,49 +140,49 @@ func (d *stmDecoder) decodePacket() error {
 	case stmPktNotSync:
 		d.resetDecoder()
 		return nil
-	case PktVersion:
+	case pktVersion:
 		d.swtInfo.MasterID = uint16(pkt.Master)
 		d.swtInfo.ChannelID = pkt.Channel
 		d.swtInfo.IDValid = true
 	case stmPktAsync, stmPktIncompleteEOT:
 		return nil
-	case PktNull:
+	case pktNull:
 		sendPacket = pkt.HasTS
-	case PktFreq:
+	case pktFreq:
 		d.swtInfo.Frequency = true
 		d.updatePayload(&elem, pkt, &sendPacket)
-	case PktTrig:
+	case pktTrig:
 		d.swtInfo.TriggerEvent = true
 		d.updatePayload(&elem, pkt, &sendPacket)
-	case PktGerr:
+	case pktGerr:
 		d.swtInfo.MasterID = uint16(pkt.Master)
 		d.swtInfo.ChannelID = pkt.Channel
 		d.swtInfo.GlobalErr = true
 		d.swtInfo.IDValid = false
 		d.updatePayload(&elem, pkt, &sendPacket)
-	case PktMerr:
+	case pktMerr:
 		d.swtInfo.ChannelID = pkt.Channel
 		d.swtInfo.MasterErr = true
 		d.updatePayload(&elem, pkt, &sendPacket)
-	case PktM8:
+	case pktM8:
 		d.swtInfo.MasterID = uint16(pkt.Master)
 		d.swtInfo.ChannelID = pkt.Channel
 		d.swtInfo.IDValid = true
-	case PktC8, PktC16:
+	case pktC8, pktC16:
 		d.swtInfo.ChannelID = pkt.Channel
-	case PktFlag:
+	case pktFlag:
 		d.swtInfo.MarkerPacket = true
 		sendPacket = true
-	case PktD4, PktD8, PktD16, PktD32, PktD64:
+	case pktD4, pktD8, pktD16, pktD32, pktD64:
 		d.updatePayload(&elem, pkt, &sendPacket)
 	}
 
 	if sendPacket {
 		if pkt.HasTS {
-			elem.SetTimestamp(pkt.Timestamp, false)
+			elem.setTimestamp(pkt.Timestamp, false)
 			d.swtInfo.HasTimestamp = true
 		}
-		elem.SetSWTInfo(d.swtInfo)
+		elem.setSWTInfo(d.swtInfo)
 		d.OutputTraceElement(elem)
 	}
 	return nil
@@ -202,22 +202,22 @@ func (d *stmDecoder) updatePayload(elem *Element, pkt *stmPacket, sendPacket *bo
 	d.swtInfo.PayloadNumPackets = 1
 	bitSize := uint8(0)
 	switch pkt.Type {
-	case PktD4:
+	case pktD4:
 		bitSize = 4
-	case PktD8, PktTrig, PktGerr, PktMerr:
+	case pktD8, pktTrig, pktGerr, pktMerr:
 		bitSize = 8
-	case PktD16:
+	case pktD16:
 		bitSize = 16
-	case PktD32, PktFreq:
+	case pktD32, pktFreq:
 		bitSize = 32
-	case PktD64:
+	case pktD64:
 		bitSize = 64
 	}
 	d.swtInfo.PayloadPktBitsize = bitSize
 
 	data := make([]byte, 8)
 	binary.LittleEndian.PutUint64(data, pkt.Payload)
-	elem.SetExtendedDataPtr(data[:max(1, int(bitSize)/8)])
+	elem.setExtendedDataPtr(data[:max(1, int(bitSize)/8)])
 	if pkt.HasMarker {
 		d.swtInfo.MarkerPacket = true
 	}

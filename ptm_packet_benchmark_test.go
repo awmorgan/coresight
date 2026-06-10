@@ -6,7 +6,7 @@ import (
 
 func BenchmarkPtmPacketString_Atom(b *testing.B) {
 	pkt := ptmPacket{
-		Type: PacketAtom,
+		Type: packetAtom,
 		Atom: ptmAtomPkt{EnBits: 0x1f, Num: 6},
 	}
 	for b.Loop() {
@@ -16,7 +16,7 @@ func BenchmarkPtmPacketString_Atom(b *testing.B) {
 
 func BenchmarkPtmPacketString_BranchAddress(b *testing.B) {
 	pkt := ptmPacket{
-		Type:          PacketBranchAddress,
+		Type:          packetBranchAddress,
 		AddrVal:       VAddr(0xc0012345),
 		AddrBits:      32,
 		AddrValidBits: 32,
@@ -31,7 +31,7 @@ func BenchmarkPtmPacketString_BranchAddress(b *testing.B) {
 
 func BenchmarkPtmPacketString_ISync(b *testing.B) {
 	pkt := ptmPacket{
-		Type:        PacketISync,
+		Type:        packetISync,
 		AddrVal:     VAddr(0xc0012345),
 		CurrISA:     ISAThumb2,
 		Context:     ptmContext{CurrNS: true, UpdatedC: true, CtxtID: 0x12345678},

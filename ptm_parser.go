@@ -25,18 +25,18 @@ type ptmProcessState int
 type ptmPacketHandler func(*ptmDecoder) error
 
 var ptmHandlers = [32]ptmPacketHandler{
-	PacketBranchAddress: (*ptmDecoder).pktBranchAddr,
-	PacketAtom:          (*ptmDecoder).PacketAtom,
-	PacketASync:         (*ptmDecoder).PacketASync,
-	PacketISync:         (*ptmDecoder).PacketISync,
-	PacketWPointUpdate:  (*ptmDecoder).PacketWPointUpdate,
-	PacketTrigger:       (*ptmDecoder).PacketTrigger,
-	PacketContextID:     (*ptmDecoder).pktCtxtID,
-	PacketVMID:          (*ptmDecoder).PacketVMID,
-	PacketTimestamp:     (*ptmDecoder).PacketTimestamp,
-	PacketExceptionRet:  (*ptmDecoder).PacketExceptionRet,
-	PacketIgnore:        (*ptmDecoder).PacketIgnore,
-	PacketReserved:      (*ptmDecoder).PacketReserved,
+	packetBranchAddress: (*ptmDecoder).pktBranchAddr,
+	packetAtom:          (*ptmDecoder).packetAtom,
+	packetASync:         (*ptmDecoder).packetASync,
+	packetISync:         (*ptmDecoder).packetISync,
+	packetWPointUpdate:  (*ptmDecoder).packetWPointUpdate,
+	packetTrigger:       (*ptmDecoder).packetTrigger,
+	packetContextID:     (*ptmDecoder).pktCtxtID,
+	packetVMID:          (*ptmDecoder).packetVMID,
+	packetTimestamp:     (*ptmDecoder).packetTimestamp,
+	packetExceptionRet:  (*ptmDecoder).packetExceptionRet,
+	packetIgnore:        (*ptmDecoder).packetIgnore,
+	packetReserved:      (*ptmDecoder).packetReserved,
 }
 
 const (
@@ -84,7 +84,7 @@ func (p *ptmDecoder) Write(index Index, dataBlock []byte) (uint32, error) {
 }
 
 func (p *ptmDecoder) resetProcessorState() {
-	p.ctx.currPacket.Type = PacketNotSync
+	p.ctx.currPacket.Type = packetNotSync
 
 	p.ctx.processState = ptmStateWaitSync
 	p.ctx.async0 = 0
@@ -122,7 +122,7 @@ func (p *ptmDecoder) readNextByte() (uint8, bool) {
 }
 
 func (p *ptmDecoder) malformedPacketErr(msg string) error {
-	p.ctx.currPacket.SetErrType(PacketBadSequence)
+	p.ctx.currPacket.SetErrType(packetBadSequence)
 	return fmt.Errorf("%w: %s", errBadPacketSeq, msg)
 }
 
@@ -140,7 +140,7 @@ func (p *ptmDecoder) processData(index Index, dataBlock []uint8) (uint32, error)
 		case ptmStateWaitSync:
 			if !p.ctx.waitASyncSOPacket {
 				p.ctx.currPacketIndex = p.ctx.CurrentIndex()
-				p.ctx.currPacket.Type = PacketNotSync
+				p.ctx.currPacket.Type = packetNotSync
 				p.ctx.bAsyncRawOp = p.PacketObserver != nil
 			}
 			err = p.waitASync()
@@ -163,7 +163,7 @@ func (p *ptmDecoder) processData(index Index, dataBlock []uint8) (uint32, error)
 			if handler != nil {
 				err = handler(p)
 			} else {
-				err = p.PacketReserved()
+				err = p.packetReserved()
 			}
 
 		case ptmStateSendPkt:
@@ -299,7 +299,7 @@ func (p *ptmDecoder) waitASync() error {
 		}
 
 		if bHaveASync {
-			p.ctx.currPacket.Type = PacketASync
+			p.ctx.currPacket.Type = packetASync
 		}
 	}
 	return err
@@ -318,7 +318,7 @@ func (p *ptmDecoder) findAsync() asyncResult {
 			}
 			continue
 		}
-		if currByte == PktASyncByte {
+		if currByte == pktASyncByte {
 			switch {
 			case p.ctx.async0 == 5:
 				return asyncResultAsync
@@ -330,7 +330,7 @@ func (p *ptmDecoder) findAsync() asyncResult {
 	}
 }
 
-func (p *ptmDecoder) PacketASync() error {
+func (p *ptmDecoder) packetASync() error {
 	if len(p.ctx.Reader.Scratch()) == 1 {
 		p.ctx.async0 = 1
 	}
@@ -353,7 +353,7 @@ func (p *ptmDecoder) extractCycleCount(offset int) (uint32, error) {
 	b := data[offset]
 	cycleCount := uint32((b >> 2) & 0xF)
 	p.ctx.gotCCBytes = 1
-	if (b & PktCCContMask) == 0 {
+	if (b & pktCCContMask) == 0 {
 		return cycleCount, nil
 	}
 
@@ -367,7 +367,7 @@ func (p *ptmDecoder) extractCycleCount(offset int) (uint32, error) {
 
 		cycleCount |= uint32(currByte&0x7F) << shift
 		shift += 7
-		if (currByte&PktContMask) == 0 || i == 4 {
+		if (currByte&pktContMask) == 0 || i == 4 {
 			return cycleCount, nil
 		}
 	}
@@ -411,7 +411,7 @@ func (p *ptmDecoder) extractTS() (uint64, uint8, int, error) {
 			tsVal |= uint64(byteVal&0x7F) << shift
 			shift += 7
 			tsUpdateBits += 7
-			if (byteVal & PktContMask) == 0 {
+			if (byteVal & pktContMask) == 0 {
 				return tsVal, tsUpdateBits, tsIdx + 1, nil
 			}
 		} else {
@@ -502,7 +502,7 @@ func (p *ptmDecoder) extractAddress(offset int) (uint32, uint8, error) {
 	return addrVal, totalBits, nil
 }
 
-func (p *ptmDecoder) PacketISync() error {
+func (p *ptmDecoder) packetISync() error {
 	if len(p.ctx.Reader.Scratch())-1 == 0 {
 		p.ctx.numCtxtIDBytes = p.Config.CtxtIDBytes
 		p.ctx.gotCtxtIDBytes = 0
@@ -521,9 +521,9 @@ func (p *ptmDecoder) PacketISync() error {
 			reason := (currByte >> 5) & 0x3
 			p.ctx.currPacket.ISyncReason = iSyncReason(reason)
 
-			p.ctx.currPacket.Context.CurrNS = (currByte & PktISyncNSMask) != 0
-			p.ctx.currPacket.Context.CurrAltISA = (currByte & PktISyncAltISAMask) != 0
-			p.ctx.currPacket.Context.CurrHyp = (currByte & PktISyncHypMask) != 0
+			p.ctx.currPacket.Context.CurrNS = (currByte & pktISyncNSMask) != 0
+			p.ctx.currPacket.Context.CurrAltISA = (currByte & pktISyncAltISAMask) != 0
+			p.ctx.currPacket.Context.CurrHyp = (currByte & pktISyncHypMask) != 0
 			p.ctx.currPacket.Context.Updated = true
 
 			isa := ISAArm
@@ -545,9 +545,9 @@ func (p *ptmDecoder) PacketISync() error {
 		} else if pktIndex > 5 {
 			if p.ctx.needCycleCount && !p.ctx.gotCycleCount {
 				if pktIndex == 6 {
-					p.ctx.gotCycleCount = (currByte & PktCCContMask) == 0
+					p.ctx.gotCycleCount = (currByte & pktCCContMask) == 0
 				} else {
-					p.ctx.gotCycleCount = (currByte&PktContMask) == 0 || pktIndex == 10
+					p.ctx.gotCycleCount = (currByte&pktContMask) == 0 || pktIndex == 10
 				}
 				p.ctx.gotCCBytes++
 				if !p.ctx.gotCycleCount {
@@ -591,12 +591,12 @@ func (p *ptmDecoder) PacketISync() error {
 	return nil
 }
 
-func (p *ptmDecoder) PacketTrigger() error {
+func (p *ptmDecoder) packetTrigger() error {
 	p.ctx.processState = ptmStateSendPkt
 	return nil
 }
 
-func (p *ptmDecoder) PacketWPointUpdate() error {
+func (p *ptmDecoder) packetWPointUpdate() error {
 	if len(p.ctx.Reader.Scratch()) == 1 {
 		p.ctx.gotAddrBytes = false
 		p.ctx.numAddrBytes = 0
@@ -615,30 +615,30 @@ func (p *ptmDecoder) PacketWPointUpdate() error {
 
 		if !p.ctx.gotAddrBytes {
 			if byteIdx <= 4 {
-				if (currByte & PktContMask) == 0 {
+				if (currByte & pktContMask) == 0 {
 					p.ctx.gotAddrBytes = true
 					bDone = true
 					p.ctx.gotExcepBytes = true
 				}
 			} else {
-				if (currByte & PktCCContMask) == 0 {
+				if (currByte & pktCCContMask) == 0 {
 					p.ctx.gotExcepBytes = true
 				}
 				p.ctx.gotAddrBytes = true
 				bDone = p.ctx.gotExcepBytes
 
 				p.ctx.addrPacketIsa = ISAArm
-				switch currByte & PktBranchISAMask {
-				case PktBranchISAJazelle:
+				switch currByte & pktBranchISAMask {
+				case pktBranchISAJazelle:
 					p.ctx.addrPacketIsa = ISAJazelle
-				case PktBranchISAThumb2:
+				case pktBranchISAThumb2:
 					p.ctx.addrPacketIsa = ISAThumb2
 				}
 			}
 			p.ctx.numAddrBytes++
 		} else if !p.ctx.gotExcepBytes {
 			p.ctx.excepAltISA = 0
-			if (currByte & PktCCContMask) == PktCCContMask {
+			if (currByte & pktCCContMask) == pktCCContMask {
 				p.ctx.excepAltISA = 1
 			}
 			p.ctx.gotExcepBytes = true
@@ -669,7 +669,7 @@ func (p *ptmDecoder) PacketWPointUpdate() error {
 	return nil
 }
 
-func (p *ptmDecoder) PacketIgnore() error {
+func (p *ptmDecoder) packetIgnore() error {
 	p.ctx.processState = ptmStateSendPkt
 	return nil
 }
@@ -699,7 +699,7 @@ func (p *ptmDecoder) pktCtxtID() error {
 	return nil
 }
 
-func (p *ptmDecoder) PacketVMID() error {
+func (p *ptmDecoder) packetVMID() error {
 	if currByte, ok := p.readNextByte(); ok {
 		p.ctx.currPacket.UpdateVMID(currByte)
 		p.ctx.processState = ptmStateSendPkt
@@ -707,19 +707,19 @@ func (p *ptmDecoder) PacketVMID() error {
 	return nil
 }
 
-func (p *ptmDecoder) PacketAtom() error {
+func (p *ptmDecoder) packetAtom() error {
 	pHdr := p.ctx.Reader.Scratch()[0]
 	if !p.Config.EnaCycleAcc {
 		p.ctx.currPacket.SetAtomFromPHdr(pHdr)
 		p.ctx.processState = ptmStateSendPkt
 	} else {
-		if (pHdr & PktCCContMask) != 0 {
+		if (pHdr & pktCCContMask) != 0 {
 			for {
 				currByte, ok := p.readNextByte()
 				if !ok {
 					return nil // wait for more data
 				}
-				if (currByte&PktContMask) == 0 || len(p.ctx.Reader.Scratch()) == 5 {
+				if (currByte&pktContMask) == 0 || len(p.ctx.Reader.Scratch()) == 5 {
 					break
 				}
 			}
@@ -739,7 +739,7 @@ func (p *ptmDecoder) PacketAtom() error {
 	return nil
 }
 
-func (p *ptmDecoder) PacketTimestamp() error {
+func (p *ptmDecoder) packetTimestamp() error {
 	if len(p.ctx.Reader.Scratch())-1 == 0 {
 		p.ctx.gotTSBytes = false
 		p.ctx.needCycleCount = p.Config.EnaCycleAcc
@@ -756,16 +756,16 @@ func (p *ptmDecoder) PacketTimestamp() error {
 			return nil // wait for more data
 		}
 		if !p.ctx.gotTSBytes {
-			if (currByte&PktContMask) == 0 || len(p.ctx.Reader.Scratch()) == p.ctx.tsByteMax {
+			if (currByte&pktContMask) == 0 || len(p.ctx.Reader.Scratch()) == p.ctx.tsByteMax {
 				p.ctx.gotTSBytes = true
 				if !p.ctx.needCycleCount {
 					break
 				}
 			}
 		} else {
-			ccContMask := uint8(PktContMask)
+			ccContMask := uint8(pktContMask)
 			if p.ctx.gotCCBytes == 0 {
-				ccContMask = PktCCContMask
+				ccContMask = pktCCContMask
 			}
 			p.ctx.gotCCBytes++
 			if (currByte&ccContMask) == 0 || p.ctx.gotCCBytes == 5 {
@@ -791,7 +791,7 @@ func (p *ptmDecoder) PacketTimestamp() error {
 	return nil
 }
 
-func (p *ptmDecoder) PacketExceptionRet() error {
+func (p *ptmDecoder) packetExceptionRet() error {
 	p.ctx.processState = ptmStateSendPkt
 	return nil
 }
@@ -810,7 +810,7 @@ func (p *ptmDecoder) pktBranchAddr() error {
 		p.ctx.numExcepBytes = 0
 		p.ctx.addrPacketIsa = ISAUnknown
 
-		if (currByte & PktContMask) == 0 {
+		if (currByte & pktContMask) == 0 {
 			p.ctx.gotAddrBytes = true
 			p.ctx.gotExcepBytes = true
 			if !p.ctx.needCycleCount {
@@ -829,8 +829,8 @@ func (p *ptmDecoder) pktBranchAddr() error {
 			byteIdx := len(p.ctx.Reader.Scratch()) - 1
 			if !p.ctx.gotAddrBytes {
 				if byteIdx < 4 {
-					if (currByte & PktContMask) == 0 {
-						if (currByte & PktCCContMask) == 0 {
+					if (currByte & pktContMask) == 0 {
+						if (currByte & pktCCContMask) == 0 {
 							p.ctx.gotExcepBytes = true
 						}
 						p.ctx.gotAddrBytes = true
@@ -842,15 +842,15 @@ func (p *ptmDecoder) pktBranchAddr() error {
 						p.ctx.numAddrBytes++
 					}
 				} else {
-					if (currByte & PktCCContMask) == 0 {
+					if (currByte & pktCCContMask) == 0 {
 						p.ctx.gotExcepBytes = true
 					}
 					p.ctx.gotAddrBytes = true
 					p.ctx.addrPacketIsa = ISAArm
-					switch currByte & PktBranchISAMask {
-					case PktBranchISAJazelle:
+					switch currByte & pktBranchISAMask {
+					case pktBranchISAJazelle:
 						p.ctx.addrPacketIsa = ISAJazelle
-					case PktBranchISAThumb2:
+					case pktBranchISAThumb2:
 						p.ctx.addrPacketIsa = ISAThumb2
 					}
 					p.ctx.numAddrBytes++
@@ -860,11 +860,11 @@ func (p *ptmDecoder) pktBranchAddr() error {
 				}
 			} else if !p.ctx.gotExcepBytes {
 				if p.ctx.numExcepBytes == 0 {
-					if (currByte & PktContMask) == 0 {
+					if (currByte & pktContMask) == 0 {
 						p.ctx.gotExcepBytes = true
 					}
 					p.ctx.excepAltISA = 0
-					if (currByte & PktCCContMask) == PktCCContMask {
+					if (currByte & pktCCContMask) == pktCCContMask {
 						p.ctx.excepAltISA = 1
 					}
 				} else {
@@ -876,11 +876,11 @@ func (p *ptmDecoder) pktBranchAddr() error {
 				}
 			} else if p.ctx.needCycleCount {
 				if p.ctx.gotCCBytes == 0 {
-					if (currByte & PktCCContMask) == 0 {
+					if (currByte & pktCCContMask) == 0 {
 						break
 					}
 				} else {
-					if (currByte&PktContMask) == 0 || p.ctx.gotCCBytes == 4 {
+					if (currByte&pktContMask) == 0 || p.ctx.gotCCBytes == 4 {
 						break
 					}
 				}
@@ -949,39 +949,39 @@ func (p *ptmDecoder) pktBranchAddr() error {
 	return nil
 }
 
-func (p *ptmDecoder) PacketReserved() error {
+func (p *ptmDecoder) packetReserved() error {
 	p.ctx.processState = ptmStateSendPkt
 	return nil
 }
 
 func headerToPacketType(hdr byte) ptmPacketType {
-	if (hdr & PktHeaderBranchAddrMask) == PktHeaderBranchAddrMask {
-		return PacketBranchAddress
+	if (hdr & pktHeaderBranchAddrMask) == pktHeaderBranchAddrMask {
+		return packetBranchAddress
 	}
-	if (hdr & PktHeaderAtomMask) == PktHeaderAtomVal {
-		return PacketAtom
+	if (hdr & pktHeaderAtomMask) == pktHeaderAtomVal {
+		return packetAtom
 	}
 
 	switch hdr {
-	case PktHeaderASync:
-		return PacketASync
-	case PktHeaderISync:
-		return PacketISync
-	case PktHeaderWPoint:
-		return PacketWPointUpdate
-	case PktHeaderTrigger:
-		return PacketTrigger
-	case PktHeaderContextID:
-		return PacketContextID
-	case PktHeaderVMID:
-		return PacketVMID
-	case PktHeaderTimestamp1, PktHeaderTimestamp2:
-		return PacketTimestamp
-	case PktHeaderExcepRet:
-		return PacketExceptionRet
-	case PktHeaderIgnore:
-		return PacketIgnore
+	case pktHeaderASync:
+		return packetASync
+	case pktHeaderISync:
+		return packetISync
+	case pktHeaderWPoint:
+		return packetWPointUpdate
+	case pktHeaderTrigger:
+		return packetTrigger
+	case pktHeaderContextID:
+		return packetContextID
+	case pktHeaderVMID:
+		return packetVMID
+	case pktHeaderTimestamp1, pktHeaderTimestamp2:
+		return packetTimestamp
+	case pktHeaderExcepRet:
+		return packetExceptionRet
+	case pktHeaderIgnore:
+		return packetIgnore
 	default:
-		return PacketReserved
+		return packetReserved
 	}
 }

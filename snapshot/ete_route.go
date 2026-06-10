@@ -33,7 +33,7 @@ func (b *PipelineBuilder) buildETERoute(spec sourceRouteSpec) (coresight.Route, 
 		SrcAddrNAtoms:      b.srcAddrNAtoms,
 	}
 	mem := b.decodeInterfaces()
-	traceID, err := validateTraceID(Etmv4RegIDR, regs.traceIDR)
+	traceID, err := validateTraceID(etmv4RegIDR, regs.traceIDR)
 	if err != nil {
 		return coresight.Route{}, fmt.Errorf("ETE route creation failed: %w", err)
 	}
@@ -53,7 +53,7 @@ func eteDeviceRegs(dev *Device) (eteRegs, error) {
 		etmv4Regs: v4regs,
 		devarch:   0x47705A13,
 	}
-	if err := setReg32(dev, EteRegDevArch, &regs.devarch); err != nil {
+	if err := setReg32(dev, eteRegDevArch, &regs.devarch); err != nil {
 		return eteRegs{}, err
 	}
 	return regs, nil

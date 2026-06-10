@@ -5,10 +5,10 @@ import (
 	"io"
 )
 
-// ByteReader provides an idiomatic way to read from a stream of data blocks.
+// byteReader provides an idiomatic way to read from a stream of data blocks.
 // It uses a fixed-size scratch buffer for common packet parsing and grows only
 // when malformed or unusually long packets exceed that buffer.
-type ByteReader struct {
+type byteReader struct {
 	data []byte
 	off  int
 
@@ -17,20 +17,20 @@ type ByteReader struct {
 	scratchLen int
 }
 
-// NewByteReader creates a new byte stream reader.
-func NewByteReader() *ByteReader {
-	return &ByteReader{}
+// newByteReader creates a new byte stream reader.
+func newByteReader() *byteReader {
+	return &byteReader{}
 }
 
 // Feed sets the next block of data to be processed.
-func (r *ByteReader) Feed(data []byte) {
+func (r *byteReader) Feed(data []byte) {
 	r.data = data
 	r.off = 0
 }
 
 // ReadByte returns the next byte from the current block.
 // It automatically appends the byte to the internal scratch buffer.
-func (r *ByteReader) ReadByte() (byte, error) {
+func (r *byteReader) ReadByte() (byte, error) {
 	if r.off >= len(r.data) {
 		return 0, io.EOF
 	}
@@ -43,7 +43,7 @@ func (r *ByteReader) ReadByte() (byte, error) {
 
 // ReadByteRaw returns the next byte from the current block without adding it
 // to the internal scratch buffer.
-func (r *ByteReader) ReadByteRaw() (byte, error) {
+func (r *byteReader) ReadByteRaw() (byte, error) {
 	if r.off >= len(r.data) {
 		return 0, io.EOF
 	}
@@ -53,7 +53,7 @@ func (r *ByteReader) ReadByteRaw() (byte, error) {
 }
 
 // Peek returns the next byte without consuming it or adding it to scratch.
-func (r *ByteReader) Peek() (byte, error) {
+func (r *byteReader) Peek() (byte, error) {
 	if r.off >= len(r.data) {
 		return 0, io.EOF
 	}
@@ -63,7 +63,7 @@ func (r *ByteReader) Peek() (byte, error) {
 // ReadBytes attempts to read n bytes from the CURRENT block.
 // If successful, it returns a slice of the scratch buffer containing those bytes.
 // If there are fewer than n bytes available, it returns nil and consumes nothing.
-func (r *ByteReader) ReadBytes(n int) []byte {
+func (r *byteReader) ReadBytes(n int) []byte {
 	if r.off+n > len(r.data) {
 		return nil
 	}
@@ -77,7 +77,7 @@ func (r *ByteReader) ReadBytes(n int) []byte {
 }
 
 // Scratch returns all bytes accumulated since the last Reset.
-func (r *ByteReader) Scratch() []byte {
+func (r *byteReader) Scratch() []byte {
 	if len(r.scratchExt) > 0 {
 		return r.scratchExt[:r.scratchLen]
 	}
@@ -85,13 +85,13 @@ func (r *ByteReader) Scratch() []byte {
 }
 
 // Reset clears the scratch buffer for the next operation (e.g. next packet).
-func (r *ByteReader) Reset() {
+func (r *byteReader) Reset() {
 	r.scratchLen = 0
 	r.scratchExt = r.scratchExt[:0]
 }
 
 // DiscardScratchPrefix removes the first n scratch bytes, preserving the tail.
-func (r *ByteReader) DiscardScratchPrefix(n int) {
+func (r *byteReader) DiscardScratchPrefix(n int) {
 	if n <= 0 {
 		return
 	}
@@ -110,12 +110,12 @@ func (r *ByteReader) DiscardScratchPrefix(n int) {
 }
 
 // WriteScratch appends b to the scratch buffer without consuming stream data.
-func (r *ByteReader) WriteScratch(b byte) {
+func (r *byteReader) WriteScratch(b byte) {
 	r.appendScratch(b)
 }
 
 // Len returns the number of bytes remaining in the current block.
-func (r *ByteReader) Len() int {
+func (r *byteReader) Len() int {
 	if r.data == nil {
 		return 0
 	}
@@ -126,9 +126,9 @@ func (r *ByteReader) Len() int {
 // and the internal scratch buffer accumulation.
 // It is only valid to call UnreadByte immediately after a successful ReadByte
 // within the current data block.
-func (r *ByteReader) UnreadByte() error {
+func (r *byteReader) UnreadByte() error {
 	if r.off <= 0 || r.scratchLen <= 0 {
-		return errors.New("ByteReader: invalid use of UnreadByte")
+		return errors.New("byteReader: invalid use of UnreadByte")
 	}
 	r.off--
 	r.scratchLen--
@@ -138,7 +138,7 @@ func (r *ByteReader) UnreadByte() error {
 	return nil
 }
 
-func (r *ByteReader) appendScratch(b byte) {
+func (r *byteReader) appendScratch(b byte) {
 	if r.scratchLen < len(r.scratch) {
 		r.scratch[r.scratchLen] = b
 		r.scratchLen++

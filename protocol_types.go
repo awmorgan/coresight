@@ -65,7 +65,7 @@ const (
 	iSyncDebugExit                 iSyncReason = 3
 )
 
-// String returns the OpenCSD-style name for r.
+// String returns the string representation for r.
 func (r iSyncReason) String() string {
 	switch r {
 	case iSyncPeriodic:
@@ -113,10 +113,13 @@ const (
 )
 
 const (
-	BadIndex   Index = ^Index(0)
-	MaxTraceID       = 128
+	// BadIndex represents an invalid index in trace stream.
+	BadIndex Index = ^Index(0)
+	// MaxTraceID is the upper boundary for trace IDs in the demuxer.
+	MaxTraceID = 128
 )
 
+// IsValidCSSrcID returns true if the trace ID is valid for CoreSight.
 func IsValidCSSrcID(id uint8) bool {
 	return id > 0 && id < 0x70
 }

@@ -78,7 +78,7 @@ func (d *Demuxer) checkForResetFSyncPatterns() (uint32, error) {
 	}
 
 	err := d.resetAllIDs(d.trcCurrIdx)
-	d.currSrcID = BadCSSrcID
+	d.currSrcID = badCSSrcID
 	d.exFrmBytes = 0
 	d.trcCurrIdxSof = BadIndex
 	return fSyncBytes, err

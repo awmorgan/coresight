@@ -8,18 +8,24 @@ import (
 
 const rawFrameBytesPerLine = 16
 
+// RawFramePrinter formats and prints raw trace frames to a writer.
 type RawFramePrinter struct {
 	writer io.Writer
 	muted  bool
 }
 
+// NewRawFramePrinter returns a new RawFramePrinter.
 func NewRawFramePrinter(writer io.Writer) *RawFramePrinter {
 	return &RawFramePrinter{writer: writer}
 }
 
+// SetMute configures whether printing is muted.
 func (p *RawFramePrinter) SetMute(mute bool) { p.muted = mute }
-func (p *RawFramePrinter) IsMuted() bool     { return p.muted }
 
+// IsMuted returns true if the printer is muted.
+func (p *RawFramePrinter) IsMuted() bool { return p.muted }
+
+// WriteRawFrame writes a raw trace frame to the output writer.
 func (p *RawFramePrinter) WriteRawFrame(index Index, frameElem RawframeElem, data []byte, traceID uint8) error {
 	if p.muted || p.writer == nil {
 		return nil
@@ -51,7 +57,7 @@ func rawFrameElemLabel(frameElem RawframeElem, traceID uint8) string {
 
 func rawFrameIDLabel(traceID uint8) string {
 	id := "????"
-	if traceID != BadCSSrcID {
+	if traceID != badCSSrcID {
 		id = fmt.Sprintf("0x%02x", traceID)
 	}
 	return fmt.Sprintf("%10s%s]; ", "ID_DATA[", id)

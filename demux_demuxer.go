@@ -60,10 +60,12 @@ func newDemuxer(streams []ByteSink) *Demuxer {
 	return d
 }
 
+// SetRawFrameHandler sets the handler function for raw trace frames.
 func (d *Demuxer) SetRawFrameHandler(handler internalFrameObserver) {
 	d.rawFrameHandler = handler
 }
 
+// Configure applies the given options to the demuxer.
 func (d *Demuxer) Configure(opts DemuxOptions) error {
 	if err := validateFormatterOptions(opts); err != nil {
 		return err
@@ -101,6 +103,7 @@ func validTraceID(id uint8) bool {
 	return id < maxTraceID
 }
 
+// Config returns the current configuration of the demuxer.
 func (d *Demuxer) Config() DemuxOptions {
 	return d.opts
 }
@@ -143,11 +146,13 @@ func (d *Demuxer) controlAllIDs(streamOp func(ByteSink) error) error {
 	return outErr
 }
 
+// Reset resets the demuxer state and all output streams to the starting index.
 func (d *Demuxer) Reset(index Index) error {
 	d.resetStateParams()
 	return d.resetAllIDs(index)
 }
 
+// Flush flushes all output streams.
 func (d *Demuxer) Flush() error {
 	return d.flushAllIDs()
 }
@@ -155,7 +160,7 @@ func (d *Demuxer) Flush() error {
 func (d *Demuxer) resetStateParams() {
 	d.trcCurrIdx = BadIndex
 	d.frameSynced = false
-	d.currSrcID = BadCSSrcID
+	d.currSrcID = badCSSrcID
 
 	d.exFrmBytes = 0
 	d.fsyncStartEOB = false
@@ -366,7 +371,7 @@ func (d *Demuxer) shouldOutputRawEntry(id uint8) bool {
 	if !d.outUnpackedRaw {
 		return false
 	}
-	if id == BadCSSrcID {
+	if id == badCSSrcID {
 		return true
 	}
 	return d.rawChanEnabled(id)

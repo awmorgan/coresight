@@ -10,76 +10,76 @@ import (
 type etmv4PacketType int
 
 const (
-	PktExtension etmv4PacketType = iota
-	PktTraceInfo
+	pktExtension etmv4PacketType = iota
+	pktTraceInfo
 	etmv4PktTimestamp
-	PktTraceOn
-	PktFuncRet
-	PktException
-	PktExceptionReturn
-	PktITE
-	PktCycleCountF2
-	PktCycleCountF1
-	PktCycleCountF3
-	PktNumDSMarker
-	PktUnnumDSMarker
-	PktCommit
-	PktCancelF1
-	PktCancelF1Mispred
-	PktMispredict
-	PktCancelF2
-	PktCancelF3
-	PktCondInstrF2
-	PktCondFlush
-	PktCondResultF4
-	PktCondResultF2
-	PktCondResultF3
-	PktCondResultF1
-	PktCondInstrF1
-	PktCondInstrF3
+	pktTraceOn
+	pktFuncRet
+	pktException
+	pktExceptionReturn
+	pktITE
+	pktCycleCountF2
+	pktCycleCountF1
+	pktCycleCountF3
+	pktNumDSMarker
+	pktUnnumDSMarker
+	pktCommit
+	pktCancelF1
+	pktCancelF1Mispred
+	pktMispredict
+	pktCancelF2
+	pktCancelF3
+	pktCondInstrF2
+	pktCondFlush
+	pktCondResultF4
+	pktCondResultF2
+	pktCondResultF3
+	pktCondResultF1
+	pktCondInstrF1
+	pktCondInstrF3
 	etmv4PktIgnore
-	PktEvent
-	PktContext
-	PktAddrCtxtL32IS0
-	PktAddrCtxtL32IS1
-	PktAddrCtxtL64IS0
-	PktAddrCtxtL64IS1
-	PktAddrMatch
-	PktAddrSIS0
-	PktAddrSIS1
-	PktAddrL32IS0
-	PktAddrL32IS1
-	PktAddrL64IS0
-	PktAddrL64IS1
-	PktQ
-	PktSrcAddrMatch
-	PktSrcAddrSIS0
-	PktSrcAddrSIS1
-	PktSrcAddrL32IS0
-	PktSrcAddrL32IS1
-	PktSrcAddrL64IS0
-	PktSrcAddrL64IS1
-	PktAtomF6
-	PktAtomF5
-	PktAtomF2
-	PktAtomF4
-	PktAtomF1
-	PktAtomF3
+	pktEvent
+	pktContext
+	pktAddrCtxtL32IS0
+	pktAddrCtxtL32IS1
+	pktAddrCtxtL64IS0
+	pktAddrCtxtL64IS1
+	pktAddrMatch
+	pktAddrSIS0
+	pktAddrSIS1
+	pktAddrL32IS0
+	pktAddrL32IS1
+	pktAddrL64IS0
+	pktAddrL64IS1
+	pktQ
+	pktSrcAddrMatch
+	pktSrcAddrSIS0
+	pktSrcAddrSIS1
+	pktSrcAddrL32IS0
+	pktSrcAddrL32IS1
+	pktSrcAddrL64IS0
+	pktSrcAddrL64IS1
+	pktAtomF6
+	pktAtomF5
+	pktAtomF2
+	pktAtomF4
+	pktAtomF1
+	pktAtomF3
 	etmv4PktASync
-	PktDiscard
-	PktOverflow
+	pktDiscard
+	pktOverflow
 	etmv4PktNotSync
 	etmv4PktIncompleteEOT
-	PktNoErrType
-	PktTransStart
-	PktTransCommit
-	PktTransFail
-	PktPEReset
-	PktTSMarker
+	pktNoErrType
+	pktTransStart
+	pktTransCommit
+	pktTransFail
+	pktPEReset
+	pktTSMarker
 	etmv4PktBadSequence
 	etmv4PktBadTraceMode
 	etmv4PktReserved
-	PktReservedCfg
+	pktReservedCfg
 )
 
 type etmv4TraceInfo struct {
@@ -169,7 +169,7 @@ type etmv4Packet struct {
 }
 
 func (p *etmv4Packet) InitStartState() {
-	*p = etmv4Packet{Type: etmv4PktNotSync, errType: PktNoErrType}
+	*p = etmv4Packet{Type: etmv4PktNotSync, errType: pktNoErrType}
 	p.Addr = etmv4Address{Size: 64, ValidBits: 64}
 	for i := range p.addrStack {
 		p.addrStack[i] = etmv4Address{Size: 64, ValidBits: 64}
@@ -178,7 +178,7 @@ func (p *etmv4Packet) InitStartState() {
 
 func (p *etmv4Packet) InitNextPacket() {
 	p.Err = nil
-	p.errType = PktNoErrType
+	p.errType = pktNoErrType
 	p.RawPrefix = ""
 	p.CCValid = false
 	p.CommitValid = false
@@ -235,70 +235,70 @@ var packetInfos = map[etmv4PacketType]etmv4PacketInfo{
 	etmv4PktBadSequence:   {"I_BAD_SEQUENCE", "Invalid Sequence in packet."},
 	etmv4PktBadTraceMode:  {"I_BAD_TRACEMODE", "Invalid Packet for trace mode."},
 	etmv4PktReserved:      {"I_RESERVED", "Reserved Packet Header"},
-	PktReservedCfg:        {"I_RESERVED_CFG", "Reserved header for current configuration."},
-	PktExtension:          {"I_EXTENSION", "Extension packet header."},
-	PktTraceInfo:          {"I_TRACE_INFO", "Trace Info."},
+	pktReservedCfg:        {"I_RESERVED_CFG", "Reserved header for current configuration."},
+	pktExtension:          {"I_EXTENSION", "Extension packet header."},
+	pktTraceInfo:          {"I_TRACE_INFO", "Trace Info."},
 	etmv4PktTimestamp:     {"I_TIMESTAMP", "Timestamp."},
-	PktTraceOn:            {"I_TRACE_ON", "Trace On."},
-	PktFuncRet:            {"I_FUNC_RET", "V8M - function return."},
-	PktException:          {"I_EXCEPT", "Exception."},
-	PktExceptionReturn:    {"I_EXCEPT_RTN", "Exception Return."},
-	PktITE:                {"I_ITE", "Instrumentation"},
-	PktCycleCountF1:       {"I_CCNT_F1", "Cycle Count format 1."},
-	PktCycleCountF2:       {"I_CCNT_F2", "Cycle Count format 2."},
-	PktCycleCountF3:       {"I_CCNT_F3", "Cycle Count format 3."},
-	PktNumDSMarker:        {"I_NUM_DS_MKR", "Data Synchronisation Marker - Numbered."},
-	PktUnnumDSMarker:      {"I_UNNUM_DS_MKR", "Data Synchronisation Marker - Unnumbered."},
-	PktCommit:             {"I_COMMIT", "Commit"},
-	PktCancelF1:           {"I_CANCEL_F1", "Cancel Format 1."},
-	PktCancelF1Mispred:    {"I_CANCEL_F1_MISPRED", "Cancel Format 1 + Mispredict."},
-	PktMispredict:         {"I_MISPREDICT", "Mispredict."},
-	PktCancelF2:           {"I_CANCEL_F2", "Cancel Format 2."},
-	PktCancelF3:           {"I_CANCEL_F3", "Cancel Format 3."},
-	PktCondInstrF2:        {"I_COND_I_F2", "Conditional Instruction, format 2."},
-	PktCondFlush:          {"I_COND_FLUSH", "Conditional Flush."},
-	PktCondResultF4:       {"I_COND_RES_F4", "Conditional Result, format 4."},
-	PktCondResultF2:       {"I_COND_RES_F2", "Conditional Result, format 2."},
-	PktCondResultF3:       {"I_COND_RES_F3", "Conditional Result, format 3."},
-	PktCondResultF1:       {"I_COND_RES_F1", "Conditional Result, format 1."},
-	PktCondInstrF1:        {"I_COND_I_F1", "Conditional Instruction, format 1."},
-	PktCondInstrF3:        {"I_COND_I_F3", "Conditional Instruction, format 3."},
+	pktTraceOn:            {"I_TRACE_ON", "Trace On."},
+	pktFuncRet:            {"I_FUNC_RET", "V8M - function return."},
+	pktException:          {"I_EXCEPT", "Exception."},
+	pktExceptionReturn:    {"I_EXCEPT_RTN", "Exception Return."},
+	pktITE:                {"I_ITE", "Instrumentation"},
+	pktCycleCountF1:       {"I_CCNT_F1", "Cycle Count format 1."},
+	pktCycleCountF2:       {"I_CCNT_F2", "Cycle Count format 2."},
+	pktCycleCountF3:       {"I_CCNT_F3", "Cycle Count format 3."},
+	pktNumDSMarker:        {"I_NUM_DS_MKR", "Data Synchronisation Marker - Numbered."},
+	pktUnnumDSMarker:      {"I_UNNUM_DS_MKR", "Data Synchronisation Marker - Unnumbered."},
+	pktCommit:             {"I_COMMIT", "Commit"},
+	pktCancelF1:           {"I_CANCEL_F1", "Cancel Format 1."},
+	pktCancelF1Mispred:    {"I_CANCEL_F1_MISPRED", "Cancel Format 1 + Mispredict."},
+	pktMispredict:         {"I_MISPREDICT", "Mispredict."},
+	pktCancelF2:           {"I_CANCEL_F2", "Cancel Format 2."},
+	pktCancelF3:           {"I_CANCEL_F3", "Cancel Format 3."},
+	pktCondInstrF2:        {"I_COND_I_F2", "Conditional Instruction, format 2."},
+	pktCondFlush:          {"I_COND_FLUSH", "Conditional Flush."},
+	pktCondResultF4:       {"I_COND_RES_F4", "Conditional Result, format 4."},
+	pktCondResultF2:       {"I_COND_RES_F2", "Conditional Result, format 2."},
+	pktCondResultF3:       {"I_COND_RES_F3", "Conditional Result, format 3."},
+	pktCondResultF1:       {"I_COND_RES_F1", "Conditional Result, format 1."},
+	pktCondInstrF1:        {"I_COND_I_F1", "Conditional Instruction, format 1."},
+	pktCondInstrF3:        {"I_COND_I_F3", "Conditional Instruction, format 3."},
 	etmv4PktIgnore:        {"I_IGNORE", "Ignore."},
-	PktEvent:              {"I_EVENT", "Trace Event."},
-	PktContext:            {"I_CTXT", "Context Packet."},
-	PktAddrCtxtL32IS0:     {"I_ADDR_CTXT_L_32IS0", "Address & Context, Long, 32 bit, IS0."},
-	PktAddrCtxtL32IS1:     {"I_ADDR_CTXT_L_32IS1", "Address & Context, Long, 32 bit, IS1."},
-	PktAddrCtxtL64IS0:     {"I_ADDR_CTXT_L_64IS0", "Address & Context, Long, 64 bit, IS0."},
-	PktAddrCtxtL64IS1:     {"I_ADDR_CTXT_L_64IS1", "Address & Context, Long, 64 bit, IS1."},
-	PktAddrMatch:          {"I_ADDR_MATCH", "Exact Address Match."},
-	PktAddrSIS0:           {"I_ADDR_S_IS0", "Address, Short, IS0."},
-	PktAddrSIS1:           {"I_ADDR_S_IS1", "Address, Short, IS1."},
-	PktAddrL32IS0:         {"I_ADDR_L_32IS0", "Address, Long, 32 bit, IS0."},
-	PktAddrL32IS1:         {"I_ADDR_L_32IS1", "Address, Long, 32 bit, IS1."},
-	PktAddrL64IS0:         {"I_ADDR_L_64IS0", "Address, Long, 64 bit, IS0."},
-	PktAddrL64IS1:         {"I_ADDR_L_64IS1", "Address, Long, 64 bit, IS1."},
-	PktQ:                  {"I_Q", "Q Packet."},
-	PktSrcAddrMatch:       {"I_SRC_ADDR_MATCH", "Exact Source Address Match."},
-	PktSrcAddrSIS0:        {"I_SRC_ADDR_S_IS0", "Source Address, Short, IS0."},
-	PktSrcAddrSIS1:        {"I_SRC_ADDR_S_IS1", "Source Address, Short, IS1."},
-	PktSrcAddrL32IS0:      {"I_SRC_ADDR_L_32IS0", "Source Address, Long, 32 bit, IS0."},
-	PktSrcAddrL32IS1:      {"I_SRC_ADDR_L_32IS1", "Source Address, Long, 32 bit, IS1."},
-	PktSrcAddrL64IS0:      {"I_SRC_ADDR_L_64IS0", "Source Address, Long, 64 bit, IS0."},
-	PktSrcAddrL64IS1:      {"I_SRC_ADDR_L_64IS1", "Source Address, Long, 64 bit, IS1."},
-	PktAtomF6:             {"I_ATOM_F6", "Atom format 6."},
-	PktAtomF5:             {"I_ATOM_F5", "Atom format 5."},
-	PktAtomF2:             {"I_ATOM_F2", "Atom format 2."},
-	PktAtomF4:             {"I_ATOM_F4", "Atom format 4."},
-	PktAtomF1:             {"I_ATOM_F1", "Atom format 1."},
-	PktAtomF3:             {"I_ATOM_F3", "Atom format 3."},
+	pktEvent:              {"I_EVENT", "Trace Event."},
+	pktContext:            {"I_CTXT", "Context Packet."},
+	pktAddrCtxtL32IS0:     {"I_ADDR_CTXT_L_32IS0", "Address & Context, Long, 32 bit, IS0."},
+	pktAddrCtxtL32IS1:     {"I_ADDR_CTXT_L_32IS1", "Address & Context, Long, 32 bit, IS1."},
+	pktAddrCtxtL64IS0:     {"I_ADDR_CTXT_L_64IS0", "Address & Context, Long, 64 bit, IS0."},
+	pktAddrCtxtL64IS1:     {"I_ADDR_CTXT_L_64IS1", "Address & Context, Long, 64 bit, IS1."},
+	pktAddrMatch:          {"I_ADDR_MATCH", "Exact Address Match."},
+	pktAddrSIS0:           {"I_ADDR_S_IS0", "Address, Short, IS0."},
+	pktAddrSIS1:           {"I_ADDR_S_IS1", "Address, Short, IS1."},
+	pktAddrL32IS0:         {"I_ADDR_L_32IS0", "Address, Long, 32 bit, IS0."},
+	pktAddrL32IS1:         {"I_ADDR_L_32IS1", "Address, Long, 32 bit, IS1."},
+	pktAddrL64IS0:         {"I_ADDR_L_64IS0", "Address, Long, 64 bit, IS0."},
+	pktAddrL64IS1:         {"I_ADDR_L_64IS1", "Address, Long, 64 bit, IS1."},
+	pktQ:                  {"I_Q", "Q Packet."},
+	pktSrcAddrMatch:       {"I_SRC_ADDR_MATCH", "Exact Source Address Match."},
+	pktSrcAddrSIS0:        {"I_SRC_ADDR_S_IS0", "Source Address, Short, IS0."},
+	pktSrcAddrSIS1:        {"I_SRC_ADDR_S_IS1", "Source Address, Short, IS1."},
+	pktSrcAddrL32IS0:      {"I_SRC_ADDR_L_32IS0", "Source Address, Long, 32 bit, IS0."},
+	pktSrcAddrL32IS1:      {"I_SRC_ADDR_L_32IS1", "Source Address, Long, 32 bit, IS1."},
+	pktSrcAddrL64IS0:      {"I_SRC_ADDR_L_64IS0", "Source Address, Long, 64 bit, IS0."},
+	pktSrcAddrL64IS1:      {"I_SRC_ADDR_L_64IS1", "Source Address, Long, 64 bit, IS1."},
+	pktAtomF6:             {"I_ATOM_F6", "Atom format 6."},
+	pktAtomF5:             {"I_ATOM_F5", "Atom format 5."},
+	pktAtomF2:             {"I_ATOM_F2", "Atom format 2."},
+	pktAtomF4:             {"I_ATOM_F4", "Atom format 4."},
+	pktAtomF1:             {"I_ATOM_F1", "Atom format 1."},
+	pktAtomF3:             {"I_ATOM_F3", "Atom format 3."},
 	etmv4PktASync:         {"I_ASYNC", "Alignment Synchronisation."},
-	PktDiscard:            {"I_DISCARD", "Discard."},
-	PktOverflow:           {"I_OVERFLOW", "Overflow."},
-	PktTransStart:         {"I_TRANS_ST", "Transaction Start."},
-	PktTransCommit:        {"I_TRANS_COMMIT", "Transaction Commit."},
-	PktTransFail:          {"I_TRANS_FAIL", "Transaction Fail."},
-	PktPEReset:            {"I_PE_RESET", "PE Reset."},
-	PktTSMarker:           {"I_TS_MARKER", "Timestamp Marker"},
+	pktDiscard:            {"I_DISCARD", "Discard."},
+	pktOverflow:           {"I_OVERFLOW", "Overflow."},
+	pktTransStart:         {"I_TRANS_ST", "Transaction Start."},
+	pktTransCommit:        {"I_TRANS_COMMIT", "Transaction Commit."},
+	pktTransFail:          {"I_TRANS_FAIL", "Transaction Fail."},
+	pktPEReset:            {"I_PE_RESET", "PE Reset."},
+	pktTSMarker:           {"I_TS_MARKER", "Timestamp Marker"},
 }
 
 func (p *etmv4Packet) String() string {
@@ -312,13 +312,13 @@ func (p *etmv4Packet) String() string {
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "%s : %s", info.name, info.desc)
 	if p.Err != nil {
-		if ei, ok := packetInfos[p.errType]; ok && (!errors.Is(p.Err, errInvalidPcktHdr) || p.Type == PktReservedCfg) {
+		if ei, ok := packetInfos[p.errType]; ok && (!errors.Is(p.Err, errInvalidPcktHdr) || p.Type == pktReservedCfg) {
 			fmt.Fprintf(&sb, "[%s]", ei.name)
 		}
 		return sb.String()
 	}
 	switch p.Type {
-	case PktTraceInfo:
+	case pktTraceInfo:
 		cc := 0
 		if p.TraceInfo.CCEnabled {
 			cc = 1
@@ -346,58 +346,58 @@ func (p *etmv4Packet) String() string {
 		if p.CCValid {
 			fmt.Fprintf(&sb, "; CC=0x%x", p.CycleCount)
 		}
-	case PktContext:
+	case pktContext:
 		fmt.Fprintf(&sb, "; %s", p.contextString())
-	case PktAddrCtxtL32IS0, PktAddrCtxtL32IS1:
+	case pktAddrCtxtL32IS0, pktAddrCtxtL32IS1:
 		fmt.Fprintf(&sb, "; Addr=%s; %s", formatTraceValue32(p.Addr), p.contextString())
-	case PktAddrCtxtL64IS0, PktAddrCtxtL64IS1:
+	case pktAddrCtxtL64IS0, pktAddrCtxtL64IS1:
 		fmt.Fprintf(&sb, "; Addr=%s; %s", formatTraceValue(p.Addr), p.contextString())
-	case PktAddrL32IS0, PktAddrL32IS1:
+	case pktAddrL32IS0, pktAddrL32IS1:
 		fmt.Fprintf(&sb, "; Addr=%s; ", formatTraceValue32(p.Addr))
-	case PktAddrL64IS0, PktAddrL64IS1:
+	case pktAddrL64IS0, pktAddrL64IS1:
 		fmt.Fprintf(&sb, "; Addr=%s; ", formatTraceValue(p.Addr))
-	case PktAddrSIS0, PktAddrSIS1, PktSrcAddrSIS0, PktSrcAddrSIS1:
+	case pktAddrSIS0, pktAddrSIS1, pktSrcAddrSIS0, pktSrcAddrSIS1:
 		fmt.Fprintf(&sb, "; Addr=%s", formatTraceValue(p.Addr))
-	case PktSrcAddrL32IS0, PktSrcAddrL32IS1:
+	case pktSrcAddrL32IS0, pktSrcAddrL32IS1:
 		fmt.Fprintf(&sb, "; Addr=%s; ", formatTraceValue32(p.Addr))
-	case PktSrcAddrL64IS0, PktSrcAddrL64IS1:
+	case pktSrcAddrL64IS0, pktSrcAddrL64IS1:
 		fmt.Fprintf(&sb, "; Addr=%s; ", formatTraceValue(p.Addr))
-	case PktAddrMatch, PktSrcAddrMatch:
+	case pktAddrMatch, pktSrcAddrMatch:
 		fmt.Fprintf(&sb, ", [%d]; Addr=%s; ", p.AddrMatchIdx, formatTraceValueNoPktBits(p.Addr))
-	case PktAtomF1, PktAtomF2, PktAtomF3, PktAtomF4, PktAtomF5, PktAtomF6:
+	case pktAtomF1, pktAtomF2, pktAtomF3, pktAtomF4, pktAtomF5, pktAtomF6:
 		fmt.Fprintf(&sb, "; %s", atomString(p.Atom))
-	case PktException:
+	case pktException:
 		fmt.Fprintf(&sb, "; %s", p.exceptionString())
-	case PktCycleCountF1, PktCycleCountF2, PktCycleCountF3:
+	case pktCycleCountF1, pktCycleCountF2, pktCycleCountF3:
 		fmt.Fprintf(&sb, "; Count=0x%x", p.CycleCount)
 		if p.CommitValid {
 			fmt.Fprintf(&sb, "; Commit(%d)", p.Commit)
 		}
-	case PktCommit:
+	case pktCommit:
 		fmt.Fprintf(&sb, "; Commit(%d)", p.Commit)
-	case PktCancelF1:
+	case pktCancelF1:
 		fmt.Fprintf(&sb, "; Cancel(%d)", p.Cancel)
-	case PktCancelF1Mispred:
+	case pktCancelF1Mispred:
 		fmt.Fprintf(&sb, "; Cancel(%d), Mispredict", p.Cancel)
-	case PktMispredict:
+	case pktMispredict:
 		fmt.Fprintf(&sb, "; ")
 		if p.Atom.Num != 0 {
 			fmt.Fprintf(&sb, "Atom: %s, ", atomString(p.Atom))
 		}
 		fmt.Fprintf(&sb, "Mispredict")
-	case PktCancelF2:
+	case pktCancelF2:
 		fmt.Fprintf(&sb, "; ")
 		if p.Atom.Num != 0 {
 			fmt.Fprintf(&sb, "Atom: %s, ", atomString(p.Atom))
 		}
 		fmt.Fprintf(&sb, "Cancel(1), Mispredict")
-	case PktCancelF3:
+	case pktCancelF3:
 		fmt.Fprintf(&sb, "; ")
 		if p.Atom.Num != 0 {
 			fmt.Fprintf(&sb, "Atom: %s, ", atomString(p.Atom))
 		}
 		fmt.Fprintf(&sb, "Cancel(%d), Mispredict", p.Cancel)
-	case PktQ:
+	case pktQ:
 		if p.Q.CountPresent {
 			fmt.Fprintf(&sb, "; Count(%d)", p.Q.Count)
 		} else {
@@ -406,7 +406,7 @@ func (p *etmv4Packet) String() string {
 		if p.Q.AddrPresent || p.Q.AddrMatch {
 			fmt.Fprintf(&sb, "; Addr=%s", formatTraceValue(p.Addr))
 		}
-	case PktITE:
+	case pktITE:
 		fmt.Fprintf(&sb, "; EL%d; Payload=0x%x", p.ITE.EL, p.ITE.Value)
 	}
 	return sb.String()
@@ -425,37 +425,37 @@ func (p *etmv4Packet) AppendStringTo(dst []byte) []byte {
 	dst = append(dst, " : "...)
 	dst = append(dst, info.desc...)
 	switch p.Type {
-	case PktAddrCtxtL32IS0, PktAddrCtxtL32IS1:
+	case pktAddrCtxtL32IS0, pktAddrCtxtL32IS1:
 		dst = append(dst, "; Addr="...)
 		dst = appendTraceValue32(dst, p.Addr)
 		dst = append(dst, "; "...)
 		return p.appendContextString(dst)
-	case PktAddrCtxtL64IS0, PktAddrCtxtL64IS1:
+	case pktAddrCtxtL64IS0, pktAddrCtxtL64IS1:
 		dst = append(dst, "; Addr="...)
 		dst = appendTraceValue(dst, p.Addr)
 		dst = append(dst, "; "...)
 		return p.appendContextString(dst)
-	case PktAddrL32IS0, PktAddrL32IS1, PktSrcAddrL32IS0, PktSrcAddrL32IS1:
+	case pktAddrL32IS0, pktAddrL32IS1, pktSrcAddrL32IS0, pktSrcAddrL32IS1:
 		dst = append(dst, "; Addr="...)
 		dst = appendTraceValue32(dst, p.Addr)
 		return append(dst, "; "...)
-	case PktAddrL64IS0, PktAddrL64IS1, PktSrcAddrL64IS0, PktSrcAddrL64IS1:
+	case pktAddrL64IS0, pktAddrL64IS1, pktSrcAddrL64IS0, pktSrcAddrL64IS1:
 		dst = append(dst, "; Addr="...)
 		dst = appendTraceValue(dst, p.Addr)
 		return append(dst, "; "...)
-	case PktAddrSIS0, PktAddrSIS1, PktSrcAddrSIS0, PktSrcAddrSIS1:
+	case pktAddrSIS0, pktAddrSIS1, pktSrcAddrSIS0, pktSrcAddrSIS1:
 		dst = append(dst, "; Addr="...)
 		return appendTraceValue(dst, p.Addr)
-	case PktAddrMatch, PktSrcAddrMatch:
+	case pktAddrMatch, pktSrcAddrMatch:
 		dst = append(dst, ", ["...)
 		dst = strconv.AppendUint(dst, uint64(p.AddrMatchIdx), 10)
 		dst = append(dst, "]; Addr="...)
 		dst = appendTraceValueNoPktBits(dst, p.Addr)
 		return append(dst, "; "...)
-	case PktAtomF1, PktAtomF2, PktAtomF3, PktAtomF4, PktAtomF5, PktAtomF6:
+	case pktAtomF1, pktAtomF2, pktAtomF3, pktAtomF4, pktAtomF5, pktAtomF6:
 		dst = append(dst, "; "...)
 		return appendAtom(dst, p.Atom)
-	case PktQ:
+	case pktQ:
 		if p.Q.CountPresent {
 			dst = append(dst, "; Count("...)
 			dst = strconv.AppendUint(dst, uint64(p.Q.Count), 10)
@@ -474,7 +474,7 @@ func (p *etmv4Packet) AppendStringTo(dst []byte) []byte {
 }
 
 func isAtomPacket(t etmv4PacketType) bool {
-	return t == PktAtomF1 || t == PktAtomF2 || t == PktAtomF3 || t == PktAtomF4 || t == PktAtomF5 || t == PktAtomF6
+	return t == pktAtomF1 || t == pktAtomF2 || t == pktAtomF3 || t == pktAtomF4 || t == pktAtomF5 || t == pktAtomF6
 }
 
 func (p *etmv4Packet) exceptionString() string {
@@ -526,7 +526,7 @@ func (p *etmv4Packet) TraceErrorPrefix(index Index, id uint8) string {
 	if p.RawPrefix != "" {
 		return p.RawPrefix
 	}
-	if !errors.Is(p.Err, errInvalidPcktHdr) || p.Type == PktReservedCfg {
+	if !errors.Is(p.Err, errInvalidPcktHdr) || p.Type == pktReservedCfg {
 		return ""
 	}
 	return fmt.Sprintf("PKTP_ETMV4I_%04x : 0x0014 (OCSD_ERR_INVALID_PCKT_HDR) [Invalid packet header]; TrcIdx=%d; CS ID=%02X; ", id, index, id)

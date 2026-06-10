@@ -25,6 +25,7 @@ type EngineConfig struct {
 	Demux       *DemuxConfig
 }
 
+// Engine represents the top-level CoreSight trace decoding orchestrator.
 type Engine struct {
 	pipe        *Pipeline
 	framedInput bool
@@ -46,7 +47,7 @@ func NewEngine(cfg EngineConfig) (*Engine, error) {
 		default:
 			space = MemSpaceAny
 		}
-		acc := NewReaderAtAccessor(VAddr(m.BaseAddress), m.Size, m.Source, space)
+		acc := newReaderAtAccessor(VAddr(m.BaseAddress), m.Size, m.Source, space)
 		if err := mapper.AddAccessor(acc); err != nil {
 			return nil, fmt.Errorf("failed to add memory accessor: %w", err)
 		}

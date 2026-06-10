@@ -53,9 +53,9 @@ func (d *itmDecoder) throwMalformedPacketErr(msg string) error {
 
 func (d *itmDecoder) canProcessWithoutMoreBytes() bool {
 	switch d.ctx.currPacket.Type {
-	case PktTSLocal, itmPktExtension:
+	case pktTSLocal, itmPktExtension:
 		return (d.ctx.headerByte & 0x80) == 0
-	case PktSWIT, PktDWT:
+	case pktSWIT, pktDWT:
 		return len(d.ctx.Reader.Scratch())-1 >= d.ctx.bytesExpected
 	}
 	return false
@@ -223,9 +223,9 @@ func (d *itmDecoder) decodeHeaderByte(b uint8) {
 			d.ctx.bytesExpected = 4
 		}
 		if (b & 0x4) != 0 {
-			d.ctx.currPacket.Type = PktDWT
+			d.ctx.currPacket.Type = pktDWT
 		} else {
-			d.ctx.currPacket.Type = PktSWIT
+			d.ctx.currPacket.Type = pktSWIT
 		}
 		d.ctx.currPacket.SrcID = (b >> 3) & 0x1F
 		d.ctx.processState = itmStateProcData
@@ -241,7 +241,7 @@ func (d *itmDecoder) decodeHeaderByte(b uint8) {
 			d.ctx.currPacket.Type = itmPktOverflow
 			d.ctx.processState = itmStateSendPkt
 		default:
-			d.ctx.currPacket.Type = PktTSLocal
+			d.ctx.currPacket.Type = pktTSLocal
 			d.ctx.processState = itmStateProcData
 		}
 		return
@@ -255,9 +255,9 @@ func (d *itmDecoder) decodeHeaderByte(b uint8) {
 
 	if (b & 0xDF) == 0x94 {
 		if (b & 0x20) == 0 {
-			d.ctx.currPacket.Type = PktTSGlobal1
+			d.ctx.currPacket.Type = pktTSGlobal1
 		} else {
-			d.ctx.currPacket.Type = PktTSGlobal2
+			d.ctx.currPacket.Type = pktTSGlobal2
 		}
 		d.ctx.processState = itmStateProcData
 		return
@@ -273,15 +273,15 @@ func (d *itmDecoder) decodePayload() error {
 	switch d.ctx.currPacket.Type {
 	case itmPktAsync:
 		return d.pktAsync()
-	case PktSWIT, PktDWT:
+	case pktSWIT, pktDWT:
 		return d.pktData()
-	case PktTSLocal:
+	case pktTSLocal:
 		return d.pktLocalTS()
 	case itmPktExtension:
 		return d.pktExtension()
-	case PktTSGlobal1:
+	case pktTSGlobal1:
 		return d.pktGlobalTS1()
-	case PktTSGlobal2:
+	case pktTSGlobal2:
 		return d.pktGlobalTS2()
 	default:
 		return d.throwMalformedPacketErr("Unknown packet type for payload decode")

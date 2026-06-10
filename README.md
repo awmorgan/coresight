@@ -4,5 +4,5 @@
 
 `coresight` is a decoding engine for ARM CoreSight trace streams.
 
-This library is based on the architecture and decoding logic of the C++ [OpenCSD](https://github.com/Linaro/OpenCSD) library but is implemented in Go without external dependencies or CGO.
+This library provides a pure Go implementation of CoreSight trace decoding without external dependencies or CGO.
 

@@ -155,9 +155,9 @@ func (d *etmv4Decoder) Close() error {
 	if (d.currState == etmv4DecodePkts && d.ctx.isSync) || (d.Config.IsETE() && d.ctx.isSync && d.seenData) || d.prevOverflow || d.eotPending || !d.seenData {
 		elem := Element{ElemType: GenElemEOTrace}
 		if d.prevOverflow {
-			elem.SetUnsyncEndReason(UnsyncOverflow)
+			elem.setUnsyncEndReason(UnsyncOverflow)
 		} else {
-			elem.SetUnsyncEndReason(UnsyncEOT)
+			elem.setUnsyncEndReason(UnsyncEOT)
 		}
 		elem.Diagnostic = d.pendingDiagnostic
 		d.pendingDiagnostic = ""
@@ -223,7 +223,7 @@ func (d *etmv4Decoder) processPacket(pkt *etmv4Packet) error {
 	switch d.currState {
 	case etmv4DecodeNoSync:
 		elem := Element{ElemType: GenElemNoSync}
-		elem.SetUnsyncEndReason(d.unsync)
+		elem.setUnsyncEndReason(d.unsync)
 		d.OutputTraceElement(elem)
 		d.currState = etmv4DecodeWaitSync
 		fallthrough
@@ -235,11 +235,11 @@ func (d *etmv4Decoder) processPacket(pkt *etmv4Packet) error {
 	case etmv4DecodeWaitTInfo:
 		d.needAddr = true
 		d.needCtxt = true
-		if pkt.Type == PktTraceInfo {
+		if pkt.Type == pktTraceInfo {
 			d.currState = etmv4DecodePkts
 			return d.decodePacket(pkt)
 		}
-		if pkt.Type == PktEvent {
+		if pkt.Type == pktEvent {
 			return d.decodePacket(pkt)
 		}
 		return nil
@@ -261,7 +261,7 @@ func (d *etmv4Decoder) decodePacket(pkt *etmv4Packet) error {
 		if errors.Is(pkt.Err, errBadPacketSeq) || errors.Is(pkt.Err, errInvalidPcktHdr) {
 			reason := "Unknown packet type."
 			switch pkt.Type {
-			case PktReservedCfg:
+			case pktReservedCfg:
 				reason = "Packet header reserved for current configuration."
 			case etmv4PktReserved:
 				reason = "Reserved packet header"
@@ -275,14 +275,14 @@ func (d *etmv4Decoder) decodePacket(pkt *etmv4Packet) error {
 	}
 	switch pkt.Type {
 	case etmv4PktASync, etmv4PktIgnore, etmv4PktNotSync:
-	case PktTraceInfo:
+	case pktTraceInfo:
 		if pkt.TraceInfo.SpecFieldPresent {
 			d.specDepth = pkt.CurrSpecDepth
 			d.unseenSpec = pkt.CurrSpecDepth
 		}
 		if pkt.IsETE && pkt.TraceInfo.InTransState {
 			elem := Element{ElemType: GenElemMemTrans}
-			elem.SetTransactionType(MemTransTraceInit)
+			elem.setTransactionType(MemTransTraceInit)
 			elem.Index = pkt.Index
 			if d.shouldQueueControl() {
 				d.queueElement(pendingP0MemTrans, pkt.Index, elem)
@@ -290,28 +290,28 @@ func (d *etmv4Decoder) decodePacket(pkt *etmv4Packet) error {
 				d.OutputTraceElement(elem)
 			}
 		}
-	case PktTransStart, PktTransCommit, PktTransFail:
+	case pktTransStart, pktTransCommit, pktTransFail:
 		transType := MemTransStart
 		switch pkt.Type {
-		case PktTransCommit:
+		case pktTransCommit:
 			transType = MemTransCommit
-		case PktTransFail:
+		case pktTransFail:
 			transType = MemTransFail
 		}
 
 		elem := Element{ElemType: GenElemMemTrans}
-		elem.SetTransactionType(transType)
+		elem.setTransactionType(transType)
 		elem.Index = pkt.Index
 
 		if d.usesP0CommitStack() {
 			d.queueElement(pendingP0MemTrans, pkt.Index, elem)
-			if pkt.Type == PktTransStart && d.Config.CommTransP0() {
+			if pkt.Type == pktTransStart && d.Config.CommTransP0() {
 				d.specDepth++
 			}
 			return d.commitOverSpecDepth()
 		}
 		d.OutputTraceElement(elem)
-	case PktPEReset:
+	case pktPEReset:
 		elem := Element{ElemType: GenElemException}
 		elem.Payload.ExceptionNum = uint32(pkt.Exception.Type)
 		elem.EndAddr = 0
@@ -323,13 +323,13 @@ func (d *etmv4Decoder) decodePacket(pkt *etmv4Packet) error {
 			return d.commitOverSpecDepth()
 		}
 		d.OutputTraceElement(elem)
-	case PktTraceOn:
+	case pktTraceOn:
 		elem := Element{ElemType: GenElemTraceOn}
 		if d.prevOverflow {
-			elem.SetTraceOnReason(TraceOnOverflow)
+			elem.setTraceOnReason(TraceOnOverflow)
 			d.prevOverflow = false
 		} else {
-			elem.SetTraceOnReason(TraceOnNormal)
+			elem.setTraceOnReason(TraceOnNormal)
 		}
 		elem.Index = pkt.Index
 		if d.shouldQueueControl() {
@@ -337,13 +337,13 @@ func (d *etmv4Decoder) decodePacket(pkt *etmv4Packet) error {
 			return nil
 		}
 		d.pendingTraceOn = &elem
-	case PktContext:
+	case pktContext:
 		if d.shouldQueueControl() {
 			d.queueContext(pkt)
 			return nil
 		}
 		d.updateContext(pkt)
-	case PktAddrCtxtL32IS0, PktAddrCtxtL32IS1, PktAddrCtxtL64IS0, PktAddrCtxtL64IS1:
+	case pktAddrCtxtL32IS0, pktAddrCtxtL32IS1, pktAddrCtxtL64IS0, pktAddrCtxtL64IS1:
 		if d.pendingException != nil {
 			if err := d.resolvePendingExceptionAddress(pkt.Addr.Val); err != nil {
 				return err
@@ -355,7 +355,7 @@ func (d *etmv4Decoder) decodePacket(pkt *etmv4Packet) error {
 		}
 		d.updateAddress(pkt)
 		d.updateContext(pkt)
-	case PktAddrMatch, PktAddrL32IS0, PktAddrL32IS1, PktAddrL64IS0, PktAddrL64IS1, PktAddrSIS0, PktAddrSIS1:
+	case pktAddrMatch, pktAddrL32IS0, pktAddrL32IS1, pktAddrL64IS0, pktAddrL64IS1, pktAddrSIS0, pktAddrSIS1:
 		if d.pendingException != nil {
 			if err := d.resolvePendingExceptionAddress(pkt.Addr.Val); err != nil {
 				return err
@@ -366,17 +366,17 @@ func (d *etmv4Decoder) decodePacket(pkt *etmv4Packet) error {
 			return nil
 		}
 		d.updateAddress(pkt)
-	case PktSrcAddrMatch, PktSrcAddrL32IS0, PktSrcAddrL32IS1, PktSrcAddrL64IS0, PktSrcAddrL64IS1, PktSrcAddrSIS0, PktSrcAddrSIS1:
+	case pktSrcAddrMatch, pktSrcAddrL32IS0, pktSrcAddrL32IS1, pktSrcAddrL64IS0, pktSrcAddrL64IS1, pktSrcAddrSIS0, pktSrcAddrSIS1:
 		return d.processSourceAddress(pkt)
-	case PktAtomF1, PktAtomF2, PktAtomF3, PktAtomF4, PktAtomF5, PktAtomF6:
+	case pktAtomF1, pktAtomF2, pktAtomF3, pktAtomF4, pktAtomF5, pktAtomF6:
 		return d.processAtoms(pkt)
-	case PktCommit:
+	case pktCommit:
 		if pkt.CommitValid {
 			return d.commitPendingAtoms(pkt.Commit)
 		}
-	case PktCancelF1, PktCancelF1Mispred, PktMispredict, PktCancelF2, PktCancelF3:
+	case pktCancelF1, pktCancelF1Mispred, pktMispredict, pktCancelF2, pktCancelF3:
 		return d.resolveSpeculation(pkt)
-	case PktException:
+	case pktException:
 		if pkt.Exception.AddrInterp == 1 || pkt.Exception.AddrInterp == 2 {
 			exception := *pkt
 			d.pendingException = &exception
@@ -385,31 +385,31 @@ func (d *etmv4Decoder) decodePacket(pkt *etmv4Packet) error {
 			elem.Payload.ExceptionNum = uint32(pkt.Exception.Type)
 			d.OutputTraceElement(elem)
 		}
-	case PktExceptionReturn, PktFuncRet:
+	case pktExceptionReturn, pktFuncRet:
 		elem := Element{ElemType: GenElemExceptionRet}
 		elem.Index = pkt.Index
 		d.pendingExceptRet = &elem
-	case PktITE:
+	case pktITE:
 		elem := Element{ElemType: GenElemInstrumentation}
-		elem.SetITEInfo(ITEEvent{EL: pkt.ITE.EL, Value: pkt.ITE.Value})
+		elem.setITEInfo(ITEEvent{EL: pkt.ITE.EL, Value: pkt.ITE.Value})
 		elem.Index = pkt.Index
 		d.pendingITE = &elem
 	case etmv4PktTimestamp:
 		elem := Element{ElemType: GenElemTimestamp}
-		elem.SetTimestamp(pkt.Timestamp, false)
+		elem.setTimestamp(pkt.Timestamp, false)
 		if pkt.CCValid {
-			elem.SetCycleCount(pkt.CycleCount)
+			elem.setCycleCount(pkt.CycleCount)
 		}
 		elem.Index = pkt.Index
 		d.pendingElements = append(d.pendingElements, elem)
-	case PktTSMarker:
+	case pktTSMarker:
 		elem := Element{ElemType: GenElemSyncMarker}
-		elem.SetSyncMarker(TraceMarkerPayload{Type: ElemMarkerTS})
+		elem.setSyncMarker(TraceMarkerPayload{Type: ElemMarkerTS})
 		elem.Index = pkt.Index
 		d.pendingElements = append(d.pendingElements, elem)
-	case PktCycleCountF1, PktCycleCountF2, PktCycleCountF3:
+	case pktCycleCountF1, pktCycleCountF2, pktCycleCountF3:
 		elem := Element{ElemType: GenElemCycleCount}
-		elem.SetCycleCount(pkt.CycleCount)
+		elem.setCycleCount(pkt.CycleCount)
 		elem.Index = pkt.Index
 		if d.usesP0CommitStack() && !d.Config.CommitOpt1() {
 			if pkt.CommitValid {
@@ -424,28 +424,28 @@ func (d *etmv4Decoder) decodePacket(pkt *etmv4Packet) error {
 		if pkt.CommitValid {
 			return d.commitPendingAtoms(pkt.Commit)
 		}
-	case PktEvent:
+	case pktEvent:
 		elem := Element{ElemType: GenElemEvent}
-		elem.SetEvent(EventNumbered, uint16(pkt.EventVal))
+		elem.setEvent(EventNumbered, uint16(pkt.EventVal))
 		d.OutputTraceElement(elem)
 		d.eotPending = true
-	case PktOverflow:
+	case pktOverflow:
 		d.unsync = UnsyncOverflow
 		d.resetDecoder()
 		d.prevOverflow = true
 		elem := Element{ElemType: GenElemNoSync}
-		elem.SetUnsyncEndReason(UnsyncOverflow)
+		elem.setUnsyncEndReason(UnsyncOverflow)
 		d.OutputTraceElement(elem)
 		d.currState = etmv4DecodeWaitSync
-	case PktDiscard:
+	case pktDiscard:
 		d.unsync = UnsyncDiscard
 		d.resetDecoder()
 		elem := Element{ElemType: GenElemNoSync}
-		elem.SetUnsyncEndReason(UnsyncDiscard)
+		elem.setUnsyncEndReason(UnsyncDiscard)
 		d.OutputTraceElement(elem)
 		d.currState = etmv4DecodeWaitSync
 		d.eotPending = true
-	case PktQ:
+	case pktQ:
 		if d.usesP0CommitStack() {
 			d.queueQElement(pkt)
 			return d.commitOverSpecDepth()
@@ -532,7 +532,7 @@ func (d *etmv4Decoder) processExceptionPacket(pkt *etmv4Packet, retAddr VAddr, f
 			elem.EndAddr = rangeEnd
 			elem.ISA = isa
 			elem.Payload.NumInstrRange = numInstr
-			elem.SetLastInstrInfo(true, lastInfo.Type, lastInfo.Subtype, lastInfo.InstrSize)
+			elem.setLastInstrInfo(true, lastInfo.Type, lastInfo.Subtype, lastInfo.InstrSize)
 			elem.LastInstrCond = lastInfo.IsConditional
 			d.outputTraceElementAt(pkt.Index, elem)
 		}
@@ -730,7 +730,7 @@ func (d *etmv4Decoder) resolveSpeculation(pkt *etmv4Packet) error {
 		}
 	}
 	switch pkt.Type {
-	case PktMispredict, PktCancelF1Mispred, PktCancelF2, PktCancelF3:
+	case pktMispredict, pktCancelF1Mispred, pktCancelF2, pktCancelF3:
 		for i := len(d.pendingP0) - 1; i >= 0; i-- {
 			newest := &d.pendingP0[i]
 			if newest.kind == pendingP0Address {
@@ -788,7 +788,7 @@ func (d *etmv4Decoder) processPendingP0Entries(entries []pendingP0) error {
 		case pendingP0Address:
 			d.updateAddress(entries[i].packet)
 			switch entries[i].packet.Type {
-			case PktAddrCtxtL32IS0, PktAddrCtxtL32IS1, PktAddrCtxtL64IS0, PktAddrCtxtL64IS1:
+			case pktAddrCtxtL32IS0, pktAddrCtxtL32IS1, pktAddrCtxtL64IS0, pktAddrCtxtL64IS1:
 				d.updateContext(entries[i].packet)
 			}
 			i++
@@ -861,7 +861,7 @@ func (d *etmv4Decoder) processatomEntries(atoms []pendingP0) error {
 		elem.EndAddr = res.RangeEn
 		elem.ISA = isa
 		elem.Payload.NumInstrRange = res.NumInstr
-		elem.SetLastInstrInfo(val == atomE, res.InstrInfo.Type, res.InstrInfo.Subtype, res.InstrInfo.InstrSize)
+		elem.setLastInstrInfo(val == atomE, res.InstrInfo.Type, res.InstrInfo.Subtype, res.InstrInfo.InstrSize)
 		elem.LastInstrCond = res.InstrInfo.IsConditional
 		d.outputTraceElementAt(atom.index, elem)
 		if d.Config.IsETE() && val == atomE && res.InstrInfo.Subtype == SInstrV8Eret {
@@ -1007,7 +1007,7 @@ func (d *etmv4Decoder) outputSourceAddressRangeWithCount(index Index, start, end
 	elem.EndAddr = end
 	elem.ISA = isa
 	elem.Payload.NumInstrRange = numInstr
-	elem.SetLastInstrInfo(executed, instrInfo.Type, instrInfo.Subtype, instrInfo.InstrSize)
+	elem.setLastInstrInfo(executed, instrInfo.Type, instrInfo.Subtype, instrInfo.InstrSize)
 	elem.LastInstrCond = instrInfo.IsConditional
 	d.outputTraceElementAt(index, elem)
 }
@@ -1017,7 +1017,7 @@ func (d *etmv4Decoder) handlePacketSequenceError(index Index, err error, reason 
 	d.unsync = UnsyncBadPacket
 	d.resetDecoder()
 	elem := Element{ElemType: GenElemNoSync, Diagnostic: diagnostic}
-	elem.SetUnsyncEndReason(UnsyncBadPacket)
+	elem.setUnsyncEndReason(UnsyncBadPacket)
 	d.outputTraceElementAt(index, elem)
 	d.currState = etmv4DecodeWaitSync
 }
@@ -1248,7 +1248,7 @@ func (d *etmv4Decoder) processQElement(pkt *etmv4Packet) error {
 				elem.EndAddr = rangeEnd
 				elem.ISA = isa
 				elem.Payload.NumInstrRange = numInstr
-				elem.SetLastInstrInfo(true, lastInfo.Type, lastInfo.Subtype, lastInfo.InstrSize)
+				elem.setLastInstrInfo(true, lastInfo.Type, lastInfo.Subtype, lastInfo.InstrSize)
 				elem.LastInstrCond = lastInfo.IsConditional
 				d.outputTraceElementAt(pkt.Index, elem)
 			}

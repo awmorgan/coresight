@@ -9,56 +9,56 @@ import (
 type ptmPacketType int
 
 const (
-	PacketNotSync       ptmPacketType = iota // no sync found yet
-	PacketIncompleteEOT                      // flushing incomplete packet at end of
-	PacketNoError                            // no error base type packet.
+	packetNotSync       ptmPacketType = iota // no sync found yet
+	packetIncompleteEOT                      // flushing incomplete packet at end of
+	packetNoError                            // no error base type packet.
 
-	PacketBranchAddress     // Branch address with optional exception.
-	PacketASync             // Alignment Synchronisation.
-	PacketISync             // Instruction sync with address.
-	PacketTrigger           // trigger packet
-	PacketWPointUpdate      // Waypoint update.
-	PacketIgnore            // ignore packet.
-	PacketContextID         // context id packet.
-	PacketVMID              // VMID packet
-	PacketAtom              // atom waypoint packet.
-	PacketTimestamp         // timestamp packet.
-	PacketExceptionRet      // exception return.
-	PacketBranchOrBypassEOT // interpreter FSM 'state'
-	PacketTPIUPadEOB        // pad end of a buffer
+	packetBranchAddress     // Branch address with optional exception.
+	packetASync             // Alignment Synchronisation.
+	packetISync             // Instruction sync with address.
+	packetTrigger           // trigger packet
+	packetWPointUpdate      // Waypoint update.
+	packetIgnore            // ignore packet.
+	packetContextID         // context id packet.
+	packetVMID              // VMID packet
+	packetAtom              // atom waypoint packet.
+	packetTimestamp         // timestamp packet.
+	packetExceptionRet      // exception return.
+	packetBranchOrBypassEOT // interpreter FSM 'state'
+	packetTPIUPadEOB        // pad end of a buffer
 
-	PacketBadSequence // invalid sequence for packet type
-	PacketReserved    // Reserved packet encoding
+	packetBadSequence // invalid sequence for packet type
+	packetReserved    // Reserved packet encoding
 )
 
 const (
-	PktHeaderBranchAddrMask uint8 = 0x01
-	PktHeaderAtomMask       uint8 = 0x81
-	PktHeaderAtomVal        uint8 = 0x80
+	pktHeaderBranchAddrMask uint8 = 0x01
+	pktHeaderAtomMask       uint8 = 0x81
+	pktHeaderAtomVal        uint8 = 0x80
 
-	PktHeaderASync      uint8 = 0x00
-	PktHeaderISync      uint8 = 0x08
-	PktHeaderWPoint     uint8 = 0x72
-	PktHeaderTrigger    uint8 = 0x0C
-	PktHeaderContextID  uint8 = 0x6E
-	PktHeaderVMID       uint8 = 0x3C
-	PktHeaderTimestamp1 uint8 = 0x42
-	PktHeaderTimestamp2 uint8 = 0x46
-	PktHeaderExcepRet   uint8 = 0x76
-	PktHeaderIgnore     uint8 = 0x66
+	pktHeaderASync      uint8 = 0x00
+	pktHeaderISync      uint8 = 0x08
+	pktHeaderWPoint     uint8 = 0x72
+	pktHeaderTrigger    uint8 = 0x0C
+	pktHeaderContextID  uint8 = 0x6E
+	pktHeaderVMID       uint8 = 0x3C
+	pktHeaderTimestamp1 uint8 = 0x42
+	pktHeaderTimestamp2 uint8 = 0x46
+	pktHeaderExcepRet   uint8 = 0x76
+	pktHeaderIgnore     uint8 = 0x66
 
-	PktContMask   uint8 = 0x80 // Bit 7 is continuation for most fields
-	PktCCContMask uint8 = 0x40 // Bit 6 is continuation for cycle counts
+	pktContMask   uint8 = 0x80 // Bit 7 is continuation for most fields
+	pktCCContMask uint8 = 0x40 // Bit 6 is continuation for cycle counts
 
-	PktASyncByte uint8 = 0x80 // Alignment sync byte (after N zeros)
+	pktASyncByte uint8 = 0x80 // Alignment sync byte (after N zeros)
 
-	PktISyncNSMask     uint8 = 0x08
-	PktISyncAltISAMask uint8 = 0x04
-	PktISyncHypMask    uint8 = 0x02
+	pktISyncNSMask     uint8 = 0x08
+	pktISyncAltISAMask uint8 = 0x04
+	pktISyncHypMask    uint8 = 0x02
 
-	PktBranchISAMask    uint8 = 0x30
-	PktBranchISAThumb2  uint8 = 0x10
-	PktBranchISAJazelle uint8 = 0x20
+	pktBranchISAMask    uint8 = 0x30
+	pktBranchISAThumb2  uint8 = 0x10
+	pktBranchISAJazelle uint8 = 0x20
 )
 
 // ptmContext represents the execution context state for PTM.
@@ -109,7 +109,7 @@ type ptmPacket struct {
 }
 
 func (p *ptmPacket) Clear() {
-	p.errType = PacketNoError
+	p.errType = packetNoError
 	p.CycleCount = 0
 	p.CCValid = false
 	p.Context.Updated = false
@@ -122,7 +122,7 @@ func (p *ptmPacket) Clear() {
 }
 
 func (p *ptmPacket) ResetState() {
-	p.Type = PacketNotSync
+	p.Type = packetNotSync
 
 	p.Context.CtxtID = 0
 	p.Context.VMID = 0
@@ -232,7 +232,7 @@ func (p *ptmPacket) SetAtomFromPHdr(pHdr uint8) {
 
 func (p *ptmPacket) IsBadPacket() bool {
 	switch p.Type {
-	case PacketBadSequence, PacketReserved:
+	case packetBadSequence, packetReserved:
 		return true
 	default:
 		return false
@@ -249,19 +249,19 @@ func (p *ptmPacket) String() string {
 
 func (p *ptmPacket) writeDetails(sb *strings.Builder) {
 	switch p.Type {
-	case PacketBadSequence:
+	case packetBadSequence:
 		fmt.Fprintf(sb, "[%s]; ", packetTypeName(p.errType))
-	case PacketAtom:
+	case packetAtom:
 		sb.WriteString(p.getAtomStr())
-	case PacketContextID:
+	case packetContextID:
 		fmt.Fprintf(sb, "CtxtID=0x%08x; ", p.Context.CtxtID)
-	case PacketVMID:
+	case packetVMID:
 		fmt.Fprintf(sb, "VMID=0x%02x; ", p.Context.VMID)
-	case PacketWPointUpdate, PacketBranchAddress:
+	case packetWPointUpdate, packetBranchAddress:
 		sb.WriteString(p.getBranchAddressStr())
-	case PacketISync:
+	case packetISync:
 		sb.WriteString(p.getISyncStr())
-	case PacketTimestamp:
+	case packetTimestamp:
 		sb.WriteString(p.getTSStr())
 	}
 }
@@ -408,22 +408,22 @@ type packetTypeInfo struct {
 }
 
 var packetTypeInfos = map[ptmPacketType]packetTypeInfo{
-	PacketNotSync:       {"NOTSYNC", "PTM Not Synchronised"},
-	PacketIncompleteEOT: {"INCOMPLETE_EOT", "Incomplete packet flushed at end of trace"},
-	PacketNoError:       {"NO_ERROR", "Error type not set"},
-	PacketBadSequence:   {"BAD_SEQUENCE", "Invalid sequence in packet"},
-	PacketReserved:      {"RESERVED", "Reserved Packet Header"},
-	PacketBranchAddress: {"BRANCH_ADDRESS", "Branch address packet"},
-	PacketASync:         {"ASYNC", "Alignment Synchronisation Packet"},
-	PacketISync:         {"ISYNC", "Instruction Synchronisation packet"},
-	PacketTrigger:       {"TRIGGER", "Trigger Event packet"},
-	PacketWPointUpdate:  {"WP_UPDATE", "Waypoint update packet"},
-	PacketIgnore:        {"IGNORE", "Ignore packet"},
-	PacketContextID:     {"CTXTID", "Context ID packet"},
-	PacketVMID:          {"VMID", "VM ID packet"},
-	PacketAtom:          {"ATOM", "Atom packet"},
-	PacketTimestamp:     {"TIMESTAMP", "Timestamp packet"},
-	PacketExceptionRet:  {"ERET", "Exception return packet"},
+	packetNotSync:       {"NOTSYNC", "PTM Not Synchronised"},
+	packetIncompleteEOT: {"INCOMPLETE_EOT", "Incomplete packet flushed at end of trace"},
+	packetNoError:       {"NO_ERROR", "Error type not set"},
+	packetBadSequence:   {"BAD_SEQUENCE", "Invalid sequence in packet"},
+	packetReserved:      {"RESERVED", "Reserved Packet Header"},
+	packetBranchAddress: {"BRANCH_ADDRESS", "Branch address packet"},
+	packetASync:         {"ASYNC", "Alignment Synchronisation Packet"},
+	packetISync:         {"ISYNC", "Instruction Synchronisation packet"},
+	packetTrigger:       {"TRIGGER", "Trigger Event packet"},
+	packetWPointUpdate:  {"WP_UPDATE", "Waypoint update packet"},
+	packetIgnore:        {"IGNORE", "Ignore packet"},
+	packetContextID:     {"CTXTID", "Context ID packet"},
+	packetVMID:          {"VMID", "VM ID packet"},
+	packetAtom:          {"ATOM", "Atom packet"},
+	packetTimestamp:     {"TIMESTAMP", "Timestamp packet"},
+	packetExceptionRet:  {"ERET", "Exception return packet"},
 }
 
 func ptmPacketInfo(t ptmPacketType) packetTypeInfo {

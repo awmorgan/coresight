@@ -6,7 +6,7 @@ import (
 
 func BenchmarkEtmv4PacketString_Atom(b *testing.B) {
 	pkt := etmv4Packet{
-		Type: PktAtomF6,
+		Type: pktAtomF6,
 		Atom: etmv4Atom{EnBits: 0x1f, Num: 6},
 	}
 	for b.Loop() {
@@ -16,7 +16,7 @@ func BenchmarkEtmv4PacketString_Atom(b *testing.B) {
 
 func BenchmarkEtmv4PacketAppendStringTo_Atom(b *testing.B) {
 	pkt := etmv4Packet{
-		Type: PktAtomF6,
+		Type: pktAtomF6,
 		Atom: etmv4Atom{EnBits: 0x1f, Num: 6},
 	}
 	buf := make([]byte, 0, 128)
@@ -27,7 +27,7 @@ func BenchmarkEtmv4PacketAppendStringTo_Atom(b *testing.B) {
 
 func BenchmarkEtmv4PacketString_AddressContext(b *testing.B) {
 	pkt := etmv4Packet{
-		Type: PktAddrCtxtL64IS1,
+		Type: pktAddrCtxtL64IS1,
 		Addr: etmv4Address{
 			Val:       VAddr(0xffffffc000123456),
 			IS:        1,
@@ -53,7 +53,7 @@ func BenchmarkEtmv4PacketString_AddressContext(b *testing.B) {
 
 func BenchmarkEtmv4PacketAppendStringTo_AddressContext(b *testing.B) {
 	pkt := etmv4Packet{
-		Type: PktAddrCtxtL64IS1,
+		Type: pktAddrCtxtL64IS1,
 		Addr: etmv4Address{
 			Val:       VAddr(0xffffffc000123456),
 			IS:        1,

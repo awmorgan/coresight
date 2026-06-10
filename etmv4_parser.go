@@ -182,11 +182,11 @@ func (d *etmv4Decoder) iNotSync(lastByte byte) error {
 
 func (d *etmv4Decoder) iPktNoPayload(lastByte byte) error {
 	switch d.ctx.currPacket.Type {
-	case PktAddrMatch, PktSrcAddrMatch:
+	case pktAddrMatch, pktSrcAddrMatch:
 		d.ctx.currPacket.setAddressExactMatch(lastByte & 0x3)
-	case PktEvent:
+	case pktEvent:
 		d.ctx.currPacket.EventVal = lastByte & 0xF
-	case PktNumDSMarker, PktUnnumDSMarker:
+	case pktNumDSMarker, pktUnnumDSMarker:
 		d.ctx.currPacket.DSMVal = lastByte & 0x7
 	}
 	d.ctx.processState = etmv4StateSendPkt
@@ -200,7 +200,7 @@ func (d *etmv4Decoder) iPktReserved(lastByte byte) error {
 }
 
 func (d *etmv4Decoder) iPktInvalidCfg(lastByte byte) error {
-	d.ctx.currPacket.updateErr(PktReservedCfg, errInvalidPcktHdr)
+	d.ctx.currPacket.updateErr(pktReservedCfg, errInvalidPcktHdr)
 	d.ctx.processState = etmv4StateSendPkt
 	return nil
 }
@@ -219,10 +219,10 @@ func (d *etmv4Decoder) iPktExtension(lastByte byte) error {
 		d.ctx.currPacket.Type = etmv4PktASync
 		d.ctx.currHandler = (*etmv4Decoder).iPktASync
 	case 0x03:
-		d.ctx.currPacket.Type = PktDiscard
+		d.ctx.currPacket.Type = pktDiscard
 		d.ctx.processState = etmv4StateSendPkt
 	case 0x05:
-		d.ctx.currPacket.Type = PktOverflow
+		d.ctx.currPacket.Type = pktOverflow
 		d.ctx.processState = etmv4StateSendPkt
 	default:
 		d.ctx.currPacket.updateErr(etmv4PktBadSequence, errBadPacketSeq)
@@ -394,9 +394,9 @@ func (d *etmv4Decoder) iPktException(lastByte byte) error {
 			if excepType == 0x0 || excepType == 0x18 {
 				d.ctx.currPacket.Addr = etmv4Address{Size: 64, ValidBits: 64}
 				if excepType == 0x18 {
-					d.ctx.currPacket.Type = PktTransFail
+					d.ctx.currPacket.Type = pktTransFail
 				} else {
-					d.ctx.currPacket.Type = PktPEReset
+					d.ctx.currPacket.Type = pktPEReset
 				}
 			}
 		}
@@ -427,7 +427,7 @@ func (d *etmv4Decoder) iPktCycleCntF123(lastByte byte) error {
 		d.ctx.hasCount = true
 
 		switch d.ctx.currPacket.Type {
-		case PktCycleCountF3:
+		case pktCycleCountF3:
 			if !d.Config.CommitOpt1() {
 				d.ctx.currPacket.Commit = uint32((h>>2)&0x3) + 1
 				d.ctx.currPacket.CommitValid = true
@@ -435,7 +435,7 @@ func (d *etmv4Decoder) iPktCycleCntF123(lastByte byte) error {
 			d.ctx.currPacket.CycleCount = d.ctx.currPacket.CCThreshold + uint32(h&0x3)
 			d.ctx.currPacket.CCValid = true
 			d.ctx.processState = etmv4StateSendPkt
-		case PktCycleCountF1:
+		case pktCycleCountF1:
 			if h&0x1 != 0 {
 				d.ctx.hasCount = false
 				d.ctx.countDone = true
@@ -448,12 +448,12 @@ func (d *etmv4Decoder) iPktCycleCntF123(lastByte byte) error {
 				d.ctx.currPacket.CCValid = true
 				d.ctx.processState = etmv4StateSendPkt
 			}
-		case PktCycleCountF2:
+		case pktCycleCountF2:
 			d.ctx.ccf2MaxSpec = h&0x1 != 0
 		}
 		return nil
 	}
-	if d.ctx.currPacket.Type == PktCycleCountF2 && len(d.ctx.raw) == 2 {
+	if d.ctx.currPacket.Type == pktCycleCountF2 && len(d.ctx.raw) == 2 {
 		d.ctx.currPacket.CycleCount = d.ctx.currPacket.CCThreshold + uint32(lastByte&0xF)
 		d.ctx.currPacket.CCValid = true
 		if !d.Config.CommitOpt1() {
@@ -496,7 +496,7 @@ func (d *etmv4Decoder) iPktSpeclRes(lastByte byte) error {
 	h := d.ctx.raw[0]
 	if len(d.ctx.raw) == 1 {
 		switch d.ctx.currPacket.Type {
-		case PktMispredict:
+		case pktMispredict:
 			switch h & 0x3 {
 			case 0x1:
 				d.ctx.currPacket.Atom = etmv4Atom{EnBits: 0x1, Num: 1}
@@ -508,7 +508,7 @@ func (d *etmv4Decoder) iPktSpeclRes(lastByte byte) error {
 			d.ctx.currPacket.Cancel = 0
 			d.ctx.currPacket.CancelValid = true
 			d.ctx.processState = etmv4StateSendPkt
-		case PktCancelF2:
+		case pktCancelF2:
 			switch h & 0x3 {
 			case 0x1:
 				d.ctx.currPacket.Atom = etmv4Atom{EnBits: 0x1, Num: 1}
@@ -520,7 +520,7 @@ func (d *etmv4Decoder) iPktSpeclRes(lastByte byte) error {
 			d.ctx.currPacket.Cancel = 1
 			d.ctx.currPacket.CancelValid = true
 			d.ctx.processState = etmv4StateSendPkt
-		case PktCancelF3:
+		case pktCancelF3:
 			d.ctx.currPacket.Cancel = uint32((h>>1)&0x3) + 2
 			d.ctx.currPacket.CancelValid = true
 			if h&0x1 != 0 {
@@ -534,10 +534,10 @@ func (d *etmv4Decoder) iPktSpeclRes(lastByte byte) error {
 	if lastByte&0x80 == 0 {
 		field, _ := extractContField(d.ctx.raw, 1, 5)
 		switch d.ctx.currPacket.Type {
-		case PktCommit:
+		case pktCommit:
 			d.ctx.currPacket.Commit = field
 			d.ctx.currPacket.CommitValid = true
-		case PktCancelF1, PktCancelF1Mispred:
+		case pktCancelF1, pktCancelF1Mispred:
 			d.ctx.currPacket.Cancel = field
 			d.ctx.currPacket.CancelValid = true
 		}
@@ -747,19 +747,19 @@ func (d *etmv4Decoder) iAtom(lastByte byte) error {
 	var pattern uint32
 	var count uint8
 	switch d.ctx.currPacket.Type {
-	case PktAtomF1:
+	case pktAtomF1:
 		count = 1
 		pattern = uint32(h & 0x1)
-	case PktAtomF2:
+	case pktAtomF2:
 		count = 2
 		pattern = uint32(h & 0x3)
-	case PktAtomF3:
+	case pktAtomF3:
 		count = 3
 		pattern = uint32(h & 0x7)
-	case PktAtomF4:
+	case pktAtomF4:
 		count = 4
 		pattern = [...]uint32{0xE, 0x0, 0xA, 0x5}[h&0x3]
-	case PktAtomF5:
+	case pktAtomF5:
 		count = 5
 		switch ((h & 0x20) >> 3) | (h & 0x3) {
 		case 5:
@@ -771,7 +771,7 @@ func (d *etmv4Decoder) iAtom(lastByte byte) error {
 		case 3:
 			pattern = 0x15
 		}
-	case PktAtomF6:
+	case pktAtomF6:
 		eCount := (h & 0x1F) + 3
 		count = eCount + 1
 		pattern = uint32(bitMask(int(eCount)))
@@ -858,8 +858,8 @@ func extractAndSetContextInfo(pkt *etmv4Packet, b []byte, idx int, cfg *etmv4Con
 
 func packetAddrIS(t etmv4PacketType) uint8 {
 	switch t {
-	case PktAddrCtxtL32IS1, PktAddrCtxtL64IS1, PktAddrSIS1, PktAddrL32IS1, PktAddrL64IS1,
-		PktSrcAddrSIS1, PktSrcAddrL32IS1, PktSrcAddrL64IS1:
+	case pktAddrCtxtL32IS1, pktAddrCtxtL64IS1, pktAddrSIS1, pktAddrL32IS1, pktAddrL64IS1,
+		pktSrcAddrSIS1, pktSrcAddrL32IS1, pktSrcAddrL64IS1:
 		return 1
 	default:
 		return 0
@@ -920,142 +920,142 @@ func (d *etmv4Decoder) buildPacketTable() {
 		d.ctx.table[i] = packetTableEntry{etmv4PktReserved, (*etmv4Decoder).iPktReserved}
 	}
 	set := func(h byte, t etmv4PacketType, fn etmv4PacketHandler) { d.ctx.table[h] = packetTableEntry{t, fn} }
-	set(0x00, PktExtension, (*etmv4Decoder).iPktExtension)
-	set(0x01, PktTraceInfo, (*etmv4Decoder).iPktTraceInfo)
+	set(0x00, pktExtension, (*etmv4Decoder).iPktExtension)
+	set(0x01, pktTraceInfo, (*etmv4Decoder).iPktTraceInfo)
 	set(0x02, etmv4PktTimestamp, (*etmv4Decoder).iPktTimestamp)
 	set(0x03, etmv4PktTimestamp, (*etmv4Decoder).iPktTimestamp)
-	set(0x04, PktTraceOn, (*etmv4Decoder).iPktNoPayload)
-	set(0x05, PktFuncRet, (*etmv4Decoder).iPktNoPayload)
-	set(0x06, PktException, (*etmv4Decoder).iPktException)
+	set(0x04, pktTraceOn, (*etmv4Decoder).iPktNoPayload)
+	set(0x05, pktFuncRet, (*etmv4Decoder).iPktNoPayload)
+	set(0x06, pktException, (*etmv4Decoder).iPktException)
 	exceptRtnFn := (*etmv4Decoder).iPktNoPayload
 	if d.Config.IsETE() {
 		exceptRtnFn = (*etmv4Decoder).iPktInvalidCfg
 	}
-	set(0x07, PktExceptionReturn, exceptRtnFn)
+	set(0x07, pktExceptionReturn, exceptRtnFn)
 	if d.Config.IsETE() {
-		set(0x09, PktITE, (*etmv4Decoder).iPktITE)
-		set(0x0A, PktTransStart, (*etmv4Decoder).iPktNoPayload)
-		set(0x0B, PktTransCommit, (*etmv4Decoder).iPktNoPayload)
+		set(0x09, pktITE, (*etmv4Decoder).iPktITE)
+		set(0x0A, pktTransStart, (*etmv4Decoder).iPktNoPayload)
+		set(0x0B, pktTransCommit, (*etmv4Decoder).iPktNoPayload)
 	}
 	for i := range 4 {
-		t := PktCycleCountF2
+		t := pktCycleCountF2
 		if i >= 2 {
-			t = PktCycleCountF1
+			t = pktCycleCountF1
 		}
 		set(byte(0x0C+i), t, (*etmv4Decoder).iPktCycleCntF123)
 	}
 	for i := range 16 {
-		set(byte(0x10+i), PktCycleCountF3, (*etmv4Decoder).iPktCycleCntF123)
+		set(byte(0x10+i), pktCycleCountF3, (*etmv4Decoder).iPktCycleCntF123)
 	}
 	for i := range 8 {
 		fn := (*etmv4Decoder).iPktInvalidCfg
 		if d.Config.EnabledDataTrace() {
 			fn = (*etmv4Decoder).iPktNoPayload
 		}
-		set(byte(0x20+i), PktNumDSMarker, fn)
+		set(byte(0x20+i), pktNumDSMarker, fn)
 	}
 	for i := range 5 {
 		fn := (*etmv4Decoder).iPktInvalidCfg
 		if d.Config.EnabledDataTrace() {
 			fn = (*etmv4Decoder).iPktNoPayload
 		}
-		set(byte(0x28+i), PktUnnumDSMarker, fn)
+		set(byte(0x28+i), pktUnnumDSMarker, fn)
 	}
-	set(0x2D, PktCommit, (*etmv4Decoder).iPktSpeclRes)
-	set(0x2E, PktCancelF1, (*etmv4Decoder).iPktSpeclRes)
-	set(0x2F, PktCancelF1Mispred, (*etmv4Decoder).iPktSpeclRes)
+	set(0x2D, pktCommit, (*etmv4Decoder).iPktSpeclRes)
+	set(0x2E, pktCancelF1, (*etmv4Decoder).iPktSpeclRes)
+	set(0x2F, pktCancelF1Mispred, (*etmv4Decoder).iPktSpeclRes)
 	for i := range 4 {
-		set(byte(0x30+i), PktMispredict, (*etmv4Decoder).iPktSpeclRes)
-		set(byte(0x34+i), PktCancelF2, (*etmv4Decoder).iPktSpeclRes)
+		set(byte(0x30+i), pktMispredict, (*etmv4Decoder).iPktSpeclRes)
+		set(byte(0x34+i), pktCancelF2, (*etmv4Decoder).iPktSpeclRes)
 	}
 	for i := range 8 {
-		set(byte(0x38+i), PktCancelF3, (*etmv4Decoder).iPktSpeclRes)
+		set(byte(0x38+i), pktCancelF3, (*etmv4Decoder).iPktSpeclRes)
 	}
 	condFn := (*etmv4Decoder).iPktUnsupported
 	if d.Config.HasCondTrace() && d.Config.EnabledCondITrace() != condTraceDisabled {
 		condFn = (*etmv4Decoder).iPktNoPayload
 	}
 	for _, h := range []byte{0x40, 0x41, 0x42} {
-		set(h, PktCondInstrF2, condFn)
+		set(h, pktCondInstrF2, condFn)
 	}
-	set(0x43, PktCondFlush, condFn)
+	set(0x43, pktCondFlush, condFn)
 	for _, h := range []byte{0x44, 0x45, 0x46} {
-		set(h, PktCondResultF4, condFn)
+		set(h, pktCondResultF4, condFn)
 	}
 	for _, h := range []byte{0x48, 0x49, 0x4A, 0x4C, 0x4D, 0x4E} {
-		set(h, PktCondResultF2, condFn)
+		set(h, pktCondResultF2, condFn)
 	}
 	for i := range 16 {
-		set(byte(0x50+i), PktCondResultF3, condFn)
+		set(byte(0x50+i), pktCondResultF3, condFn)
 	}
 	for _, h := range []byte{0x68, 0x69, 0x6A, 0x6B, 0x6E, 0x6F} {
-		set(h, PktCondResultF1, condFn)
+		set(h, pktCondResultF1, condFn)
 	}
-	set(0x6C, PktCondInstrF1, condFn)
-	set(0x6D, PktCondInstrF3, condFn)
+	set(0x6C, pktCondInstrF1, condFn)
+	set(0x6D, pktCondInstrF3, condFn)
 	if d.Config.FullVersion() >= 0x43 {
 		set(0x70, etmv4PktIgnore, (*etmv4Decoder).iPktNoPayload)
 	}
 	for i := range 15 {
-		set(byte(0x71+i), PktEvent, (*etmv4Decoder).iPktNoPayload)
+		set(byte(0x71+i), pktEvent, (*etmv4Decoder).iPktNoPayload)
 	}
-	set(0x80, PktContext, (*etmv4Decoder).iPktContext)
-	set(0x81, PktContext, (*etmv4Decoder).iPktContext)
-	set(0x82, PktAddrCtxtL32IS0, (*etmv4Decoder).iPktAddrCtxt)
-	set(0x83, PktAddrCtxtL32IS1, (*etmv4Decoder).iPktAddrCtxt)
-	set(0x85, PktAddrCtxtL64IS0, (*etmv4Decoder).iPktAddrCtxt)
-	set(0x86, PktAddrCtxtL64IS1, (*etmv4Decoder).iPktAddrCtxt)
+	set(0x80, pktContext, (*etmv4Decoder).iPktContext)
+	set(0x81, pktContext, (*etmv4Decoder).iPktContext)
+	set(0x82, pktAddrCtxtL32IS0, (*etmv4Decoder).iPktAddrCtxt)
+	set(0x83, pktAddrCtxtL32IS1, (*etmv4Decoder).iPktAddrCtxt)
+	set(0x85, pktAddrCtxtL64IS0, (*etmv4Decoder).iPktAddrCtxt)
+	set(0x86, pktAddrCtxtL64IS1, (*etmv4Decoder).iPktAddrCtxt)
 	if d.Config.FullVersion() >= 0x46 {
-		set(0x88, PktTSMarker, (*etmv4Decoder).iPktNoPayload)
+		set(0x88, pktTSMarker, (*etmv4Decoder).iPktNoPayload)
 	}
 	for i := range 3 {
-		set(byte(0x90+i), PktAddrMatch, (*etmv4Decoder).iPktNoPayload)
+		set(byte(0x90+i), pktAddrMatch, (*etmv4Decoder).iPktNoPayload)
 	}
-	set(0x95, PktAddrSIS0, (*etmv4Decoder).iPktShortAddr)
-	set(0x96, PktAddrSIS1, (*etmv4Decoder).iPktShortAddr)
-	set(0x9A, PktAddrL32IS0, (*etmv4Decoder).iPktLongAddr)
-	set(0x9B, PktAddrL32IS1, (*etmv4Decoder).iPktLongAddr)
-	set(0x9D, PktAddrL64IS0, (*etmv4Decoder).iPktLongAddr)
-	set(0x9E, PktAddrL64IS1, (*etmv4Decoder).iPktLongAddr)
+	set(0x95, pktAddrSIS0, (*etmv4Decoder).iPktShortAddr)
+	set(0x96, pktAddrSIS1, (*etmv4Decoder).iPktShortAddr)
+	set(0x9A, pktAddrL32IS0, (*etmv4Decoder).iPktLongAddr)
+	set(0x9B, pktAddrL32IS1, (*etmv4Decoder).iPktLongAddr)
+	set(0x9D, pktAddrL64IS0, (*etmv4Decoder).iPktLongAddr)
+	set(0x9E, pktAddrL64IS1, (*etmv4Decoder).iPktLongAddr)
 	for i := range 16 {
 		switch i {
 		case 3, 4, 7, 8, 9, 13, 14:
 		default:
 			if d.Config.HasQElem() {
-				set(byte(0xA0+i), PktQ, (*etmv4Decoder).iPktQ)
+				set(byte(0xA0+i), pktQ, (*etmv4Decoder).iPktQ)
 			}
 		}
 	}
 	if d.Config.IsETE() {
 		for i := range 3 {
-			set(byte(0xB0+i), PktSrcAddrMatch, (*etmv4Decoder).iPktNoPayload)
+			set(byte(0xB0+i), pktSrcAddrMatch, (*etmv4Decoder).iPktNoPayload)
 		}
-		set(0xB4, PktSrcAddrSIS0, (*etmv4Decoder).iPktShortAddr)
-		set(0xB5, PktSrcAddrSIS1, (*etmv4Decoder).iPktShortAddr)
-		set(0xB6, PktSrcAddrL32IS0, (*etmv4Decoder).iPktLongAddr)
-		set(0xB7, PktSrcAddrL32IS1, (*etmv4Decoder).iPktLongAddr)
-		set(0xB8, PktSrcAddrL64IS0, (*etmv4Decoder).iPktLongAddr)
-		set(0xB9, PktSrcAddrL64IS1, (*etmv4Decoder).iPktLongAddr)
+		set(0xB4, pktSrcAddrSIS0, (*etmv4Decoder).iPktShortAddr)
+		set(0xB5, pktSrcAddrSIS1, (*etmv4Decoder).iPktShortAddr)
+		set(0xB6, pktSrcAddrL32IS0, (*etmv4Decoder).iPktLongAddr)
+		set(0xB7, pktSrcAddrL32IS1, (*etmv4Decoder).iPktLongAddr)
+		set(0xB8, pktSrcAddrL64IS0, (*etmv4Decoder).iPktLongAddr)
+		set(0xB9, pktSrcAddrL64IS1, (*etmv4Decoder).iPktLongAddr)
 	}
 	for i := 0xC0; i <= 0xD4; i++ {
-		set(byte(i), PktAtomF6, (*etmv4Decoder).iAtom)
+		set(byte(i), pktAtomF6, (*etmv4Decoder).iAtom)
 	}
 	for i := 0xD5; i <= 0xD7; i++ {
-		set(byte(i), PktAtomF5, (*etmv4Decoder).iAtom)
+		set(byte(i), pktAtomF5, (*etmv4Decoder).iAtom)
 	}
 	for i := 0xD8; i <= 0xDB; i++ {
-		set(byte(i), PktAtomF2, (*etmv4Decoder).iAtom)
+		set(byte(i), pktAtomF2, (*etmv4Decoder).iAtom)
 	}
 	for i := 0xDC; i <= 0xDF; i++ {
-		set(byte(i), PktAtomF4, (*etmv4Decoder).iAtom)
+		set(byte(i), pktAtomF4, (*etmv4Decoder).iAtom)
 	}
 	for i := 0xE0; i <= 0xF4; i++ {
-		set(byte(i), PktAtomF6, (*etmv4Decoder).iAtom)
+		set(byte(i), pktAtomF6, (*etmv4Decoder).iAtom)
 	}
-	set(0xF5, PktAtomF5, (*etmv4Decoder).iAtom)
-	set(0xF6, PktAtomF1, (*etmv4Decoder).iAtom)
-	set(0xF7, PktAtomF1, (*etmv4Decoder).iAtom)
+	set(0xF5, pktAtomF5, (*etmv4Decoder).iAtom)
+	set(0xF6, pktAtomF1, (*etmv4Decoder).iAtom)
+	set(0xF7, pktAtomF1, (*etmv4Decoder).iAtom)
 	for i := 0xF8; i <= 0xFF; i++ {
-		set(byte(i), PktAtomF3, (*etmv4Decoder).iAtom)
+		set(byte(i), pktAtomF3, (*etmv4Decoder).iAtom)
 	}
 }

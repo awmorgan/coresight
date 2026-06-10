@@ -18,20 +18,20 @@ const (
 type etmv3PacketHandler func(*etmv3Decoder) error
 
 var etmv3Handlers = [32]etmv3PacketHandler{
-	PktBranchAddress:  (*etmv3Decoder).pktBranchAddress,
-	PktASync:          (*etmv3Decoder).pktASync,
-	PktCycleCount:     (*etmv3Decoder).pktCycleCount,
-	PktISync:          (*etmv3Decoder).pktISync,
-	PktISyncCycle:     (*etmv3Decoder).pktISync,
-	PktTrigger:        (*etmv3Decoder).pktTrigger,
-	PktPHdr:           (*etmv3Decoder).pktPHdr,
-	PktContextID:      (*etmv3Decoder).pktContextID,
-	PktVMID:           (*etmv3Decoder).pktVMID,
-	PktTimestamp:      (*etmv3Decoder).pktTimestamp,
-	PktExceptionEntry: (*etmv3Decoder).pktExceptionEntry,
-	PktExceptionExit:  (*etmv3Decoder).pktExceptionExit,
-	PktIgnore:         (*etmv3Decoder).pktIgnore,
-	PktReserved:       (*etmv3Decoder).pktReserved,
+	pktBranchAddress:  (*etmv3Decoder).pktBranchAddress,
+	pktASync:          (*etmv3Decoder).pktASync,
+	pktCycleCount:     (*etmv3Decoder).pktCycleCount,
+	pktISync:          (*etmv3Decoder).pktISync,
+	pktISyncCycle:     (*etmv3Decoder).pktISync,
+	pktTrigger:        (*etmv3Decoder).pktTrigger,
+	pktPHdr:           (*etmv3Decoder).pktPHdr,
+	pktContextID:      (*etmv3Decoder).pktContextID,
+	pktVMID:           (*etmv3Decoder).pktVMID,
+	pktTimestamp:      (*etmv3Decoder).pktTimestamp,
+	pktExceptionEntry: (*etmv3Decoder).pktExceptionEntry,
+	pktExceptionExit:  (*etmv3Decoder).pktExceptionExit,
+	pktIgnore:         (*etmv3Decoder).pktIgnore,
+	pktReserved:       (*etmv3Decoder).pktReserved,
 }
 
 type etmv3ParseContext struct {
@@ -86,7 +86,7 @@ func (d *etmv3Decoder) processData(index Index, dataBlock []uint8) (uint32, erro
 		case etmv3StateWaitSync:
 			if !d.ctx.waitASyncSOPacket {
 				d.ctx.currPacketIndex = d.ctx.CurrentIndex()
-				d.ctx.currPacket.Type = PktNotSync
+				d.ctx.currPacket.Type = pktNotSync
 				d.ctx.bAsyncRawOp = d.PacketObserver != nil
 			}
 			err = d.waitASync()
@@ -160,7 +160,7 @@ func (d *etmv3Decoder) waitASync() error {
 					d.ctx.Reader.UnreadByte()
 
 					sendLen := len(d.ctx.unsyncedRaw) - 5
-					d.ctx.currPacket.Type = PktNotSync
+					d.ctx.currPacket.Type = pktNotSync
 					d.ctx.currPacket.Index = d.ctx.currPacketIndex
 
 					if d.ctx.bAsyncRawOp {
@@ -176,12 +176,12 @@ func (d *etmv3Decoder) waitASync() error {
 					d.ctx.unsyncedRaw = rem
 					bSendBlock = false
 				} else {
-					d.ctx.currPacket.Type = PktASync
+					d.ctx.currPacket.Type = pktASync
 				}
 			} else if currByte != 0x00 {
 				d.ctx.waitASyncSOPacket = false
 			} else if len(d.ctx.unsyncedRaw) >= 13 {
-				d.ctx.currPacket.Type = PktNotSync
+				d.ctx.currPacket.Type = pktNotSync
 				d.ctx.currPacket.Index = d.ctx.currPacketIndex
 
 				if d.ctx.bAsyncRawOp {
@@ -205,13 +205,13 @@ func (d *etmv3Decoder) waitASync() error {
 				} else {
 					d.ctx.Reader.UnreadByte()
 					bSendBlock = true
-					d.ctx.currPacket.Type = PktNotSync
+					d.ctx.currPacket.Type = pktNotSync
 				}
 			} else {
 				d.ctx.unsyncedRaw = append(d.ctx.unsyncedRaw, currByte)
 				if d.ctx.Reader.Len() == 0 || len(d.ctx.unsyncedRaw) == 16 {
 					bSendBlock = true
-					d.ctx.currPacket.Type = PktNotSync
+					d.ctx.currPacket.Type = pktNotSync
 				}
 			}
 		}
@@ -224,7 +224,7 @@ func (d *etmv3Decoder) waitASync() error {
 		}
 		_ = d.processPacket(&d.ctx.currPacket)
 
-		if d.ctx.currPacket.Type == PktASync {
+		if d.ctx.currPacket.Type == pktASync {
 			d.ctx.processState = etmv3StateProcHdr
 		} else {
 			d.ctx.processState = etmv3StateWaitSync
@@ -240,7 +240,7 @@ func (d *etmv3Decoder) decodeHeaderByte(by uint8) {
 	d.ctx.processState = etmv3StateProcData
 
 	if (by & 0x01) == 0x01 {
-		d.ctx.currPacket.Type = PktBranchAddress
+		d.ctx.currPacket.Type = pktBranchAddress
 		d.ctx.branchNeedsEx = false
 		if (by & 0x80) != 0x80 {
 			d.onBranchAddress()
@@ -249,7 +249,7 @@ func (d *etmv3Decoder) decodeHeaderByte(by uint8) {
 			}
 		}
 	} else if (by & 0x81) == 0x80 {
-		d.ctx.currPacket.Type = PktPHdr
+		d.ctx.currPacket.Type = pktPHdr
 		if d.ctx.currPacket.UpdateAtomFromPHdr(by, d.Config.CycleAcc()) {
 			d.ctx.processState = etmv3StateSendPkt
 		} else {
@@ -258,62 +258,62 @@ func (d *etmv3Decoder) decodeHeaderByte(by uint8) {
 	} else if (by & 0xF3) == 0x00 {
 		switch by {
 		case 0x00:
-			d.ctx.currPacket.Type = PktASync
+			d.ctx.currPacket.Type = pktASync
 		case 0x04:
-			d.ctx.currPacket.Type = PktCycleCount
+			d.ctx.currPacket.Type = pktCycleCount
 		case 0x08:
-			d.ctx.currPacket.Type = PktISync
+			d.ctx.currPacket.Type = pktISync
 		case 0x0C:
-			d.ctx.currPacket.Type = PktTrigger
+			d.ctx.currPacket.Type = pktTrigger
 			d.ctx.processState = etmv3StateSendPkt
 		}
 	} else if (by & 0x03) == 0x00 {
 		if (by & 0x93) == 0x00 {
-			d.ctx.currPacket.Type = PktOOOData
+			d.ctx.currPacket.Type = pktOOOData
 			d.ctx.currPacket.Err = errHWCfgUnsupp
 			d.ctx.processState = etmv3StateSendPkt
 		} else if by == 0x70 {
-			d.ctx.currPacket.Type = PktISyncCycle
+			d.ctx.currPacket.Type = pktISyncCycle
 		} else if by == 0x50 {
-			d.ctx.currPacket.Type = PktStoreFail
+			d.ctx.currPacket.Type = pktStoreFail
 			d.ctx.currPacket.Err = errHWCfgUnsupp
 			d.ctx.processState = etmv3StateSendPkt
 		} else if (by & 0xD3) == 0x50 {
-			d.ctx.currPacket.Type = PktOOOAddrPlc
+			d.ctx.currPacket.Type = pktOOOAddrPlc
 			d.ctx.currPacket.Err = errHWCfgUnsupp
 			d.ctx.processState = etmv3StateSendPkt
 		} else if by == 0x3C {
-			d.ctx.currPacket.Type = PktVMID
+			d.ctx.currPacket.Type = pktVMID
 		} else {
 			d.ctx.currPacket.Err = errInvalidPcktHdr
 			d.ctx.processState = etmv3StateSendPkt
 		}
 	} else if (by & 0xD3) == 0x02 {
-		d.ctx.currPacket.Type = PktNormData
+		d.ctx.currPacket.Type = pktNormData
 		d.ctx.currPacket.Err = errHWCfgUnsupp
 		d.ctx.processState = etmv3StateSendPkt
 	} else if by == 0x62 {
-		d.ctx.currPacket.Type = PktDataSuppressed
+		d.ctx.currPacket.Type = pktDataSuppressed
 		d.ctx.currPacket.Err = errHWCfgUnsupp
 		d.ctx.processState = etmv3StateSendPkt
 	} else if (by & 0xEF) == 0x6A {
-		d.ctx.currPacket.Type = PktValNotTraced
+		d.ctx.currPacket.Type = pktValNotTraced
 		d.ctx.currPacket.Err = errHWCfgUnsupp
 		d.ctx.processState = etmv3StateSendPkt
 	} else if by == 0x66 {
-		d.ctx.currPacket.Type = PktIgnore
+		d.ctx.currPacket.Type = pktIgnore
 		d.ctx.processState = etmv3StateSendPkt
 	} else if by == 0x6E {
-		d.ctx.currPacket.Type = PktContextID
+		d.ctx.currPacket.Type = pktContextID
 		d.ctx.bytesExpected = 1 + d.Config.CtxtIDBytes()
 	} else if by == 0x76 {
-		d.ctx.currPacket.Type = PktExceptionExit
+		d.ctx.currPacket.Type = pktExceptionExit
 		d.ctx.processState = etmv3StateSendPkt
 	} else if by == 0x7E {
-		d.ctx.currPacket.Type = PktExceptionEntry
+		d.ctx.currPacket.Type = pktExceptionEntry
 		d.ctx.processState = etmv3StateSendPkt
 	} else if (by & 0xFB) == 0x42 {
-		d.ctx.currPacket.Type = PktTimestamp
+		d.ctx.currPacket.Type = pktTimestamp
 	} else {
 		d.ctx.currPacket.Err = errInvalidPcktHdr
 		d.ctx.processState = etmv3StateSendPkt
@@ -376,7 +376,7 @@ func (d *etmv3Decoder) pktBranchAddress() error {
 func (d *etmv3Decoder) pktISync() error {
 	scratch := d.ctx.Reader.Scratch()
 
-	if d.ctx.currPacket.Type == PktISyncCycle && !d.ctx.isyncGotCC {
+	if d.ctx.currPacket.Type == pktISyncCycle && !d.ctx.isyncGotCC {
 		for {
 			currByte, ok := d.readNextByte()
 			if !ok {
@@ -392,7 +392,7 @@ func (d *etmv3Decoder) pktISync() error {
 
 	if d.ctx.bytesExpected == 0 {
 		cycCountBytes := len(scratch) - 1
-		if d.ctx.currPacket.Type == PktISync {
+		if d.ctx.currPacket.Type == pktISync {
 			cycCountBytes = 0
 		}
 		ctxtIDBytes := d.Config.CtxtIDBytes()

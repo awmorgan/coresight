@@ -9,8 +9,8 @@ import (
 	"strings"
 )
 
-const SnapshotINIFilename = "snapshot.ini"
-const TraceINIFilename = "trace.ini"
+const snapshotINIFilename = "snapshot.ini"
+const traceINIFilename = "trace.ini"
 
 // SnapshotReader reads a snapshot directory
 type SnapshotReader struct {
@@ -52,8 +52,8 @@ func NewSnapshotReader() *SnapshotReader {
 func (r *SnapshotReader) Read() error {
 	r.reset()
 
-	iniPath := r.snapshotFileName(SnapshotINIFilename)
-	file, err := r.openSnapshotFile(SnapshotINIFilename)
+	iniPath := r.snapshotFileName(snapshotINIFilename)
+	file, err := r.openSnapshotFile(snapshotINIFilename)
 	if err != nil {
 		return fmt.Errorf("open snapshot ini %s: %w", iniPath, err)
 	}
@@ -157,7 +157,7 @@ func (r *SnapshotReader) loadLegacyDevices() {
 
 func (r *SnapshotReader) readTraceMetadata(name string) error {
 	if name == "" {
-		name = TraceINIFilename
+		name = traceINIFilename
 	}
 
 	safeName, err := SafeRelativePath(name)

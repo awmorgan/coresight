@@ -8,32 +8,32 @@ import (
 type etmv3PktType int
 
 const (
-	PktNoError etmv3PktType = iota
-	PktNotSync
-	PktIncompleteEOT
-	PktBranchAddress
-	PktASync
-	PktCycleCount
-	PktISync
-	PktISyncCycle
-	PktTrigger
-	PktPHdr
-	PktStoreFail
-	PktOOOData
-	PktOOOAddrPlc
-	PktNormData
-	PktDataSuppressed
-	PktValNotTraced
-	PktIgnore
-	PktContextID
-	PktVMID
-	PktExceptionEntry
-	PktExceptionExit
-	PktTimestamp
-	PktBranchOrBypassEOT
-	PktBadSequence
-	PktBadTraceMode
-	PktReserved
+	pktNoError etmv3PktType = iota
+	pktNotSync
+	pktIncompleteEOT
+	pktBranchAddress
+	pktASync
+	pktCycleCount
+	pktISync
+	pktISyncCycle
+	pktTrigger
+	pktPHdr
+	pktStoreFail
+	pktOOOData
+	pktOOOAddrPlc
+	pktNormData
+	pktDataSuppressed
+	pktValNotTraced
+	pktIgnore
+	pktContextID
+	pktVMID
+	pktExceptionEntry
+	pktExceptionExit
+	pktTimestamp
+	pktBranchOrBypassEOT
+	pktBadSequence
+	pktBadTraceMode
+	pktReserved
 )
 
 type etmv3Excep struct {
@@ -104,7 +104,7 @@ type etmv3Packet struct {
 }
 
 func (p *etmv3Packet) Clear() {
-	p.Type = PktNoError
+	p.Type = pktNoError
 	p.Index = 0
 	p.Err = nil
 	p.PrevISA = p.CurrISA
@@ -132,7 +132,7 @@ func (p *etmv3Packet) ResetState() {
 }
 
 func (p *etmv3Packet) IsBadPacket() bool {
-	return p.Err != nil || p.Type >= PktBadSequence
+	return p.Err != nil || p.Type >= pktBadSequence
 }
 
 func (p *etmv3Packet) UpdateAddress(partAddrVal uint64, updateBits int) {
@@ -262,30 +262,30 @@ func (p *etmv3Packet) UpdateAtomFromPHdr(pHdr uint8, cycleAccurate bool) bool {
 }
 
 var pktTypeInfos = map[etmv3PktType]struct{ name, desc string }{
-	PktNotSync:        {"NOTSYNC", "Trace Stream not synchronised"},
-	PktIncompleteEOT:  {"INCOMPLETE_EOT.", "Incomplete packet at end of trace data."},
-	PktBranchAddress:  {"BRANCH_ADDRESS", "Branch address."},
-	PktASync:          {"A_SYNC", "Alignment Synchronisation."},
-	PktCycleCount:     {"CYCLE_COUNT", "Cycle Count."},
-	PktISync:          {"I_SYNC", "Instruction Packet synchronisation."},
-	PktISyncCycle:     {"I_SYNC_CYCLE", "Instruction Packet synchronisation with cycle count."},
-	PktTrigger:        {"TRIGGER", "Trace Trigger Event."},
-	PktPHdr:           {"P_HDR", "Atom P-header."},
-	PktStoreFail:      {"STORE_FAIL", "Data Store Failed."},
-	PktOOOData:        {"OOO_DATA", "Out of Order data value packet."},
-	PktOOOAddrPlc:     {"OOO_ADDR_PLC", "Out of Order data address placeholder."},
-	PktNormData:       {"NORM_DATA", "Data trace packet."},
-	PktDataSuppressed: {"DATA_SUPPRESSED", "Data trace suppressed."},
-	PktValNotTraced:   {"VAL_NOT_TRACED", "Data trace value not traced."},
-	PktIgnore:         {"IGNORE", "Packet ignored."},
-	PktContextID:      {"CONTEXT_ID", "Context ID change."},
-	PktVMID:           {"VMID", "VMID change."},
-	PktExceptionEntry: {"EXCEPTION_ENTRY", "Exception entry data marker."},
-	PktExceptionExit:  {"EXCEPTION_EXIT", "Exception return."},
-	PktTimestamp:      {"TIMESTAMP", "Timestamp Value."},
-	PktBadSequence:    {"BAD_SEQUENCE", "Invalid sequence for packet type."},
-	PktBadTraceMode:   {"BAD_TRACEMODE", "Invalid packet type for this trace mode."},
-	PktReserved:       {"I_RESERVED", "Reserved Packet Header"},
+	pktNotSync:        {"NOTSYNC", "Trace Stream not synchronised"},
+	pktIncompleteEOT:  {"INCOMPLETE_EOT.", "Incomplete packet at end of trace data."},
+	pktBranchAddress:  {"BRANCH_ADDRESS", "Branch address."},
+	pktASync:          {"A_SYNC", "Alignment Synchronisation."},
+	pktCycleCount:     {"CYCLE_COUNT", "Cycle Count."},
+	pktISync:          {"I_SYNC", "Instruction Packet synchronisation."},
+	pktISyncCycle:     {"I_SYNC_CYCLE", "Instruction Packet synchronisation with cycle count."},
+	pktTrigger:        {"TRIGGER", "Trace Trigger Event."},
+	pktPHdr:           {"P_HDR", "Atom P-header."},
+	pktStoreFail:      {"STORE_FAIL", "Data Store Failed."},
+	pktOOOData:        {"OOO_DATA", "Out of Order data value packet."},
+	pktOOOAddrPlc:     {"OOO_ADDR_PLC", "Out of Order data address placeholder."},
+	pktNormData:       {"NORM_DATA", "Data trace packet."},
+	pktDataSuppressed: {"DATA_SUPPRESSED", "Data trace suppressed."},
+	pktValNotTraced:   {"VAL_NOT_TRACED", "Data trace value not traced."},
+	pktIgnore:         {"IGNORE", "Packet ignored."},
+	pktContextID:      {"CONTEXT_ID", "Context ID change."},
+	pktVMID:           {"VMID", "VMID change."},
+	pktExceptionEntry: {"EXCEPTION_ENTRY", "Exception entry data marker."},
+	pktExceptionExit:  {"EXCEPTION_EXIT", "Exception return."},
+	pktTimestamp:      {"TIMESTAMP", "Timestamp Value."},
+	pktBadSequence:    {"BAD_SEQUENCE", "Invalid sequence for packet type."},
+	pktBadTraceMode:   {"BAD_TRACEMODE", "Invalid packet type for this trace mode."},
+	pktReserved:       {"I_RESERVED", "Reserved Packet Header"},
 }
 
 func etmv3PacketTypeNameDesc(pt etmv3PktType) (string, string) {
@@ -314,22 +314,22 @@ func (p *etmv3Packet) AppendStringTo(dst []byte) []byte {
 	}
 
 	switch p.Type {
-	case PktContextID:
+	case pktContextID:
 		dst = append(dst, "; CtxtID=0x"...)
 		dst = etmv3AppendLowerHex(dst, uint64(p.Context.CtxtID), 8)
-	case PktVMID:
+	case pktVMID:
 		dst = append(dst, "; VMID=0x"...)
 		dst = etmv3AppendLowerHex(dst, uint64(p.Context.VMID), 2)
-	case PktTimestamp:
+	case pktTimestamp:
 		dst = append(dst, "; TS=0x"...)
 		dst = strconv.AppendUint(dst, p.Timestamp, 16)
 		dst = append(dst, " ("...)
 		dst = strconv.AppendUint(dst, p.Timestamp, 10)
 		dst = append(dst, ") "...)
-	case PktCycleCount:
+	case pktCycleCount:
 		dst = append(dst, "; Cycles="...)
 		dst = strconv.AppendUint(dst, uint64(p.CycleCount), 10)
-	case PktPHdr:
+	case pktPHdr:
 		atomStart := len(dst)
 		dst = append(dst, "; "...)
 		if p.PHdrFmt == 1 && p.CycleCount > 0 {
@@ -361,7 +361,7 @@ func (p *etmv3Packet) AppendStringTo(dst []byte) []byte {
 			dst = append(dst, "; Cycles="...)
 			dst = strconv.AppendUint(dst, uint64(p.CycleCount), 10)
 		}
-	case PktISync, PktISyncCycle:
+	case pktISync, pktISyncCycle:
 		dst = append(dst, "; ("...)
 		dst = append(dst, p.ISyncInfo.Reason.String()...)
 		dst = append(dst, ')')
@@ -383,12 +383,12 @@ func (p *etmv3Packet) AppendStringTo(dst []byte) []byte {
 		dst = append(dst, p.CurrISA.String()...)
 		dst = append(dst, "; "...)
 
-		if p.Type == PktISyncCycle {
+		if p.Type == pktISyncCycle {
 			dst = append(dst, "Cycles="...)
 			dst = strconv.AppendUint(dst, uint64(p.CycleCount), 10)
 			dst = append(dst, "; "...)
 		}
-	case PktBranchAddress:
+	case pktBranchAddress:
 		mask := etmv3MaskBits64(p.AddrPktBits)
 		shortAddr := p.Addr & mask
 

@@ -4,22 +4,22 @@ import (
 	"io"
 )
 
-// ReaderAtAccessor implements Accessor using an io.ReaderAt source.
-type ReaderAtAccessor struct {
-	BaseAccessor
+// readerAtAccessor implements Accessor using an io.ReaderAt source.
+type readerAtAccessor struct {
+	baseAccessor
 	Source io.ReaderAt
 }
 
-// NewReaderAtAccessor creates a new ReaderAtAccessor.
-func NewReaderAtAccessor(startAddr VAddr, size uint64, source io.ReaderAt, memSpace MemSpaceAcc) *ReaderAtAccessor {
+// newReaderAtAccessor creates a new readerAtAccessor.
+func newReaderAtAccessor(startAddr VAddr, size uint64, source io.ReaderAt, memSpace MemSpaceAcc) *readerAtAccessor {
 	var endAddr VAddr
 	if size == 0 {
 		endAddr = startAddr
 	} else {
 		endAddr = startAddr + VAddr(size) - 1
 	}
-	return &ReaderAtAccessor{
-		BaseAccessor: BaseAccessor{
+	return &readerAtAccessor{
+		baseAccessor: baseAccessor{
 			StartAddress: startAddr,
 			EndAddress:   endAddr,
 			MemSpaceAcc:  memSpace,
@@ -29,7 +29,7 @@ func NewReaderAtAccessor(startAddr VAddr, size uint64, source io.ReaderAt, memSp
 }
 
 // ReadBytes implements the Accessor interface.
-func (r *ReaderAtAccessor) ReadBytes(address VAddr, _ MemSpaceAcc, _ uint8, reqBytes uint32, buffer []byte) uint32 {
+func (r *readerAtAccessor) ReadBytes(address VAddr, _ MemSpaceAcc, _ uint8, reqBytes uint32, buffer []byte) uint32 {
 	if !r.AddrInRange(address) {
 		return 0
 	}

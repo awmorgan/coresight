@@ -46,7 +46,7 @@ func (b *PipelineBuilder) buildETMv4Route(spec sourceRouteSpec) (coresight.Route
 		SrcAddrNAtoms:      b.srcAddrNAtoms,
 	}
 	mem := b.decodeInterfaces()
-	traceID, err := validateTraceID(Etmv4RegIDR, regs.traceIDR)
+	traceID, err := validateTraceID(etmv4RegIDR, regs.traceIDR)
 	if err != nil {
 		return coresight.Route{}, fmt.Errorf("ETMv4 route creation failed: %w", err)
 	}
@@ -68,17 +68,17 @@ func etmv4DeviceRegs(dev *Device) (etmv4Regs, error) {
 		name string
 		dst  *uint32
 	}{
-		{Etmv4RegCfg, &regs.configr},
-		{Etmv4RegIDR, &regs.traceIDR},
-		{Etmv4RegIDR0, &regs.idr0},
-		{Etmv4RegIDR1, &regs.idr1},
-		{Etmv4RegIDR2, &regs.idr2},
-		{Etmv4RegIDR8, &regs.idr8},
-		{Etmv4RegIDR9, &regs.idr9},
-		{Etmv4RegIDR10, &regs.idr10},
-		{Etmv4RegIDR11, &regs.idr11},
-		{Etmv4RegIDR12, &regs.idr12},
-		{Etmv4RegIDR13, &regs.idr13},
+		{etmv4RegCfg, &regs.configr},
+		{etmv4RegIDR, &regs.traceIDR},
+		{etmv4RegIDR0, &regs.idr0},
+		{etmv4RegIDR1, &regs.idr1},
+		{etmv4RegIDR2, &regs.idr2},
+		{etmv4RegIDR8, &regs.idr8},
+		{etmv4RegIDR9, &regs.idr9},
+		{etmv4RegIDR10, &regs.idr10},
+		{etmv4RegIDR11, &regs.idr11},
+		{etmv4RegIDR12, &regs.idr12},
+		{etmv4RegIDR13, &regs.idr13},
 	} {
 		if err := setReg32(dev, reg.name, reg.dst); err != nil {
 			return etmv4Regs{}, err

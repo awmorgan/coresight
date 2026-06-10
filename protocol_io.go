@@ -45,19 +45,19 @@ func (o *internalEmitter) EmitTraceEnd() {
 
 // internalByteStream tracks the current input block and packet scratch buffer.
 type internalByteStream struct {
-	Reader       *ByteReader
+	Reader       *byteReader
 	DataBlock    []uint8
 	BlockBaseIdx Index
 	BlockLen     int
 }
 
 func newInternalByteStream() internalByteStream {
-	return internalByteStream{Reader: NewByteReader()}
+	return internalByteStream{Reader: newByteReader()}
 }
 
 func (s *internalByteStream) EnsureReader() {
 	if s.Reader == nil {
-		s.Reader = NewByteReader()
+		s.Reader = newByteReader()
 	}
 }
 

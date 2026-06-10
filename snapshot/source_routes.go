@@ -77,22 +77,22 @@ func (b *PipelineBuilder) attachSourceRoutes(specs []sourceRouteSpec, mem coresi
 		isSupported := false
 
 		switch devType {
-		case ProtocolTypePTM, ProtocolTypePFT:
+		case protocolTypePTM, protocolTypePFT:
 			route, err = b.buildPTMRoute(spec)
 			isSupported = true
-		case ProtocolTypeETMv3:
+		case protocolTypeETMv3:
 			route, err = b.buildETMv3Route(spec)
 			isSupported = true
-		case ProtocolTypeETMv4:
+		case protocolTypeETMv4:
 			route, err = b.buildETMv4Route(spec)
 			isSupported = true
-		case ProtocolTypeETE:
+		case protocolTypeETE:
 			route, err = b.buildETERoute(spec)
 			isSupported = true
-		case ProtocolTypeITM:
+		case protocolTypeITM:
 			route, err = b.buildITMRoute(spec)
 			isSupported = true
-		case ProtocolTypeSTM:
+		case protocolTypeSTM:
 			route, err = b.buildSTMRoute(spec)
 			isSupported = true
 		}
@@ -128,7 +128,7 @@ func protocolBase(name string) string {
 
 func protocolRequiresCore(devType string) bool {
 	switch devType {
-	case ProtocolTypeITM, ProtocolTypeSTM:
+	case protocolTypeITM, protocolTypeSTM:
 		return false
 	default:
 		return true

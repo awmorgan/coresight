@@ -130,7 +130,7 @@ func (b *PipelineBuilder) Build(sourceName string, packetProcOnly bool) (*coresi
 var errNoProtocol = errors.New("trace protocol unsupported")
 
 func setReg32(dev *Device, name string, dst *uint32) error {
-	val, ok := dev.RegValue(name)
+	val, ok := dev.regValue(name)
 	if !ok {
 		return nil
 	}
@@ -164,10 +164,10 @@ func etmPTMDeviceRegs(dev *Device, defaultIDR uint32) (etmPTMRegs, error) {
 		name string
 		dst  *uint32
 	}{
-		{Etmv3PTMRegCR, &regs.ctrl},
-		{Etmv3PTMRegTraceIDR, &regs.trcID},
-		{Etmv3PTMRegIDR, &regs.idr},
-		{Etmv3PTMRegCCER, &regs.ccer},
+		{etmv3PTMRegCR, &regs.ctrl},
+		{etmv3PTMRegTraceIDR, &regs.trcID},
+		{etmv3PTMRegIDR, &regs.idr},
+		{etmv3PTMRegCCER, &regs.ccer},
 	} {
 		if err := setReg32(dev, reg.name, reg.dst); err != nil {
 			return etmPTMRegs{}, err

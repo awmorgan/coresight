@@ -81,7 +81,7 @@ func TestCAPIPacketPrintGolden(t *testing.T) {
 
 type cAPITracePrinter struct {
 	writer *strings.Builder
-	elems  ElementFormatter
+	elems  elementFormatter
 }
 
 func (p cAPITracePrinter) ObservePacket(index uint64, pkt fmt.Stringer, rawData []byte) {

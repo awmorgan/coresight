@@ -11,21 +11,21 @@ const (
 	stmPktIncompleteEOT
 	stmPktNoErrType
 	stmPktAsync
-	PktVersion
-	PktFreq
-	PktNull
-	PktTrig
-	PktGerr
-	PktMerr
-	PktM8
-	PktC8
-	PktC16
-	PktFlag
-	PktD4
-	PktD8
-	PktD16
-	PktD32
-	PktD64
+	pktVersion
+	pktFreq
+	pktNull
+	pktTrig
+	pktGerr
+	pktMerr
+	pktM8
+	pktC8
+	pktC16
+	pktFlag
+	pktD4
+	pktD8
+	pktD16
+	pktD32
+	pktD64
 	stmPktBadSequence
 	stmPktReserved
 )
@@ -102,7 +102,7 @@ func (p *stmPacket) OnVersionPkt(t tsType) {
 	p.Channel = 0
 }
 
-func (p *stmPacket) SetTimestamp(ts uint64, updatedBits uint8) {
+func (p *stmPacket) setTimestamp(ts uint64, updatedBits uint8) {
 	if updatedBits == 64 {
 		p.Timestamp = ts
 	} else {
@@ -132,35 +132,35 @@ func (p *stmPacket) AppendStringTo(dst []byte) []byte {
 		dst = append(dst, '[')
 		dst = p.appendTypeName(dst, p.errType)
 		dst = append(dst, ']')
-	case PktVersion:
+	case pktVersion:
 		dst = append(dst, "; Ver="...)
 		dst = strconv.AppendUint(dst, p.Payload&0xFF, 10)
-	case PktFreq:
+	case pktFreq:
 		dst = append(dst, "; Freq="...)
 		dst = strconv.AppendUint(dst, uint64(uint32(p.Payload)), 10)
 		dst = append(dst, "Hz"...)
-	case PktTrig:
+	case pktTrig:
 		dst = append(dst, "; TrigData=0x"...)
 		dst = stmAppendLowerHex(dst, p.Payload&0xFF, 2)
-	case PktM8:
+	case pktM8:
 		dst = append(dst, "; Master=0x"...)
 		dst = stmAppendLowerHex(dst, uint64(p.Master), 2)
-	case PktC8, PktC16:
+	case pktC8, pktC16:
 		dst = append(dst, "; Chan=0x"...)
 		dst = stmAppendLowerHex(dst, uint64(p.Channel), 4)
-	case PktD4:
+	case pktD4:
 		dst = append(dst, "; Data=0x"...)
 		dst = strconv.AppendUint(dst, p.Payload&0xF, 16)
-	case PktD8:
+	case pktD8:
 		dst = append(dst, "; Data=0x"...)
 		dst = stmAppendLowerHex(dst, p.Payload&0xFF, 2)
-	case PktD16:
+	case pktD16:
 		dst = append(dst, "; Data=0x"...)
 		dst = stmAppendLowerHex(dst, p.Payload&0xFFFF, 4)
-	case PktD32:
+	case pktD32:
 		dst = append(dst, "; Data=0x"...)
 		dst = stmAppendLowerHex(dst, uint64(uint32(p.Payload)), 8)
-	case PktD64:
+	case pktD64:
 		dst = append(dst, "; Data=0x"...)
 		dst = stmAppendLowerHex(dst, p.Payload, 16)
 	}
@@ -189,35 +189,35 @@ func (p *stmPacket) appendTypeName(dst []byte, t stmPktType) []byte {
 		return append(dst, "BAD_SEQUENCE"...)
 	case stmPktAsync:
 		return append(dst, "ASYNC"...)
-	case PktVersion:
+	case pktVersion:
 		return append(dst, "VERSION"...)
-	case PktFreq:
+	case pktFreq:
 		return append(dst, "FREQ"...)
-	case PktNull:
+	case pktNull:
 		return append(dst, "NULL"...)
-	case PktTrig:
+	case pktTrig:
 		dst = append(dst, "TRIG"...)
-	case PktGerr:
+	case pktGerr:
 		return append(dst, "GERR"...)
-	case PktMerr:
+	case pktMerr:
 		return append(dst, "MERR"...)
-	case PktM8:
+	case pktM8:
 		return append(dst, "M8"...)
-	case PktC8:
+	case pktC8:
 		return append(dst, "C8"...)
-	case PktC16:
+	case pktC16:
 		return append(dst, "C16"...)
-	case PktFlag:
+	case pktFlag:
 		dst = append(dst, "FLAG"...)
-	case PktD4:
+	case pktD4:
 		dst = append(dst, "D4"...)
-	case PktD8:
+	case pktD8:
 		dst = append(dst, "D8"...)
-	case PktD16:
+	case pktD16:
 		dst = append(dst, "D16"...)
-	case PktD32:
+	case pktD32:
 		dst = append(dst, "D32"...)
-	case PktD64:
+	case pktD64:
 		dst = append(dst, "D64"...)
 	default:
 		return append(dst, "UNKNOWN"...)
@@ -245,33 +245,33 @@ func (p *stmPacket) appendTypeDesc(dst []byte, t stmPktType) []byte {
 		return append(dst, "Invalid sequence in packet"...)
 	case stmPktAsync:
 		return append(dst, "Alignment synchronisation packet"...)
-	case PktVersion:
+	case pktVersion:
 		return append(dst, "Version packet"...)
-	case PktFreq:
+	case pktFreq:
 		return append(dst, "Frequency packet"...)
-	case PktNull:
+	case pktNull:
 		return append(dst, "Null packet"...)
-	case PktTrig:
+	case pktTrig:
 		dst = append(dst, "Trigger packet"...)
-	case PktGerr:
+	case pktGerr:
 		return append(dst, "Global Error"...)
-	case PktMerr:
+	case pktMerr:
 		return append(dst, "Master Error"...)
-	case PktM8:
+	case pktM8:
 		return append(dst, "Set current master"...)
-	case PktC8, PktC16:
+	case pktC8, pktC16:
 		return append(dst, "Set current channel"...)
-	case PktFlag:
+	case pktFlag:
 		dst = append(dst, "Flag packet"...)
-	case PktD4:
+	case pktD4:
 		dst = append(dst, "4 bit data"...)
-	case PktD8:
+	case pktD8:
 		dst = append(dst, "8 bit data"...)
-	case PktD16:
+	case pktD16:
 		dst = append(dst, "16 bit data"...)
-	case PktD32:
+	case pktD32:
 		dst = append(dst, "32 bit data"...)
-	case PktD64:
+	case pktD64:
 		dst = append(dst, "64 bit data"...)
 	default:
 		return append(dst, "ERROR: unknown packet type"...)

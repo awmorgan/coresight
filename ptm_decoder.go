@@ -120,7 +120,7 @@ func (d *ptmDecoder) Close() error {
 
 	// Processor shutdown
 	if len(d.ctx.Reader.Scratch()) > 0 {
-		d.ctx.currPacket.Type = PacketIncompleteEOT
+		d.ctx.currPacket.Type = packetIncompleteEOT
 		_ = d.outputPacket()
 	}
 
@@ -143,7 +143,7 @@ func (d *ptmDecoder) Close() error {
 	}
 
 	elem := Element{ElemType: GenElemEOTrace}
-	elem.SetUnsyncEndReason(UnsyncEOT)
+	elem.setUnsyncEndReason(UnsyncEOT)
 	d.OutputTraceElement(elem)
 	d.EmitTraceEnd()
 	return nil
@@ -205,10 +205,10 @@ func (d *ptmDecoder) processPacket(pktIn *ptmPacket) error {
 	switch d.currState {
 	case ptmDecodeNoSync:
 		elem := Element{ElemType: GenElemNoSync}
-		elem.SetUnsyncEndReason(UnsyncInfo(d.unsyncInfo))
+		elem.setUnsyncEndReason(UnsyncInfo(d.unsyncInfo))
 		d.OutputTraceElement(elem)
 
-		if pktIn.Type == PacketASync {
+		if pktIn.Type == packetASync {
 			d.currState = ptmDecodeWaitISync
 		} else {
 			d.currState = ptmDecodeWaitSync
@@ -216,13 +216,13 @@ func (d *ptmDecoder) processPacket(pktIn *ptmPacket) error {
 		return nil
 
 	case ptmDecodeWaitSync:
-		if pktIn.Type == PacketASync {
+		if pktIn.Type == packetASync {
 			d.currState = ptmDecodeWaitISync
 		}
 		return nil
 
 	case ptmDecodeWaitISync:
-		if pktIn.Type == PacketISync {
+		if pktIn.Type == packetISync {
 			d.currState = ptmDecodePkts
 			return d.decodePacket()
 		}
@@ -241,9 +241,9 @@ func (d *ptmDecoder) decodePacket() error {
 
 	pkt := d.CurrPacketIn
 	switch pkt.Type {
-	case PacketIncompleteEOT:
+	case packetIncompleteEOT:
 		return nil
-	case PacketBadSequence, PacketReserved:
+	case packetBadSequence, packetReserved:
 		d.currState = ptmDecodeWaitSync
 		d.needIsync = true
 		d.OutputTraceElement(Element{ElemType: GenElemNoSync})
@@ -251,19 +251,19 @@ func (d *ptmDecoder) decodePacket() error {
 	}
 
 	switch pkt.Type {
-	case PacketNotSync, PacketASync, PacketIgnore:
+	case packetNotSync, packetASync, packetIgnore:
 		// ignore
-	case PacketISync:
+	case packetISync:
 		err = d.processIsync()
-	case PacketBranchAddress:
+	case packetBranchAddress:
 		err = d.processBranch()
-	case PacketTrigger:
+	case packetTrigger:
 		elem := Element{ElemType: GenElemEvent}
-		elem.SetEvent(EventTrigger, 0)
+		elem.setEvent(EventTrigger, 0)
 		d.OutputTraceElement(elem)
-	case PacketWPointUpdate:
+	case packetWPointUpdate:
 		err = d.processWPUpdate()
-	case PacketContextID:
+	case packetContextID:
 		update := true
 		if d.peContext.ContextIDValid && d.peContext.ContextID == pkt.Context.CtxtID {
 			update = false
@@ -272,10 +272,10 @@ func (d *ptmDecoder) decodePacket() error {
 			d.peContext.ContextID = pkt.Context.CtxtID
 			d.peContext.ContextIDValid = true
 			elem := Element{ElemType: GenElemPeContext}
-			elem.SetContext(d.peContext)
+			elem.setContext(d.peContext)
 			d.OutputTraceElement(elem)
 		}
-	case PacketVMID:
+	case packetVMID:
 		update := true
 		if d.peContext.VMIDValid && d.peContext.VMID == uint32(pkt.Context.VMID) {
 			update = false
@@ -284,26 +284,26 @@ func (d *ptmDecoder) decodePacket() error {
 			d.peContext.VMID = uint32(pkt.Context.VMID)
 			d.peContext.VMIDValid = true
 			elem := Element{ElemType: GenElemPeContext}
-			elem.SetContext(d.peContext)
+			elem.setContext(d.peContext)
 			d.OutputTraceElement(elem)
 		}
-	case PacketAtom:
+	case packetAtom:
 		if d.currPeState.valid {
 			d.atoms = pkt.Atom
 			err = d.processAtom()
 		} else {
 			// warning, ignored
 		}
-	case PacketTimestamp:
+	case packetTimestamp:
 		elem := Element{
 			ElemType:  GenElemTimestamp,
 			Timestamp: pkt.Timestamp,
 		}
 		if pkt.CCValid {
-			elem.SetCycleCount(pkt.CycleCount)
+			elem.setCycleCount(pkt.CycleCount)
 		}
 		d.OutputTraceElement(elem)
-	case PacketExceptionRet:
+	case packetExceptionRet:
 		d.OutputTraceElement(Element{ElemType: GenElemExceptionRet})
 	}
 	return err
@@ -337,15 +337,15 @@ func (d *ptmDecoder) processIsync() error {
 
 		if d.needIsync || pkt.ISyncReason != iSyncPeriodic {
 			elem := Element{ElemType: GenElemTraceOn}
-			elem.SetTraceOnReason(TraceOnNormal)
+			elem.setTraceOnReason(TraceOnNormal)
 			switch pkt.ISyncReason {
 			case iSyncTraceRestartAfterOverflow:
-				elem.SetTraceOnReason(TraceOnOverflow)
+				elem.setTraceOnReason(TraceOnOverflow)
 			case iSyncDebugExit:
-				elem.SetTraceOnReason(TraceOnExDebug)
+				elem.setTraceOnReason(TraceOnExDebug)
 			}
 			if pkt.CCValid {
-				elem.SetCycleCount(pkt.CycleCount)
+				elem.setCycleCount(pkt.CycleCount)
 			}
 			d.OutputTraceElement(elem)
 		} else {
@@ -360,7 +360,7 @@ func (d *ptmDecoder) processIsync() error {
 			ElemType: GenElemPeContext,
 			ISA:      d.currPeState.isa,
 		}
-		elemCtx.SetContext(d.peContext)
+		elemCtx.setContext(d.peContext)
 		d.OutputTraceElement(elemCtx)
 		d.iSyncPeCtxt = false
 	}
@@ -376,13 +376,13 @@ func (d *ptmDecoder) processBranch() error {
 	if d.currState == ptmDecodePkts {
 		if pkt.Exception.Present {
 			elem := Element{ElemType: GenElemException}
-			elem.SetExceptionNum(uint32(pkt.Exception.Number))
+			elem.setExceptionNum(uint32(pkt.Exception.Number))
 			if d.currPeState.valid {
 				elem.ExceptionRetAddr = true
 				elem.EndAddr = d.currPeState.instrAddr
 			}
 			if pkt.CCValid {
-				elem.SetCycleCount(pkt.CycleCount)
+				elem.setCycleCount(pkt.CycleCount)
 			}
 			d.OutputTraceElement(elem)
 		} else {
@@ -432,9 +432,9 @@ func (d *ptmDecoder) checkPendingNacc() {
 			StartAddr: d.naccAddr,
 		}
 		if d.peContext.SecurityLevel == SecSecure {
-			elem.SetExceptionNum(uint32(MemSpaceS))
+			elem.setExceptionNum(uint32(MemSpaceS))
 		} else {
-			elem.SetExceptionNum(uint32(MemSpaceN))
+			elem.setExceptionNum(uint32(MemSpaceN))
 		}
 		d.OutputTraceElementIdx(d.IndexCurrPkt, elem)
 		d.memNaccPending = false
@@ -474,8 +474,8 @@ func (d *ptmDecoder) processAtomRange(A atmVal, traceWPOp waypointTraceOp, nextA
 			if A == atomE {
 				d.currPeState.valid = false
 
-				// Match PTM OpenCSD: any indirect branch resulting in an ATOM E is treated as a ReturnStack Pop
-				if d.returnStack.Active && d.CurrPacketIn.Type == PacketAtom {
+				// Match PTM behavior: any indirect branch resulting in an ATOM E is treated as a ReturnStack Pop
+				if d.returnStack.Active && d.CurrPacketIn.Type == packetAtom {
 					popAddr, nextIsa, ok := d.returnStack.pop()
 					if !ok {
 						return errRetStackOverflow // fatal
@@ -492,9 +492,9 @@ func (d *ptmDecoder) processAtomRange(A atmVal, traceWPOp waypointTraceOp, nextA
 			}
 		}
 
-		elem.SetLastInstrInfo(A == atomE, d.instrInfo.Type, d.instrInfo.Subtype, d.instrInfo.InstrSize)
+		elem.setLastInstrInfo(A == atomE, d.instrInfo.Type, d.instrInfo.Subtype, d.instrInfo.InstrSize)
 		if d.CurrPacketIn.CCValid {
-			elem.SetCycleCount(d.CurrPacketIn.CycleCount)
+			elem.setCycleCount(d.CurrPacketIn.CycleCount)
 		}
 		elem.LastInstrCond = d.instrInfo.IsConditional
 		d.OutputTraceElementIdx(d.IndexCurrPkt, elem)
@@ -504,7 +504,7 @@ func (d *ptmDecoder) processAtomRange(A atmVal, traceWPOp waypointTraceOp, nextA
 	} else {
 		d.currPeState.valid = false
 		if elem.StartAddr != elem.EndAddr {
-			elem.SetLastInstrInfo(true, d.instrInfo.Type, d.instrInfo.Subtype, d.instrInfo.InstrSize)
+			elem.setLastInstrInfo(true, d.instrInfo.Type, d.instrInfo.Subtype, d.instrInfo.InstrSize)
 			elem.LastInstrCond = d.instrInfo.IsConditional
 			d.OutputTraceElementIdx(d.IndexCurrPkt, elem)
 		}
@@ -562,7 +562,7 @@ func (d *ptmDecoder) fetchAndDecodeOpcode(addr VAddr, isa ISA) (uint32, int, err
 		return 0, 0, err
 	}
 
-	// Match OpenCSD PTM: strictly requires 4 bytes returned or assumes NACC
+	// Match PTM behavior: strictly requires 4 bytes returned or assumes NACC
 	if bytesRead != 4 {
 		return 0, 0, errMemNacc
 	}

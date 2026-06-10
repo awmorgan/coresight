@@ -13,11 +13,11 @@ const (
 	itmPktNoErrType
 	itmPktAsync
 	itmPktOverflow
-	PktSWIT
-	PktDWT
-	PktTSLocal
-	PktTSGlobal1
-	PktTSGlobal2
+	pktSWIT
+	pktDWT
+	pktTSLocal
+	pktTSGlobal1
+	pktTSGlobal2
 	itmPktExtension
 	itmPktBadSequence
 	itmPktReserved
@@ -107,15 +107,15 @@ func itmPacketTypeNameDesc(t itmPktType) (string, string) {
 		return "ITM_ASYNC", "Alignment synchronisation packet"
 	case itmPktOverflow:
 		return "ITM_OVERFLOW", "ITM overflow packet"
-	case PktSWIT:
+	case pktSWIT:
 		return "ITM_SWIT", "Software Stimulus write packet"
-	case PktDWT:
+	case pktDWT:
 		return "ITM_DWT", "DWT hardware stimulus write"
-	case PktTSLocal:
+	case pktTSLocal:
 		return "ITM_TS_LOCAL", "Local Timestamp"
-	case PktTSGlobal1:
+	case pktTSGlobal1:
 		return "ITM_GTS_1", "Global Timestamp [25:0]"
-	case PktTSGlobal2:
+	case pktTSGlobal2:
 		return "ITM_GTS_2", "Global Timestamp [{63|42}:26]"
 	case itmPktExtension:
 		return "ITM_EXTENSION", "Extension packet"
@@ -130,17 +130,17 @@ func itmPacketTypeNameDesc(t itmPktType) (string, string) {
 
 func (p *itmPacket) writePacketBody(sb *strings.Builder) {
 	switch p.Type {
-	case PktSWIT:
+	case pktSWIT:
 		fmt.Fprintf(sb, "{src id: 0x%02x}  ", p.SrcID)
 		p.writeHexVal(sb)
-	case PktDWT:
+	case pktDWT:
 		fmt.Fprintf(sb, "{desc: 0x%02x} ", p.SrcID)
 		p.writeDwtPacketBody(sb)
-	case PktTSLocal:
+	case pktTSLocal:
 		p.writeTsLocalPacketBody(sb)
-	case PktTSGlobal1:
+	case pktTSGlobal1:
 		p.writeTsGlobal1PacketBody(sb)
-	case PktTSGlobal2:
+	case pktTSGlobal2:
 		p.writeTsGlobal2PacketBody(sb)
 	case itmPktExtension:
 		p.writeExtensionPacketBody(sb)

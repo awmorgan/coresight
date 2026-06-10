@@ -9,6 +9,7 @@ import (
 	"strings"
 )
 
+// GenericElementPrinter prints formatted trace elements to a writer.
 type GenericElementPrinter struct {
 	writer       io.Writer
 	muted        bool
@@ -16,11 +17,11 @@ type GenericElementPrinter struct {
 	collectStats bool
 	packetCounts map[GenElemType]int
 	idFilter     map[uint8]bool
-	formatter    ElementFormatter
+	formatter    elementFormatter
 	sb           bytes.Buffer
 }
 
-// NewGenericElementPrinter returns a printer for OpenCSD-style generic trace elements.
+// NewGenericElementPrinter returns a printer for generic trace elements.
 func NewGenericElementPrinter(writer io.Writer) *GenericElementPrinter {
 	if writer == nil {
 		writer = io.Discard
@@ -31,12 +32,22 @@ func NewGenericElementPrinter(writer io.Writer) *GenericElementPrinter {
 	}
 }
 
-func (p *GenericElementPrinter) SetMute(mute bool)     { p.muted = mute }
-func (p *GenericElementPrinter) IsMuted() bool         { return p.muted }
-func (p *GenericElementPrinter) MuteIDPrint(mute bool) { p.idPrintMute = mute }
-func (p *GenericElementPrinter) IDPrintMuted() bool    { return p.idPrintMute }
-func (p *GenericElementPrinter) SetCollectStats()      { p.collectStats = true }
+// SetMute sets the mute state of the printer.
+func (p *GenericElementPrinter) SetMute(mute bool) { p.muted = mute }
 
+// IsMuted returns true if the printer is muted.
+func (p *GenericElementPrinter) IsMuted() bool { return p.muted }
+
+// MuteIDPrint configures whether trace IDs and indexes are omitted from printing.
+func (p *GenericElementPrinter) MuteIDPrint(mute bool) { p.idPrintMute = mute }
+
+// IDPrintMuted returns true if trace IDs and indexes are omitted.
+func (p *GenericElementPrinter) IDPrintMuted() bool { return p.idPrintMute }
+
+// SetCollectStats enables trace packet type counts collection.
+func (p *GenericElementPrinter) SetCollectStats() { p.collectStats = true }
+
+// PrintElement formats and prints a single trace element.
 func (p *GenericElementPrinter) PrintElement(elem Element) {
 	if p.idFilter != nil && !p.idFilter[elem.TraceID] {
 		return
@@ -65,6 +76,7 @@ func (p *GenericElementPrinter) PrintElement(elem Element) {
 	_, _ = p.sb.WriteTo(p.writer)
 }
 
+// PrintStats prints the collected packet stats.
 func (p *GenericElementPrinter) PrintStats() {
 	var sb strings.Builder
 	sb.WriteString("Generic Packets processed:-\n")
@@ -88,7 +100,7 @@ func (p *GenericElementPrinter) SetIDFilter(idList []uint8) {
 	}
 }
 
-type ElementFormatter struct{}
+type elementFormatter struct{}
 
 var elemDescs = [...]string{
 	GenElemUnknown:         "OCSD_GEN_TRC_ELEM_UNKNOWN",
@@ -176,7 +188,7 @@ var itmLocalTimestampNames = [...]string{
 	TSPKTTSDelay: "TS and Packet Delay",
 }
 
-func (f *ElementFormatter) FormatElementTo(sb *bytes.Buffer, e Element) {
+func (f *elementFormatter) FormatElementTo(sb *bytes.Buffer, e Element) {
 	if e.ElemType >= GenElemType(len(elemDescs)) {
 		sb.WriteString("OCSD_GEN_TRC_ELEM??: index out of range.")
 		return
@@ -195,20 +207,20 @@ func (f *ElementFormatter) FormatElementTo(sb *bytes.Buffer, e Element) {
 	sb.WriteByte(')')
 }
 
-func (f *ElementFormatter) FormatElement(e Element) string {
+func (f *elementFormatter) FormatElement(e Element) string {
 	var sb bytes.Buffer
 	f.FormatElementTo(&sb, e)
 	return sb.String()
 }
 
-func (f *ElementFormatter) GetElemName(t GenElemType) string {
+func (f *elementFormatter) GetElemName(t GenElemType) string {
 	if t < GenElemType(len(elemDescs)) {
 		return elemDescs[t]
 	}
 	return elemDescs[GenElemUnknown]
 }
 
-func (f *ElementFormatter) writeElementPayload(sb *bytes.Buffer, e Element) {
+func (f *elementFormatter) writeElementPayload(sb *bytes.Buffer, e Element) {
 	switch e.ElemType {
 	case GenElemInstrRange:
 		f.writeInstrRange(sb, e)
@@ -291,7 +303,7 @@ func (f *ElementFormatter) writeElementPayload(sb *bytes.Buffer, e Element) {
 	}
 }
 
-func (f *ElementFormatter) writeInstrRange(sb *bytes.Buffer, e Element) {
+func (f *elementFormatter) writeInstrRange(sb *bytes.Buffer, e Element) {
 	var buf [24]byte
 	sb.WriteString("exec range=0x")
 	sb.Write(strconv.AppendUint(buf[:0], uint64(e.StartAddr), 16))
@@ -322,7 +334,7 @@ func (f *ElementFormatter) writeInstrRange(sb *bytes.Buffer, e Element) {
 	}
 }
 
-func (f *ElementFormatter) writeException(sb *bytes.Buffer, e Element) {
+func (f *elementFormatter) writeException(sb *bytes.Buffer, e Element) {
 	if e.ExceptionRetAddr {
 		sb.WriteString("pref ret addr:0x")
 		sb.WriteString(strconv.FormatUint(uint64(e.EndAddr), 16))
@@ -339,7 +351,7 @@ func (f *ElementFormatter) writeException(sb *bytes.Buffer, e Element) {
 	sb.WriteString(") ")
 }
 
-func (f *ElementFormatter) writePEContext(sb *bytes.Buffer, e Element) {
+func (f *elementFormatter) writePEContext(sb *bytes.Buffer, e Element) {
 	sb.WriteString("(ISA=")
 	sb.WriteString(f.isaName(e.ISA))
 	sb.WriteString(") ")
@@ -365,7 +377,7 @@ func (f *ElementFormatter) writePEContext(sb *bytes.Buffer, e Element) {
 	}
 }
 
-func (f *ElementFormatter) writeEvent(sb *bytes.Buffer, e Element) {
+func (f *elementFormatter) writeEvent(sb *bytes.Buffer, e Element) {
 	switch e.Payload.TraceEvent.EvType {
 	case EventTrigger:
 		sb.WriteString(" Trigger; ")
@@ -376,14 +388,14 @@ func (f *ElementFormatter) writeEvent(sb *bytes.Buffer, e Element) {
 	}
 }
 
-func (f *ElementFormatter) isaName(isa ISA) string {
+func (f *elementFormatter) isaName(isa ISA) string {
 	if isa < ISA(len(isaNames)) {
 		return isaNames[isa]
 	}
 	return isaNames[ISAUnknown]
 }
 
-func (f *ElementFormatter) securityLevelName(level SecLevel) string {
+func (f *elementFormatter) securityLevelName(level SecLevel) string {
 	switch level {
 	case SecSecure:
 		return "S; "
@@ -398,7 +410,7 @@ func (f *ElementFormatter) securityLevelName(level SecLevel) string {
 	}
 }
 
-func (f *ElementFormatter) printSWInfoPkt(sb *bytes.Buffer, e Element) {
+func (f *elementFormatter) printSWInfoPkt(sb *bytes.Buffer, e Element) {
 	info := e.Payload.SWTraceInfo
 	if info.GlobalErr {
 		sb.WriteString("{Global Error.}")
@@ -410,7 +422,7 @@ func (f *ElementFormatter) printSWInfoPkt(sb *bytes.Buffer, e Element) {
 	f.writeSWTFlags(sb, info, e.Timestamp)
 }
 
-func (f *ElementFormatter) writeSWTID(sb *bytes.Buffer, info SWTInfo) {
+func (f *elementFormatter) writeSWTID(sb *bytes.Buffer, info SWTInfo) {
 	if info.IDValid {
 		var buf [24]byte
 		sb.WriteString(" (Ma:0x")
@@ -429,7 +441,7 @@ func (f *ElementFormatter) writeSWTID(sb *bytes.Buffer, info SWTInfo) {
 	sb.WriteString("(Ma:0x??; Ch:0x??) ")
 }
 
-func (f *ElementFormatter) writeSWTPayload(sb *bytes.Buffer, e Element, bitSize uint8) {
+func (f *elementFormatter) writeSWTPayload(sb *bytes.Buffer, e Element, bitSize uint8) {
 	if bitSize == 0 || len(e.ExtendedDataBytes) == 0 {
 		return
 	}
@@ -479,7 +491,7 @@ func (f *ElementFormatter) writeSWTPayload(sb *bytes.Buffer, e Element, bitSize 
 	sb.WriteString("; ")
 }
 
-func (f *ElementFormatter) writeSWTFlags(sb *bytes.Buffer, info SWTInfo, timestamp uint64) {
+func (f *elementFormatter) writeSWTFlags(sb *bytes.Buffer, info SWTInfo, timestamp uint64) {
 	if info.MarkerPacket {
 		sb.WriteString("+Mrk ")
 	}
@@ -504,7 +516,7 @@ func (f *ElementFormatter) writeSWTFlags(sb *bytes.Buffer, info SWTInfo, timesta
 	}
 }
 
-func (f *ElementFormatter) printSWInfoPktItm(sb *bytes.Buffer, e Element) {
+func (f *elementFormatter) printSWInfoPktItm(sb *bytes.Buffer, e Element) {
 	itm := e.Payload.SWTItm
 
 	if itm.Overflow != 0 {

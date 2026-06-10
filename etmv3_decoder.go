@@ -148,14 +148,14 @@ func (d *etmv3Decoder) Close() error {
 
 	// Flush any incomplete bytes
 	if len(d.ctx.Reader.Scratch()) > 0 {
-		d.ctx.currPacket.Type = PktIncompleteEOT
+		d.ctx.currPacket.Type = pktIncompleteEOT
 		_ = d.outputPacket()
 	}
 
 	d.flushPendElem()
 
 	elem := Element{ElemType: GenElemEOTrace}
-	elem.SetUnsyncEndReason(UnsyncEOT)
+	elem.setUnsyncEndReason(UnsyncEOT)
 	d.OutputTraceElement(elem)
 	d.EmitTraceEnd()
 	return nil
@@ -213,10 +213,10 @@ func (d *etmv3Decoder) processPacket(pkt *etmv3Packet) error {
 	switch d.currState {
 	case etmv3DecodeNoSync:
 		elem := Element{ElemType: GenElemNoSync}
-		elem.SetUnsyncEndReason(d.unsyncInfo)
+		elem.setUnsyncEndReason(d.unsyncInfo)
 		d.OutputTraceElement(elem)
 
-		if pkt.Type == PktASync {
+		if pkt.Type == pktASync {
 			d.currState = etmv3DecodeWaitISync
 		} else {
 			d.currState = etmv3DecodeWaitSync
@@ -224,18 +224,18 @@ func (d *etmv3Decoder) processPacket(pkt *etmv3Packet) error {
 		return nil
 
 	case etmv3DecodeWaitSync:
-		if pkt.Type == PktASync {
+		if pkt.Type == pktASync {
 			d.currState = etmv3DecodeWaitISync
 		}
 		return nil
 
 	case etmv3DecodeWaitISync:
-		if pkt.Type == PktISync || pkt.Type == PktISyncCycle {
+		if pkt.Type == pktISync || pkt.Type == pktISyncCycle {
 			d.currState = etmv3DecodePkts
 			return d.decodePacket()
 		}
 		// Pre-ISync valid packets
-		if pkt.Type == PktTimestamp || (d.Config.CycleAcc() && (pkt.Type == PktCycleCount || pkt.Type == PktPHdr)) {
+		if pkt.Type == pktTimestamp || (d.Config.CycleAcc() && (pkt.Type == pktCycleCount || pkt.Type == pktPHdr)) {
 			return d.decodePacket()
 		}
 		return nil
@@ -266,52 +266,52 @@ func (d *etmv3Decoder) decodePacket() error {
 	}
 
 	// Commit pending elements for all packets except branches (which handles exception cancels)
-	if pkt.Type != PktBranchAddress {
+	if pkt.Type != pktBranchAddress {
 		d.committedPendThisPacket = d.hasPendElem || d.hasPendEret
 		d.flushPendElem()
 	}
 
 	switch pkt.Type {
-	case PktIncompleteEOT, PktASync, PktIgnore, PktNotSync:
+	case pktIncompleteEOT, pktASync, pktIgnore, pktNotSync:
 		// ignore
-	case PktBadSequence, PktBadTraceMode, PktReserved:
+	case pktBadSequence, pktBadTraceMode, pktReserved:
 		d.unsyncInfo = UnsyncBadPacket
 		d.currState = etmv3DecodeWaitSync
 		d.needIsync = true
 		d.OutputTraceElement(Element{ElemType: GenElemNoSync})
-	case PktCycleCount:
+	case pktCycleCount:
 		elem := Element{ElemType: GenElemCycleCount}
-		elem.SetCycleCount(pkt.CycleCount)
+		elem.setCycleCount(pkt.CycleCount)
 		d.OutputTraceElement(elem)
-	case PktTrigger:
+	case pktTrigger:
 		elem := Element{ElemType: GenElemEvent}
 		elem.Payload.TraceEvent.EvType = EventTrigger
 		d.OutputTraceElement(elem)
-	case PktBranchAddress:
+	case pktBranchAddress:
 		return d.processBranchAddr()
-	case PktISyncCycle, PktISync:
+	case pktISyncCycle, pktISync:
 		return d.processISync()
-	case PktPHdr:
+	case pktPHdr:
 		return d.processPHdr()
-	case PktContextID:
+	case pktContextID:
 		elem := Element{ElemType: GenElemPeContext}
 		d.peContext.ContextID = pkt.Context.CtxtID
 		d.peContext.ContextIDValid = true
 		elem.Context = d.peContext
 		d.OutputTraceElement(elem)
-	case PktVMID:
+	case pktVMID:
 		elem := Element{ElemType: GenElemPeContext}
 		d.peContext.VMID = uint32(pkt.Context.VMID)
 		d.peContext.VMIDValid = true
 		elem.Context = d.peContext
 		d.OutputTraceElement(elem)
-	case PktExceptionEntry:
+	case pktExceptionEntry:
 		elem := Element{ElemType: GenElemException}
 		elem.ExceptionDataMarker = true
 		d.OutputTraceElement(elem)
-	case PktExceptionExit:
+	case pktExceptionExit:
 		d.OutputTraceElement(Element{ElemType: GenElemExceptionRet})
-	case PktTimestamp:
+	case pktTimestamp:
 		elem := Element{ElemType: GenElemTimestamp}
 		elem.Timestamp = pkt.Timestamp
 		d.OutputTraceElement(elem)
@@ -326,12 +326,12 @@ func (d *etmv3Decoder) processISync() error {
 
 	if d.needIsync || pkt.ISyncInfo.Reason != iSyncPeriodic {
 		elem := Element{ElemType: GenElemTraceOn}
-		elem.SetTraceOnReason(TraceOnNormal)
+		elem.setTraceOnReason(TraceOnNormal)
 		switch pkt.ISyncInfo.Reason {
 		case iSyncTraceRestartAfterOverflow:
-			elem.SetTraceOnReason(TraceOnOverflow)
+			elem.setTraceOnReason(TraceOnOverflow)
 		case iSyncDebugExit:
-			elem.SetTraceOnReason(TraceOnExDebug)
+			elem.setTraceOnReason(TraceOnExDebug)
 		}
 		d.OutputTraceElement(elem)
 	}
@@ -366,7 +366,7 @@ func (d *etmv3Decoder) processISync() error {
 		d.codeFollower.InstrInfo.ISA = pkt.CurrISA
 
 		if pkt.ISyncInfo.HasCycleCount {
-			elem.SetCycleCount(pkt.CycleCount)
+			elem.setCycleCount(pkt.CycleCount)
 		}
 		d.OutputTraceElement(elem)
 	}
@@ -477,7 +477,7 @@ func (d *etmv3Decoder) processPHdr() error {
 					elem.ElemType = GenElemCycleCount
 				}
 				if isCCPacket {
-					elem.SetCycleCount(d.remainCC(pkt, atomsNum))
+					elem.setCycleCount(d.remainCC(pkt, atomsNum))
 				}
 				outputElem(elem)
 				d.sentUnknown = true
@@ -490,7 +490,7 @@ func (d *etmv3Decoder) processPHdr() error {
 				if atomsNum == 0 {
 					elem.ElemType = GenElemCycleCount
 				}
-				elem.SetCycleCount(d.atomCC(pkt, atomsNum))
+				elem.setCycleCount(d.atomCC(pkt, atomsNum))
 			}
 
 			if atomsNum > 0 {
@@ -512,7 +512,7 @@ func (d *etmv3Decoder) processPHdr() error {
 					elem.EndAddr = res.RangeEn
 					elem.ISA = pkt.CurrISA
 					elem.Payload.NumInstrRange = res.NumInstr
-					elem.SetLastInstrInfo(val == atomE, res.InstrInfo.Type, res.InstrInfo.Subtype, res.InstrInfo.InstrSize)
+					elem.setLastInstrInfo(val == atomE, res.InstrInfo.Type, res.InstrInfo.Subtype, res.InstrInfo.InstrSize)
 					elem.LastInstrCond = res.InstrInfo.IsConditional
 
 					d.iAddr = uint64(res.NextAddr)

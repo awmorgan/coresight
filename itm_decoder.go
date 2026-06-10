@@ -74,7 +74,7 @@ func (d *itmDecoder) Close() error {
 	}
 
 	elem := Element{ElemType: GenElemEOTrace}
-	elem.SetUnsyncEndReason(UnsyncEOT)
+	elem.setUnsyncEndReason(UnsyncEOT)
 	d.OutputTraceElement(elem)
 	d.EmitTraceEnd()
 	return nil
@@ -147,7 +147,7 @@ func (d *itmDecoder) processPacket(pktIn *itmPacket) error {
 		switch d.currState {
 		case itmDecodeNoSync:
 			elem := Element{ElemType: GenElemNoSync}
-			elem.SetUnsyncEndReason(d.unsyncInfo)
+			elem.setUnsyncEndReason(d.unsyncInfo)
 			d.OutputTraceElement(elem)
 			d.currState = itmDecodeWaitSync
 
@@ -183,14 +183,14 @@ func (d *itmDecoder) decodePacket() error {
 	case itmPktAsync, itmPktIncompleteEOT:
 		return nil
 
-	case PktDWT:
+	case pktDWT:
 		d.itmInfo.PktType = DWTPayload
 		d.itmInfo.PayloadSize = pktIn.ValSz
 		d.itmInfo.Value = pktIn.Value
 		d.itmInfo.PayloadSrcID = srcID
 		sendPacket = true
 
-	case PktSWIT:
+	case pktSWIT:
 		d.itmInfo.PktType = SWITPayload
 		d.itmInfo.PayloadSize = pktIn.ValSz
 		d.itmInfo.Value = pktIn.Value
@@ -207,7 +207,7 @@ func (d *itmDecoder) decodePacket() error {
 		d.localTSCount = 0
 		d.prevOverflow = true
 
-	case PktTSGlobal1:
+	case pktTSGlobal1:
 		if !d.needGTS2 {
 			d.needGTS2 = (srcID & 0x2) != 0
 		}
@@ -225,14 +225,14 @@ func (d *itmDecoder) decodePacket() error {
 			sendPacket = true
 		}
 
-	case PktTSGlobal2:
+	case pktTSGlobal2:
 		d.itmInfo.PktType = TSGlobal
 		d.globalTS &= ^globalTSHiMask
 		d.globalTS |= (pktIn.ExtValue() << 26)
 		d.needGTS2 = false
 		sendPacket = true
 
-	case PktTSLocal:
+	case pktTSLocal:
 		d.itmInfo.PktType = localTSTCTypes[srcID&0x3]
 		d.itmInfo.PayloadSize = pktIn.ValSz
 		d.itmInfo.Value = pktIn.Value
@@ -250,10 +250,10 @@ func (d *itmDecoder) decodePacket() error {
 
 		// Transfer TS values if set
 		switch pktIn.Type {
-		case PktTSLocal:
-			elem.SetTimestamp(d.localTSCount, false)
-		case PktTSGlobal1, PktTSGlobal2:
-			elem.SetTimestamp(d.globalTS, d.gtsFreqChange)
+		case pktTSLocal:
+			elem.setTimestamp(d.localTSCount, false)
+		case pktTSGlobal1, pktTSGlobal2:
+			elem.setTimestamp(d.globalTS, d.gtsFreqChange)
 			d.gtsFreqChange = false
 		}
 
@@ -261,7 +261,7 @@ func (d *itmDecoder) decodePacket() error {
 			d.itmInfo.Overflow = 1
 			d.prevOverflow = false
 		}
-		elem.SetITMInfo(d.itmInfo)
+		elem.setITMInfo(d.itmInfo)
 		d.OutputTraceElement(elem)
 	}
 

@@ -3,7 +3,7 @@ package coresight
 import "testing"
 
 func TestReaderScratchGrowsPastInlineBuffer(t *testing.T) {
-	r := NewByteReader()
+	r := newByteReader()
 	data := make([]byte, 80)
 	for i := range data {
 		data[i] = byte(i)
@@ -28,7 +28,7 @@ func TestReaderScratchGrowsPastInlineBuffer(t *testing.T) {
 }
 
 func TestReaderDiscardScratchPrefix(t *testing.T) {
-	r := NewByteReader()
+	r := newByteReader()
 	data := make([]byte, 80)
 	for i := range data {
 		data[i] = byte(i)
@@ -59,7 +59,7 @@ func TestReaderDiscardScratchPrefix(t *testing.T) {
 }
 
 func BenchmarkReader_ReadByte(b *testing.B) {
-	r := NewByteReader()
+	r := newByteReader()
 	data := make([]byte, 1024)
 	for i := range data {
 		data[i] = byte(i)

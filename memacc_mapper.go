@@ -31,6 +31,7 @@ type GlobalMapper struct {
 	lastSpace MemSpaceAcc
 }
 
+// NewGlobalMapper creates a new GlobalMapper instance.
 func NewGlobalMapper() *GlobalMapper {
 	return &GlobalMapper{}
 }
@@ -41,19 +42,19 @@ func (m *GlobalMapper) DumpMappings() string {
 	var sb strings.Builder
 	sb.WriteString("Gen_Info : Mapped Memory Accessors\n")
 	for i := 0; i < len(m.accessors); {
-		if bufAcc, ok := m.accessors[i].(*BufferAccessor); ok {
+		if bufAcc, ok := m.accessors[i].(*bufferAccessor); ok {
 			desc := bufAcc.Desc
 			first := true
 			for i < len(m.accessors) {
-				nextBufAcc, ok := m.accessors[i].(*BufferAccessor)
+				nextBufAcc, ok := m.accessors[i].(*bufferAccessor)
 				if !ok || nextBufAcc.Desc != desc {
 					break
 				}
 				if first {
-					fmt.Fprintf(&sb, "Gen_Info : FileAcc; %s\n", nextBufAcc.BaseAccessor.String())
+					fmt.Fprintf(&sb, "Gen_Info : FileAcc; %s\n", nextBufAcc.baseAccessor.String())
 					first = false
 				} else {
-					fmt.Fprintf(&sb, "FileAcc; %s\n", nextBufAcc.BaseAccessor.String())
+					fmt.Fprintf(&sb, "FileAcc; %s\n", nextBufAcc.baseAccessor.String())
 				}
 				i++
 			}
@@ -87,6 +88,8 @@ func (m *GlobalMapper) Read(address VAddr, trcID uint8, memSpace MemSpaceAcc, re
 	return read, nil
 }
 
+// AddAccessor registers a memory accessor with the mapper.
+// Returns an error if the accessor overlaps with any existing accessors.
 func (m *GlobalMapper) AddAccessor(accessor Accessor) error {
 	if accessor == nil {
 		return errInvalidParamVal

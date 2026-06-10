@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-// Helper functions to mirror C++ macros
+// Helper functions to mirror reference macros
 func idByteID(id uint8) byte {
 	return (id << 1) | 0x01
 }
@@ -36,7 +36,7 @@ func appendSlice(dst []byte, srcs ...[]byte) []byte {
 }
 
 func TestTraceDemuxGoldens(t *testing.T) {
-	// Construct static test data matching C++ buffers
+	// Construct static test data matching reference buffers
 	bufHSyncFSync := appendSlice(nil,
 		fsyncBytes,
 		[]byte{idByteID(0x10), 0x01, idByteData(0x2), 0x03},

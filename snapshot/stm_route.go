@@ -9,7 +9,7 @@ import (
 // buildSTMRoute parses device registers and creates an STM route.
 func (b *PipelineBuilder) buildSTMRoute(spec sourceRouteSpec) (coresight.Route, error) {
 	var tcsr uint32
-	if err := setReg32(spec.sourceDevice, StmRegTCSR, &tcsr); err != nil {
+	if err := setReg32(spec.sourceDevice, stmRegTCSR, &tcsr); err != nil {
 		return coresight.Route{}, err
 	}
 	traceID := uint8((tcsr & 0x007F0000) >> 16)

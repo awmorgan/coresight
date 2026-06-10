@@ -16,7 +16,7 @@ func main() {
 }
 
 func run() error {
-	// 1. Check if OpenCSD directory exists and is a directory
+	// 1. Check if the reference implementation directory exists and is a directory
 	stat, err := os.Stat("OpenCSD")
 	if err != nil {
 		if os.IsNotExist(err) {

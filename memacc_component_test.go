@@ -1,5 +1,4 @@
-// Component tests for memory accessor and caching, ported from
-// OpenCSD/decoder/tests/source/mem_acc_test.cpp.
+// Component tests for memory accessor and caching.
 package coresight
 
 import (
@@ -8,14 +7,14 @@ import (
 	"testing"
 )
 
-// Constants mirroring the C++ test program.
+// Constants mirroring the reference test program.
 const (
 	numBlocks      = 2
 	blockNumWords  = 8192
 	blockSizeBytes = 4 * blockNumWords
 )
 
-// blockVal mirrors the C++ BLOCK_VAL macro:
+// blockVal mirrors the reference BLOCK_VAL macro:
 //
 //	(mem_space << 24) | (block_num << 16) | index
 func blockVal(memSpace MemSpaceAcc, blockNum, index int) uint32 {
@@ -32,7 +31,7 @@ func populateBlock(memSpace MemSpaceAcc, blockNum int) []byte {
 	return buf
 }
 
-// testBlocks holds all pre-populated memory blocks, keyed as in the C++ test.
+// testBlocks holds all pre-populated memory blocks, keyed as in the reference test.
 type testBlocks struct {
 	el01NS  [numBlocks][]byte
 	el2NS   [numBlocks][]byte
@@ -60,7 +59,7 @@ func newTestBlocks() *testBlocks {
 }
 
 // --------------------------------------------------------------------------
-// TestOverlapRegions mirrors test_overlap_regions() in mem_acc_test.cpp.
+// TestOverlapRegions verifies overlapping and non-overlapping regions.
 //
 // It verifies:
 //  1. A single accessor can be added successfully.
@@ -82,28 +81,28 @@ func TestOverlapRegions(t *testing.T) {
 	}
 
 	// 2) Overlapping region, same memory space — should fail with ErrMemAccOverlap.
-	//    C++: Acc2 at 0x1000, EL1N, overlaps [0x0000..0x7FFF].
+	//    Reference: Acc2 at 0x1000, EL1N, overlaps [0x0000..0x7FFF].
 	acc2 := NewBufferAccessor(0x1000, tb.el01NS[1], MemSpaceEL1N, "")
 	if err := mapper.AddAccessor(acc2); !errors.Is(err, ErrMemAccOverlap) {
 		t.Fatalf("Overlapping accessor in same space should return ErrMemAccOverlap, got: %v", err)
 	}
 
 	// 3) Non-overlapping region, same memory space — should succeed.
-	//    C++: Acc2 re-ranged to [0x8000 .. 0x8000+BLOCK_SIZE-1].
+	//    Reference: Acc2 re-ranged to [0x8000 .. 0x8000+BLOCK_SIZE-1].
 	acc2NonOverlap := NewBufferAccessor(0x8000, tb.el01NS[1], MemSpaceEL1N, "")
 	if err := mapper.AddAccessor(acc2NonOverlap); err != nil {
 		t.Fatalf("Non-overlapping accessor in same space should succeed: %v", err)
 	}
 
 	// 4) Overlapping region, different specific memory space — should succeed.
-	//    C++: Acc3 at 0x0000, EL1S (different from EL1N already present).
+	//    Reference: Acc3 at 0x0000, EL1S (different from EL1N already present).
 	acc3 := NewBufferAccessor(0x0000, tb.el01S[0], MemSpaceEL1S, "")
 	if err := mapper.AddAccessor(acc3); err != nil {
 		t.Fatalf("Overlapping accessor in different space should succeed: %v", err)
 	}
 
 	// 5) Overlapping region, more general memory space (S) that shares bits with EL1S.
-	//    C++: Acc4 at 0x0000, OCSD_MEM_SPACE_S — should overlap with EL1S.
+	//    Reference: Acc4 at 0x0000, MemSpaceS — should overlap with EL1S.
 	acc4 := NewBufferAccessor(0x0000, tb.el2S[0], MemSpaceS, "")
 	if err := mapper.AddAccessor(acc4); !errors.Is(err, ErrMemAccOverlap) {
 		t.Fatalf("Overlapping general S accessor should return ErrMemAccOverlap, got: %v", err)
@@ -113,11 +112,11 @@ func TestOverlapRegions(t *testing.T) {
 }
 
 // --------------------------------------------------------------------------
-// TestTrcIDCallbackDispatch mirrors test_trcid_cache_mem_cb() in mem_acc_test.cpp.
+// TestTrcIDCallbackDispatch verifies callback dispatch behavior.
 //
 // It verifies that a callback accessor correctly dispatches reads to
 // different data based on trace ID and memory space, by registering a
-// single CallbackAccessor over the full address range and providing a
+// single callbackAccessor over the full address range and providing a
 // callback that selects data based on trace ID + memory space + address.
 // --------------------------------------------------------------------------
 func TestTrcIDCallbackDispatch(t *testing.T) {
@@ -157,7 +156,7 @@ func TestTrcIDCallbackDispatch(t *testing.T) {
 	}
 
 	mapper := NewGlobalMapper()
-	cbAcc := NewCallbackAccessor(0, 0xFFFFFFFF, MemSpaceAny)
+	cbAcc := newCallbackAccessor(0, 0xFFFFFFFF, MemSpaceAny)
 	cbAcc.SetTraceIDCallback(callback)
 	if err := mapper.AddAccessor(cbAcc); err != nil {
 		t.Fatalf("Adding callback accessor failed: %v", err)
@@ -209,7 +208,7 @@ func TestTrcIDCallbackDispatch(t *testing.T) {
 }
 
 // --------------------------------------------------------------------------
-// TestMemSpaces mirrors test_mem_spaces() in mem_acc_test.cpp.
+// TestMemSpaces verifies memory space separation and fallback logic.
 //
 // It registers buffer accessors across all 8 specific memory spaces with
 // overlapping + non-overlapping address ranges, then verifies that reads
@@ -220,7 +219,7 @@ func TestTrcIDCallbackDispatch(t *testing.T) {
 func TestMemSpaces(t *testing.T) {
 	tb := newTestBlocks()
 
-	// Address constants from C++.
+	// Address constants from the reference test.
 	const (
 		addrCommon = VAddr(0x000000)
 		addrEL1N   = VAddr(0x008000)

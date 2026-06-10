@@ -8,7 +8,7 @@ import (
 
 func BenchmarkElementFormatter_InstrRange(b *testing.B) {
 	elem := instrRangeElement()
-	var formatter ElementFormatter
+	var formatter elementFormatter
 	var buf bytes.Buffer
 
 	for b.Loop() {

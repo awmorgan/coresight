@@ -28,6 +28,7 @@ func NewPipeline(framedInput bool, opts DemuxOptions) (*Pipeline, error) {
 	return p, nil
 }
 
+// AddRoute registers a decoding route for a Trace ID.
 func (p *Pipeline) AddRoute(route Route) error {
 	if route.ByteSink == nil {
 		return ErrNilByteSink
@@ -55,6 +56,7 @@ func (p *Pipeline) AddRoute(route Route) error {
 	return nil
 }
 
+// Write passes incoming trace bytes to the demuxer or the single registered route.
 func (p *Pipeline) Write(index Index, data []byte) (uint32, error) {
 	if p.FramedInput && p.Demuxer != nil {
 		return p.Demuxer.Write(index, data)
@@ -65,6 +67,7 @@ func (p *Pipeline) Write(index Index, data []byte) (uint32, error) {
 	return 0, errNotInit
 }
 
+// Close closes the pipeline and all registered route sinks.
 func (p *Pipeline) Close() error {
 	if p.FramedInput && p.Demuxer != nil {
 		return p.Demuxer.Close()
@@ -72,6 +75,7 @@ func (p *Pipeline) Close() error {
 	return p.controlRoutes(func(s ByteSink) error { return s.Close() })
 }
 
+// Reset resets the pipeline and all registered route sinks to the starting index.
 func (p *Pipeline) Reset(index Index) error {
 	if p.FramedInput && p.Demuxer != nil {
 		return p.Demuxer.Reset(index)

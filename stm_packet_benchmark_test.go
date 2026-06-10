@@ -4,7 +4,7 @@ import "testing"
 
 func BenchmarkPacketString_Data32Timestamp(b *testing.B) {
 	pkt := stmPacket{
-		Type:      PktD32,
+		Type:      pktD32,
 		Payload:   0x12345678,
 		Timestamp: 0x123456789abcdef0,
 		TSUpdate:  0xdef0,
@@ -19,7 +19,7 @@ func BenchmarkPacketString_Data32Timestamp(b *testing.B) {
 
 func BenchmarkPacketAppendStringTo_Data32Timestamp(b *testing.B) {
 	pkt := stmPacket{
-		Type:      PktD32,
+		Type:      pktD32,
 		Payload:   0x12345678,
 		Timestamp: 0x123456789abcdef0,
 		TSUpdate:  0xdef0,
@@ -34,14 +34,14 @@ func BenchmarkPacketAppendStringTo_Data32Timestamp(b *testing.B) {
 }
 
 func BenchmarkPacketString_Channel(b *testing.B) {
-	pkt := stmPacket{Type: PktC16, Channel: 0x1234}
+	pkt := stmPacket{Type: pktC16, Channel: 0x1234}
 	for b.Loop() {
 		_ = pkt.String()
 	}
 }
 
 func BenchmarkPacketAppendStringTo_Channel(b *testing.B) {
-	pkt := stmPacket{Type: PktC16, Channel: 0x1234}
+	pkt := stmPacket{Type: pktC16, Channel: 0x1234}
 	buf := make([]byte, 0, 80)
 	for b.Loop() {
 		buf = pkt.AppendStringTo(buf[:0])

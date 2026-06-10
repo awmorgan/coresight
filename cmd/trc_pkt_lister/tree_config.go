@@ -127,7 +127,7 @@ func mapMemoryRangesWithDiagnostics(mapper *coresight.GlobalMapper, ssDir string
 
 			f, err := os.Open(filePath)
 			if err != nil {
-				// Missing/unreadable external dump images are non-fatal, but OpenCSD logs them.
+				// Missing/unreadable external dump images are non-fatal, but the reference decoder logs them.
 				diagnostics = append(diagnostics, fmt.Sprintf(
 					"ss2_dcdtree : 0x0003 (OCSD_ERR_NOT_INIT) [Component not initialised.]; Failed to create memory accessor for file %s.",
 					memoryDiagnosticPath(ssDir, memParams.Path, normPath),

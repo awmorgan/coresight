@@ -1,11 +1,11 @@
 package coresight
 
-// MemoryCallback is the function type used by CallbackAccessor to service
+// memoryCallback is the function type used by callbackAccessor to service
 // memory reads from the decoder. address is the target virtual address,
 // memSpace is the ARM security/EL space, trcID is the trace source ID,
 // reqBytes is the number of bytes requested, and buffer is the destination
 // slice. The return value is the number of bytes actually read.
-type MemoryCallback func(address VAddr, memSpace MemSpaceAcc, trcID uint8, reqBytes uint32, buffer []byte) uint32
+type memoryCallback func(address VAddr, memSpace MemSpaceAcc, trcID uint8, reqBytes uint32, buffer []byte) uint32
 
 // ByteSink consumes indexed trace bytes through the internal push datapath.
 type ByteSink interface {

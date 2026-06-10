@@ -4,23 +4,24 @@ import (
 	"fmt"
 )
 
-type BufferAccessor struct {
-	BaseAccessor
+type bufferAccessor struct {
+	baseAccessor
 	Buffer []byte
 	Desc   string
 }
 
-func NewBufferAccessor(startAddr VAddr, buffer []byte, memSpace MemSpaceAcc, desc string) *BufferAccessor {
-	b := &BufferAccessor{Buffer: buffer, Desc: desc}
-	b.BaseAccessor = newBaseAccessor(startAddr, endAddress(startAddr, len(buffer)), memSpace)
+// NewBufferAccessor creates a memory accessor backed by a byte slice.
+func NewBufferAccessor(startAddr VAddr, buffer []byte, memSpace MemSpaceAcc, desc string) Accessor {
+	b := &bufferAccessor{Buffer: buffer, Desc: desc}
+	b.baseAccessor = newBaseAccessor(startAddr, endAddress(startAddr, len(buffer)), memSpace)
 	return b
 }
 
-func (b *BufferAccessor) String() string {
-	return fmt.Sprintf("FileAcc; %s\nFilename=%s", b.BaseAccessor.String(), b.Desc)
+func (b *bufferAccessor) String() string {
+	return fmt.Sprintf("FileAcc; %s\nFilename=%s", b.baseAccessor.String(), b.Desc)
 }
 
-func (b *BufferAccessor) ReadBytes(address VAddr, _ MemSpaceAcc, _ uint8, reqBytes uint32, buffer []byte) uint32 {
+func (b *bufferAccessor) ReadBytes(address VAddr, _ MemSpaceAcc, _ uint8, reqBytes uint32, buffer []byte) uint32 {
 	if !b.AddrInRange(address) {
 		return 0
 	}
@@ -35,14 +36,14 @@ func (b *BufferAccessor) ReadBytes(address VAddr, _ MemSpaceAcc, _ uint8, reqByt
 	return bytesToRead
 }
 
-func (b *BufferAccessor) Configure(startAddr VAddr, buffer []byte) {
+func (b *bufferAccessor) Configure(startAddr VAddr, buffer []byte) {
 	b.StartAddress = startAddr
 	b.EndAddress = endAddress(startAddr, len(buffer))
 	b.Buffer = buffer
 }
 
-func newBaseAccessor(startAddr, endAddr VAddr, memSpace MemSpaceAcc) BaseAccessor {
-	return BaseAccessor{
+func newBaseAccessor(startAddr, endAddr VAddr, memSpace MemSpaceAcc) baseAccessor {
+	return baseAccessor{
 		StartAddress: startAddr,
 		EndAddress:   endAddr,
 		MemSpaceAcc:  memSpace,

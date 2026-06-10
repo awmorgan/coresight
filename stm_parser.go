@@ -169,7 +169,7 @@ func (d *stmDecoder) checkSyncNibble() {
 	}
 	if d.ctx.syncStart && d.ctx.numFNibs >= 21 && d.ctx.nibble == 0x0 {
 		d.ctx.isSync = true
-		d.ctx.numFNibs = 21 // cap at 21 — matches C++ "lose any extra as unsynced data"
+		d.ctx.numFNibs = 21 // cap at 21 to lose any extra as unsynced data
 		return
 	}
 	d.clearSyncCount()
@@ -391,9 +391,9 @@ func (d *stmDecoder) stmExtractTS() error {
 			gray &= ^mask
 			gray |= d.ctx.tsUpdateValue & mask
 		}
-		d.ctx.currPacket.SetTimestamp(grayToBin(gray), newBits)
+		d.ctx.currPacket.setTimestamp(grayToBin(gray), newBits)
 	case tsNatBinary:
-		d.ctx.currPacket.SetTimestamp(d.ctx.tsUpdateValue, newBits)
+		d.ctx.currPacket.setTimestamp(d.ctx.tsUpdateValue, newBits)
 	default:
 		return d.throwBadSequenceError("STM: unknown timestamp encoding")
 	}

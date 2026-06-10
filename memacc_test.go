@@ -11,7 +11,7 @@ import (
 
 var memaccWindowsTestExePathRE = regexp.MustCompile(`(?m)[A-Za-z]:\\[^\r\n]*\\(mem-buffer-eg\.exe)`)
 
-// memBuffDemoConfig returns the ETMv4 config hard-coded in mem_buff_demo.cpp.
+// memBuffDemoConfig returns the ETMv4 config for the memory buffer demo test.
 // trace_config.reg_traceidr = 0x00000010, etc.
 func memBuffDemoConfig() *etmv4Config {
 	return etmv4ParseConfig(
@@ -32,7 +32,7 @@ func memBuffDemoConfig() *etmv4Config {
 }
 
 const (
-	// mem_dump_address from mem_buff_demo.cpp
+	// memDumpAddress is the memory dump address for the test.
 	memDumpAddress = VAddr(0xFFFFFFC000081000)
 	// snapshot files relative to this package directory (internal/memacc)
 	snapshotDir = "cmd/trc_pkt_lister/testdata/juno_r1_1"
@@ -100,7 +100,7 @@ func runMemBuffDemo(t *testing.T, sb *strings.Builder, mapper *GlobalMapper) uin
 }
 
 // TestMemBuffDemoGoldens tests both buffer and callback memory accessor modes
-// against their C++ golden reference files.
+// against their golden reference files.
 func TestMemBuffDemoGoldens(t *testing.T) {
 	// Load the kernel memory dump once; used by both sub-tests.
 	kernelDump, err := os.ReadFile(snapshotDir + "/kernel_dump.bin")
@@ -112,13 +112,13 @@ func TestMemBuffDemoGoldens(t *testing.T) {
 	t.Run("mem_buff_demo", func(t *testing.T) {
 		var sb strings.Builder
 
-		// Emit header exactly as the C++ mem_buff_demo does.
+		// Emit header exactly as the reference mem_buff_demo does.
 		sb.WriteString("MemBuffDemo\n--------------\n\n\n")
 		sb.WriteString("Test Command Line:-\n")
 		sb.WriteString("mem-buffer-eg.exe   -logfile  -ss_path  ./snapshots  -noprint  \n\n")
 
 		// Buffer mode: split the kernel dump into two contiguous buffers
-		// (mirroring addBufferMemAcc x2 in mem_buff_demo.cpp).
+		// (mirroring the buffer configuration in the reference test).
 		block1Sz := programImageSize / 2
 		block1Sz &^= 0x3 // 4-byte align
 		block2Sz := programImageSize - block1Sz
@@ -145,17 +145,17 @@ func TestMemBuffDemoGoldens(t *testing.T) {
 	t.Run("mem_buff_demo_cb", func(t *testing.T) {
 		var sb strings.Builder
 
-		// Emit header exactly as the C++ mem_buff_demo -callback does.
+		// Emit header exactly as the reference mem_buff_demo -callback does.
 		sb.WriteString("MemBuffDemo\n--------------\n\n\n")
 		sb.WriteString("Test Command Line:-\n")
 		sb.WriteString("mem-buffer-eg.exe   -logfile  -ss_path  ./snapshots  -noprint  -callback  \n\n")
 
-		// Callback mode: single CallbackAccessor backed by the full kernel dump.
+		// Callback mode: single callbackAccessor backed by the full kernel dump.
 		mapper := NewGlobalMapper()
 		endAddr := memDumpAddress + VAddr(programImageSize) - 1
-		cbAcc := NewCallbackAccessor(memDumpAddress, endAddr, MemSpaceAny)
+		cbAcc := newCallbackAccessor(memDumpAddress, endAddr, MemSpaceAny)
 
-		// The C++ callback copies from program_image_buffer.
+		// The callback copies from program_image_buffer.
 		// We replicate this with a simple Go closure.
 		cbAcc.SetCallback(func(address VAddr, _ MemSpaceAcc, _ uint8, reqBytes uint32, buffer []byte) uint32 {
 			bufEndAddress := memDumpAddress + VAddr(programImageSize) - 1

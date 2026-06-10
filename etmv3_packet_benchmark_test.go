@@ -6,7 +6,7 @@ import (
 
 func BenchmarkEtmv3PacketString_PHdr(b *testing.B) {
 	pkt := etmv3Packet{
-		Type:       PktPHdr,
+		Type:       pktPHdr,
 		Atom:       etmv3AtomPkt{EnBits: 0x1f, Num: 6},
 		PHdrFmt:    1,
 		CycleCount: 6,
@@ -18,7 +18,7 @@ func BenchmarkEtmv3PacketString_PHdr(b *testing.B) {
 
 func BenchmarkEtmv3PacketAppendStringTo_PHdr(b *testing.B) {
 	pkt := etmv3Packet{
-		Type:       PktPHdr,
+		Type:       pktPHdr,
 		Atom:       etmv3AtomPkt{EnBits: 0x1f, Num: 6},
 		PHdrFmt:    1,
 		CycleCount: 6,
@@ -31,7 +31,7 @@ func BenchmarkEtmv3PacketAppendStringTo_PHdr(b *testing.B) {
 
 func BenchmarkEtmv3PacketString_BranchAddress(b *testing.B) {
 	pkt := etmv3Packet{
-		Type:        PktBranchAddress,
+		Type:        pktBranchAddress,
 		Addr:        0xc0012345,
 		AddrPktBits: 32,
 		CurrISA:     ISAThumb2,
@@ -44,7 +44,7 @@ func BenchmarkEtmv3PacketString_BranchAddress(b *testing.B) {
 
 func BenchmarkEtmv3PacketAppendStringTo_BranchAddress(b *testing.B) {
 	pkt := etmv3Packet{
-		Type:        PktBranchAddress,
+		Type:        pktBranchAddress,
 		Addr:        0xc0012345,
 		AddrPktBits: 32,
 		CurrISA:     ISAThumb2,
@@ -58,7 +58,7 @@ func BenchmarkEtmv3PacketAppendStringTo_BranchAddress(b *testing.B) {
 
 func BenchmarkEtmv3PacketString_ISync(b *testing.B) {
 	pkt := etmv3Packet{
-		Type:    PktISyncCycle,
+		Type:    pktISyncCycle,
 		Addr:    0xc0012345,
 		CurrISA: ISAThumb2,
 		Context: etmv3Context{
@@ -76,7 +76,7 @@ func BenchmarkEtmv3PacketString_ISync(b *testing.B) {
 
 func BenchmarkEtmv3PacketAppendStringTo_ISync(b *testing.B) {
 	pkt := etmv3Packet{
-		Type:    PktISyncCycle,
+		Type:    pktISyncCycle,
 		Addr:    0xc0012345,
 		CurrISA: ISAThumb2,
 		Context: etmv3Context{
