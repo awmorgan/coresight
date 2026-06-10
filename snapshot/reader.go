@@ -67,7 +67,9 @@ func (r *SnapshotReader) Read() error {
 	}
 
 	for devName, iniFileName := range devList.DeviceList {
-		r.warn(r.loadDevice(devName, iniFileName))
+		if err := r.loadDevice(devName, iniFileName); err != nil {
+			r.warn(fmt.Errorf("device %s: %w", devName, err))
+		}
 	}
 
 	if len(devList.DeviceList) == 0 {
@@ -146,7 +148,10 @@ func (r *SnapshotReader) loadLegacyDevices() {
 			return
 		}
 
-		r.warn(r.loadDevice(fmt.Sprintf("device_%d", i), safeName))
+		devName := fmt.Sprintf("device_%d", i)
+		if err := r.loadDevice(devName, safeName); err != nil {
+			r.warn(fmt.Errorf("device %s: %w", devName, err))
+		}
 	}
 }
 

@@ -77,6 +77,53 @@ func run(args []string) (err error) {
 		sourceNames = rotateSourceNames(sourceNames, opts.srcName)
 	}
 
+	for _, warning := range reader.Warnings {
+		fmt.Fprintf(out, "Trace Packet Lister : Warning: %v\n", warning)
+	}
+
+	if len(reader.Warnings) > 0 {
+		var relevant []error
+		activeSources := []string{opts.srcName}
+		if opts.multiSession {
+			activeSources = sourceNames
+		}
+		for _, warn := range reader.Warnings {
+			warnStr := warn.Error()
+			if strings.Contains(warnStr, "trace.ini") || strings.Contains(warnStr, "trace metadata") {
+				relevant = append(relevant, warn)
+				continue
+			}
+			if reader.Trace != nil {
+				for _, srcName := range activeSources {
+					tree, ok := snapshot.SourceTree(srcName, reader.Trace)
+					if !ok {
+						continue
+					}
+					for srcDev, coreDev := range tree.SourceCoreAssoc {
+						if strings.Contains(warnStr, srcDev) {
+							relevant = append(relevant, warn)
+							break
+						}
+						if coreDev != "" && coreDev != "<none>" && strings.Contains(warnStr, coreDev) {
+							relevant = append(relevant, warn)
+							break
+						}
+					}
+					if tree.BufferInfo != nil && tree.BufferInfo.DataFileName != "" {
+						if strings.Contains(warnStr, tree.BufferInfo.DataFileName) {
+							relevant = append(relevant, warn)
+						}
+					}
+				}
+			} else {
+				relevant = append(relevant, warn)
+			}
+		}
+		if len(relevant) > 0 {
+			return fmt.Errorf("trace packet lister: failed to read snapshot data needed for the selected decode path: %w", errors.Join(relevant...))
+		}
+	}
+
 	fmt.Fprintf(out, "Using %s as trace source\n", opts.srcName)
 	return listTracePackets(out, reader, opts, sourceNames)
 }

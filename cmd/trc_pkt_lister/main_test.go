@@ -882,3 +882,182 @@ func (s *indexRecordingSink) Write(index coresight.Index, dataBlock []byte) (uin
 func (s *indexRecordingSink) Close() error                      { return nil }
 func (s *indexRecordingSink) Flush() error                      { return nil }
 func (s *indexRecordingSink) Reset(index coresight.Index) error { return nil }
+
+func TestCliSnapshotWarnings(t *testing.T) {
+	// 1. Unrelated warning case: ETM_0 and CPU_0 exist, but ITM_0 (unrelated) fails to load.
+	// The run should print the warning and succeed.
+	t.Run("UnrelatedWarningSucceeds", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		// Write cstrace.bin
+		if err := os.WriteFile(filepath.Join(tmpDir, "cstrace.bin"), []byte{0x00}, 0644); err != nil {
+			t.Fatalf("failed to write cstrace: %v", err)
+		}
+
+		// Write snapshot.ini
+		snapshotIni := `[snapshot]
+version=1.0
+
+[device_list]
+ETM_0=device_0.ini
+CPU_0=device_2.ini
+ITM_0=device_1.ini
+
+[trace]
+metadata=trace.ini
+`
+		if err := os.WriteFile(filepath.Join(tmpDir, "snapshot.ini"), []byte(snapshotIni), 0644); err != nil {
+			t.Fatalf("failed to write snapshot.ini: %v", err)
+		}
+
+		// Write trace.ini
+		traceIni := `[trace_buffers]
+buffers=ETB_0
+
+[ETB_0]
+name=ETB_0
+file=cstrace.bin
+format=source_data
+
+[source_buffers]
+ETM_0=ETB_0
+
+[core_trace_sources]
+CPU_0=ETM_0
+`
+		if err := os.WriteFile(filepath.Join(tmpDir, "trace.ini"), []byte(traceIni), 0644); err != nil {
+			t.Fatalf("failed to write trace.ini: %v", err)
+		}
+
+		// Write device_0.ini (ETM_0)
+		device0Ini := `[device]
+name=ETM_0
+class=Source
+type=ETM4
+
+[regs]
+TRCTRACEIDR=0x10
+TRCIDR0=0x28000ea1
+TRCIDR1=0x4100f402
+TRCIDR2=0x00000488
+TRCCONFIGR=0x00000010
+`
+		if err := os.WriteFile(filepath.Join(tmpDir, "device_0.ini"), []byte(device0Ini), 0644); err != nil {
+			t.Fatalf("failed to write device_0.ini: %v", err)
+		}
+
+		// Write device_2.ini (CPU_0)
+		device2Ini := `[device]
+name=CPU_0
+class=core
+type=Cortex-A53
+`
+		if err := os.WriteFile(filepath.Join(tmpDir, "device_2.ini"), []byte(device2Ini), 0644); err != nil {
+			t.Fatalf("failed to write device_2.ini: %v", err)
+		}
+
+		// Run lister on ETB_0. It should succeed because ETM_0 and CPU_0 are loaded,
+		// even though ITM_0 failed to load (no device_1.ini).
+		logFile := filepath.Join(t.TempDir(), "out.ppl")
+		args := []string{
+			"-ss_dir", tmpDir,
+			"-src_name", "ETB_0",
+			"-logfilename", logFile,
+		}
+		err := run(args)
+		if err != nil {
+			t.Fatalf("expected success, got err: %v", err)
+		}
+
+		// Verify warning was printed to logfile
+		content, err := os.ReadFile(logFile)
+		if err != nil {
+			t.Fatalf("failed to read logfile: %v", err)
+		}
+		if !strings.Contains(string(content), "Trace Packet Lister : Warning:") {
+			t.Errorf("expected output to contain warning prefix, got:\n%s", string(content))
+		}
+		if !strings.Contains(string(content), "device_1.ini") {
+			t.Errorf("expected output to mention device_1.ini warning, got:\n%s", string(content))
+		}
+	})
+
+	// 2. Related warning case: ETM_0 (required) fails to load.
+	// The run should fail.
+	t.Run("RelatedWarningFails", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		// Write cstrace.bin
+		if err := os.WriteFile(filepath.Join(tmpDir, "cstrace.bin"), []byte{0x00}, 0644); err != nil {
+			t.Fatalf("failed to write cstrace: %v", err)
+		}
+
+		// Write snapshot.ini (missing device_0.ini for ETM_0)
+		snapshotIni := `[snapshot]
+version=1.0
+
+[device_list]
+ETM_0=device_0.ini
+CPU_0=device_2.ini
+
+[trace]
+metadata=trace.ini
+`
+		if err := os.WriteFile(filepath.Join(tmpDir, "snapshot.ini"), []byte(snapshotIni), 0644); err != nil {
+			t.Fatalf("failed to write snapshot.ini: %v", err)
+		}
+
+		// Write trace.ini
+		traceIni := `[trace_buffers]
+buffers=ETB_0
+
+[ETB_0]
+name=ETB_0
+file=cstrace.bin
+format=source_data
+
+[source_buffers]
+ETM_0=ETB_0
+
+[core_trace_sources]
+CPU_0=ETM_0
+`
+		if err := os.WriteFile(filepath.Join(tmpDir, "trace.ini"), []byte(traceIni), 0644); err != nil {
+			t.Fatalf("failed to write trace.ini: %v", err)
+		}
+
+		// Write device_2.ini (CPU_0)
+		device2Ini := `[device]
+name=CPU_0
+class=core
+type=Cortex-A53
+`
+		if err := os.WriteFile(filepath.Join(tmpDir, "device_2.ini"), []byte(device2Ini), 0644); err != nil {
+			t.Fatalf("failed to write device_2.ini: %v", err)
+		}
+
+		// Run lister on ETB_0. It should fail because ETM_0 is missing.
+		logFile := filepath.Join(t.TempDir(), "out.ppl")
+		args := []string{
+			"-ss_dir", tmpDir,
+			"-src_name", "ETB_0",
+			"-logfilename", logFile,
+		}
+		err := run(args)
+		if err == nil {
+			t.Fatal("expected failure due to missing ETM_0 device, but got success")
+		}
+		if !strings.Contains(err.Error(), "trace packet lister: failed to read snapshot data needed for the selected decode path") {
+			t.Errorf("expected specific error message, got: %v", err)
+		}
+
+		// Verify warning was printed to logfile
+		content, err := os.ReadFile(logFile)
+		if err != nil {
+			t.Fatalf("failed to read logfile: %v", err)
+		}
+		if !strings.Contains(string(content), "Trace Packet Lister : Warning:") {
+			t.Errorf("expected output to contain warning prefix, got:\n%s", string(content))
+		}
+	})
+}
