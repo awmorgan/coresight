@@ -506,11 +506,11 @@ func (f *ElementFormatter) writeSWTFlags(sb *bytes.Buffer, info SWTInfo, timesta
 
 func (f *ElementFormatter) printSWInfoPktItm(sb *bytes.Buffer, e Element) {
 	itm := e.Payload.SWTItm
- 
+
 	if itm.Overflow != 0 {
 		sb.WriteString("ITM_OVERFLOW; ")
 	}
- 
+
 	var buf [24]byte
 	switch itm.PktType {
 	case SWITPayload:
@@ -542,7 +542,7 @@ func (f *ElementFormatter) printSWInfoPktItm(sb *bytes.Buffer, e Element) {
 		sb.Write(b)
 		sb.WriteString(") ")
 	}
- 
+
 	if itm.PktType < SWTItmType(len(itmLocalTimestampNames)) {
 		if desc := itmLocalTimestampNames[itm.PktType]; desc != "" {
 			sb.WriteString("ITM_TS_LOCAL ( TS delta: 0x")
