@@ -115,7 +115,9 @@ func (d *Demuxer) extractFrame() (bool, error) {
 
 	totalProcessed := uint32(d.trcCurrIdx - startIdx)
 	if (d.exFrmBytes == dfrmtrFrameSize || len(d.inBlock) == 0) && d.outPackedRaw {
-		d.outputRawMonBytes(startIdx, FrmPacked, startInBlock[:totalProcessed], 0)
+		if err := d.outputRawMonBytes(startIdx, FrmPacked, startInBlock[:totalProcessed], 0); err != nil {
+			return false, err
+		}
 	}
 
 	return d.exFrmBytes == dfrmtrFrameSize, nil
@@ -146,7 +148,9 @@ func (d *Demuxer) consumeResetFSyncs() error {
 	fSyncBytes, err := d.checkForResetFSyncPatterns()
 	if fSyncBytes > 0 {
 		if d.outPackedRaw || d.outUnpackedRaw {
-			d.outputRawMonBytes(d.trcCurrIdx, FrmFsync, d.inBlock[:fSyncBytes], 0)
+			if err := d.outputRawMonBytes(d.trcCurrIdx, FrmFsync, d.inBlock[:fSyncBytes], 0); err != nil {
+				return err
+			}
 		}
 		d.advanceInput(fSyncBytes)
 	}

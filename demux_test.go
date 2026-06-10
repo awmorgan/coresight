@@ -2,6 +2,7 @@ package coresight
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -706,4 +707,117 @@ func TestTraceDemuxSplitSync(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestDemuxerRawFrameHandlerErrorPropagation(t *testing.T) {
+	sentinelErr := errors.New("raw-frame handler sentinel error")
+
+	// Test case 1: Write returns the raw-frame handler error (PackedRawOut)
+	t.Run("WritePackedRawError", func(t *testing.T) {
+		streams := make([]ByteSink, 128)
+		d := newDemuxer(streams)
+		err := d.Configure(DemuxOptions{
+			FrameMemAlign: true,
+			PackedRawOut:  true,
+		})
+		if err != nil {
+			t.Fatalf("Configure failed: %v", err)
+		}
+
+		d.SetRawFrameHandler(func(index Index, frameElem RawframeElem, data []byte, traceID uint8) error {
+			return sentinelErr
+		})
+
+		bufMemAlign := []byte{
+			idByteID(0x10), 0x01, idByteData(0x02), 0x03,
+			idByteData(0x04), 0x05, idByteData(0x06), 0x07,
+			idByteID(0x20), 0x08, idByteData(0x09), 0x0A,
+			idByteData(0x0B), 0x0C, idByteData(0x0D),
+			flagsByte(0, 0, 0, 0, 0, 1, 1, 1),
+		}
+
+		_, err = d.Write(0, bufMemAlign)
+		if !errors.Is(err, sentinelErr) {
+			t.Fatalf("expected sentinel error, got: %v", err)
+		}
+	})
+
+	// Test case 2: Write returns the raw-frame handler error (UnpackedRawOut)
+	t.Run("WriteUnpackedRawError", func(t *testing.T) {
+		streams := make([]ByteSink, 128)
+		d := newDemuxer(streams)
+		err := d.Configure(DemuxOptions{
+			FrameMemAlign:  true,
+			UnpackedRawOut: true,
+		})
+		if err != nil {
+			t.Fatalf("Configure failed: %v", err)
+		}
+
+		d.SetRawFrameHandler(func(index Index, frameElem RawframeElem, data []byte, traceID uint8) error {
+			return sentinelErr
+		})
+
+		bufMemAlign := []byte{
+			idByteID(0x10), 0x01, idByteData(0x02), 0x03,
+			idByteData(0x04), 0x05, idByteData(0x06), 0x07,
+			idByteID(0x20), 0x08, idByteData(0x09), 0x0A,
+			idByteData(0x0B), 0x0C, idByteData(0x0D),
+			flagsByte(0, 0, 0, 0, 0, 1, 1, 1),
+		}
+
+		_, err = d.Write(0, bufMemAlign)
+		if !errors.Is(err, sentinelErr) {
+			t.Fatalf("expected sentinel error, got: %v", err)
+		}
+	})
+
+	// Test case 3: Writer fails after one write and the failure is not swallowed
+	t.Run("WriterFailsAfterOneWrite", func(t *testing.T) {
+		streams := make([]ByteSink, 128)
+		d := newDemuxer(streams)
+		err := d.Configure(DemuxOptions{
+			FrameMemAlign: true,
+			PackedRawOut:  true,
+		})
+		if err != nil {
+			t.Fatalf("Configure failed: %v", err)
+		}
+
+		fw := &failingWriter{}
+		fp := NewRawFramePrinter(fw)
+		d.SetRawFrameHandler(fp.WriteRawFrame)
+
+		bufMemAlign := []byte{
+			idByteID(0x10), 0x01, idByteData(0x02), 0x03,
+			idByteData(0x04), 0x05, idByteData(0x06), 0x07,
+			idByteID(0x20), 0x08, idByteData(0x09), 0x0A,
+			idByteData(0x0B), 0x0C, idByteData(0x0D),
+			flagsByte(0, 0, 0, 0, 0, 1, 1, 1),
+		}
+
+		// First write succeeds
+		_, err = d.Write(0, bufMemAlign)
+		if err != nil {
+			t.Fatalf("unexpected error on first write: %v", err)
+		}
+
+		// Second write fails
+		_, err = d.Write(16, bufMemAlign)
+		if err == nil || !strings.Contains(err.Error(), "write failure after first write") {
+			t.Fatalf("expected write failure error, got: %v", err)
+		}
+	})
+}
+
+type failingWriter struct {
+	writes int
+}
+
+func (w *failingWriter) Write(p []byte) (n int, err error) {
+	w.writes++
+	if w.writes > 1 {
+		return 0, errors.New("write failure after first write")
+	}
+	return len(p), nil
 }

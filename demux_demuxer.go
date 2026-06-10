@@ -109,10 +109,13 @@ func (d *Demuxer) rawChanEnabled(id uint8) bool {
 	return validTraceID(id) && d.rawChanEnable[id]
 }
 
-func (d *Demuxer) outputRawMonBytes(index Index, frameElem RawframeElem, data []byte, traceID uint8) {
+func (d *Demuxer) outputRawMonBytes(index Index, frameElem RawframeElem, data []byte, traceID uint8) error {
 	if d.rawFrameHandler != nil {
-		_ = d.rawFrameHandler(index, frameElem, data, traceID)
+		if err := d.rawFrameHandler(index, frameElem, data, traceID); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func (d *Demuxer) flushAllIDs() error {
@@ -282,7 +285,9 @@ func (d *Demuxer) emitUnpackBuf(startIndex Index, count int) error {
 	}
 	data := d.unpackBuf[:count]
 	if d.shouldOutputRawEntry(d.currSrcID) {
-		d.outputRawMonBytes(startIndex, FrmIDData, data, d.currSrcID)
+		if err := d.outputRawMonBytes(startIndex, FrmIDData, data, d.currSrcID); err != nil {
+			return err
+		}
 	}
 	if stream := d.outputStream(d.currSrcID); stream != nil {
 		if _, err := stream.Write(startIndex, data); err != nil {
