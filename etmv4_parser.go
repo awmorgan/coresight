@@ -1,6 +1,5 @@
 package coresight
 
-
 type etmv4ProcessState int
 
 const (

@@ -1,8 +1,8 @@
 package coresight
 
 const (
-	itmTraceIDMask        uint32 = 0x007F0000
-	itmTraceIDShift              = 16
+	itmTraceIDMask     uint32 = 0x007F0000
+	itmTraceIDShift           = 16
 	tcrSWOEnable       uint32 = 0x10
 	tcrTSPrescaleShift        = 8
 )

@@ -3,7 +3,6 @@ package coresight
 import (
 	"errors"
 	"fmt"
-
 )
 
 type ptmDecodeState int

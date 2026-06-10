@@ -3,7 +3,6 @@ package coresight
 import (
 	"errors"
 	"strconv"
-
 )
 
 type etmv3PktType int

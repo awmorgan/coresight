@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"io"
 	"testing"
-
 )
 
 func BenchmarkElementFormatter_InstrRange(b *testing.B) {

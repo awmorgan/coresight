@@ -1,7 +1,6 @@
 package snapshot
 
 import (
-	
 	"testing"
 	"testing/fstest"
 )

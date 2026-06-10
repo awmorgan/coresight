@@ -3,7 +3,6 @@ package coresight
 import (
 	"encoding/binary"
 	"fmt"
-
 )
 
 type stmDecodeState int

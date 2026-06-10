@@ -8,26 +8,6 @@ type eteConfig struct {
 	*etmv4Config
 }
 
-func eteParseConfig(traceID, configr, idr0, idr1, idr2, idr8, devarch uint32, arch ArchVersion, prof CoreProfile) *eteConfig {
-	cfg := etmv4ParseConfig(
-		traceID,
-		configr,
-		idr0,
-		idr1,
-		idr2,
-		idr8,
-		0,
-		0,
-		0,
-		0,
-		0,
-		arch,
-		prof,
-	)
-	cfg.RegDevArch = devarch
-	return &eteConfig{etmv4Config: cfg}
-}
-
 func (c *eteConfig) String() string {
 	if c == nil || c.etmv4Config == nil {
 		return "ETE eteConfig <nil>"

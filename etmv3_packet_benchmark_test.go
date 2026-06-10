@@ -2,7 +2,6 @@ package coresight
 
 import (
 	"testing"
-
 )
 
 func BenchmarkEtmv3PacketString_PHdr(b *testing.B) {

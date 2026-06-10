@@ -55,18 +55,6 @@ func (c *etmv3Config) String() string {
 	return fmt.Sprintf("ETMv3 etmv3Config [ID=0x%02x, IDR=0x%08x, CTRL=0x%08x]", c.TraceID(), c.RegIDR, c.RegCtrl)
 }
 
-// etmv3ParseConfig creates a etmv3Config from raw hardware register values.
-func etmv3ParseConfig(traceID, idr, ctrl, ccer uint32, arch ArchVersion, prof CoreProfile) *etmv3Config {
-	return &etmv3Config{
-		RegTrcID: traceID,
-		RegIDR:   idr,
-		RegCtrl:  ctrl,
-		RegCCER:  ccer,
-		ArchVer:  arch,
-		CoreProf: prof,
-	}
-}
-
 // etmv3NewDefaultConfig creates a etmv3Config with the default ETMv3.4, V7A, instruction only setup.
 func etmv3NewDefaultConfig() *etmv3Config {
 	return &etmv3Config{

@@ -208,7 +208,7 @@ const (
 	ProtocolITM
 )
 
-// ProtocolName returns the canonical name for a 
+// ProtocolName returns the canonical name for a
 func ProtocolName(p TraceProtocol) string {
 	switch p {
 	case ProtocolETMV3:

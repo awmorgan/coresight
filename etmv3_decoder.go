@@ -3,7 +3,6 @@ package coresight
 import (
 	"errors"
 	"fmt"
-
 )
 
 type etmv3DecodeState int

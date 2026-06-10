@@ -171,4 +171,3 @@ func (b *PipelineBuilder) decodeInterfaces() coresight.MemoryReader {
 	}
 	return b.mapper
 }
-

@@ -1,7 +1,7 @@
 package snapshot
 
 import (
-		"strings"
+	"strings"
 )
 
 type ParsedDevices struct {

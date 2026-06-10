@@ -2,7 +2,6 @@ package coresight
 
 import (
 	"testing"
-
 )
 
 func BenchmarkPtmPacketString_Atom(b *testing.B) {
@@ -23,7 +22,7 @@ func BenchmarkPtmPacketString_BranchAddress(b *testing.B) {
 		AddrValidBits: 32,
 		CurrISA:       ISAThumb2,
 		PrevISA:       ISAArm,
-		Context:          ptmContext{Updated: true, CurrNS: true},
+		Context:       ptmContext{Updated: true, CurrNS: true},
 	}
 	for b.Loop() {
 		_ = pkt.String()

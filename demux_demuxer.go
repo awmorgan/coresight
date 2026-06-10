@@ -1,6 +1,5 @@
 package coresight
 
-
 const (
 	maxTraceID = MaxTraceID
 )
@@ -42,9 +41,9 @@ type Demuxer struct {
 
 	unpackBuf [16]byte
 
-	pending                     []byte
-	lastWriteEndIndex           Index
-	lastWriteProcessedEndIndex  Index
+	pending                    []byte
+	lastWriteEndIndex          Index
+	lastWriteProcessedEndIndex Index
 }
 
 func newDemuxer(streams []ByteSink) *Demuxer {

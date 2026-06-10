@@ -1,7 +1,6 @@
 package snapshot
 
 import (
-	
 	"bufio"
 	"io"
 	"strings"

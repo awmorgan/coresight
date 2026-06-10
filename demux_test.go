@@ -295,8 +295,8 @@ func (m *mockStream) Write(index Index, dataBlock []byte) (uint32, error) {
 	return uint32(len(dataBlock)), nil
 }
 
-func (m *mockStream) Close() error { return nil }
-func (m *mockStream) Flush() error { return nil }
+func (m *mockStream) Close() error            { return nil }
+func (m *mockStream) Flush() error            { return nil }
 func (m *mockStream) Reset(index Index) error { return nil }
 
 func runDemuxTest(opts DemuxOptions, data []byte, step int, callClose bool, shortWriteLoop bool) (string, map[uint8][]byte, error) {
@@ -337,10 +337,7 @@ func runDemuxTest(opts DemuxOptions, data []byte, step int, callClose bool, shor
 	} else {
 		var currentIdx Index
 		for i := 0; i < len(data); i += step {
-			end := i + step
-			if end > len(data) {
-				end = len(data)
-			}
+			end := min(i+step, len(data))
 			chunk := data[i:end]
 			_, err := dec.Write(currentIdx, chunk)
 			if err != nil {

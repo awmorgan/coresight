@@ -112,7 +112,9 @@ func attachPacketPrinters(out io.Writer, pipe *coresight.Pipeline, opts options)
 			showRawBytes: opts.decode || opts.pktMon,
 		}
 
-		if setter, ok := route.ByteSink.(interface{ SetPacketObserver(coresight.PacketObserver) }); ok {
+		if setter, ok := route.ByteSink.(interface {
+			SetPacketObserver(coresight.PacketObserver)
+		}); ok {
 			setter.SetPacketObserver(mon.ObservePacket)
 			if endSetter, ok := route.ByteSink.(interface{ SetTraceEndObserver(func()) }); ok {
 				endSetter.SetTraceEndObserver(mon.ObserveTraceEnd)

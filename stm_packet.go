@@ -2,7 +2,6 @@ package coresight
 
 import (
 	"strconv"
-
 )
 
 type stmPktType int

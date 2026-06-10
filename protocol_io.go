@@ -2,7 +2,6 @@ package coresight
 
 import (
 	"fmt"
-
 )
 
 // internalEmitter holds the observers shared by packet decoders.

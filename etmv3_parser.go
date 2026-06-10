@@ -3,7 +3,6 @@ package coresight
 import (
 	"errors"
 	"fmt"
-
 )
 
 type etmv3ProcessState int
@@ -520,7 +519,9 @@ func (d *etmv3Decoder) pktPHdr() error           { d.ctx.processState = etmv3Sta
 func (d *etmv3Decoder) pktExceptionEntry() error { d.ctx.processState = etmv3StateSendPkt; return nil }
 func (d *etmv3Decoder) pktExceptionExit() error  { d.ctx.processState = etmv3StateSendPkt; return nil }
 func (d *etmv3Decoder) pktIgnore() error         { d.ctx.processState = etmv3StateSendPkt; return nil }
-func (d *etmv3Decoder) pktReserved() error       { return d.throwMalformedPacketErr("Reserved packet header") }
+func (d *etmv3Decoder) pktReserved() error {
+	return d.throwMalformedPacketErr("Reserved packet header")
+}
 
 func (d *etmv3Decoder) onBranchAddress() {
 	partAddr, validBits, _ := d.extractBrAddrPkt(0)

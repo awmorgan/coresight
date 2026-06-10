@@ -2,7 +2,6 @@ package coresight
 
 import (
 	"fmt"
-
 )
 
 // RawFrameHandler is the callback type for observing raw frame bytes.

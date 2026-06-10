@@ -1,6 +1,5 @@
 package coresight
 
-
 type retStackElement struct {
 	RetAddr VAddr
 	RetISA  ISA

@@ -545,4 +545,3 @@ func instA64Barrier(inst uint32) armBarrierT {
 		return armBarrierNone
 	}
 }
-

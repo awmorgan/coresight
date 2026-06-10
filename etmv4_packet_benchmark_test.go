@@ -2,7 +2,6 @@ package coresight
 
 import (
 	"testing"
-
 )
 
 func BenchmarkEtmv4PacketString_Atom(b *testing.B) {

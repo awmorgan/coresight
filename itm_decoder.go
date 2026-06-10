@@ -2,7 +2,6 @@ package coresight
 
 import (
 	"fmt"
-
 )
 
 type itmDecodeState int

@@ -2,7 +2,6 @@ package coresight
 
 import (
 	"fmt"
-
 )
 
 // PacketObserver is the public type for observing raw packets off the decode path.

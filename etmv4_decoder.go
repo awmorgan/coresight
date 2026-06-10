@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-
 )
 
 type etmv4DecodeState int

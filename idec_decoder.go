@@ -1,6 +1,5 @@
 package coresight
 
-
 // decodeInstruction processes an instruction based on its ISA.
 func decodeInstruction(instrInfo *instrInfo) error {
 	info := decodeInfo{

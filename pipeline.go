@@ -1,6 +1,5 @@
 package coresight
 
-
 // Route links a Trace ID to its protocol decoder.
 type Route struct {
 	TraceID  uint8

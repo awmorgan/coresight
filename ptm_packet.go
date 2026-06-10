@@ -10,8 +10,8 @@ type ptmPacketType int
 
 const (
 	PacketNotSync       ptmPacketType = iota // no sync found yet
-	PacketIncompleteEOT                   // flushing incomplete packet at end of 
-	PacketNoError                         // no error base type packet.
+	PacketIncompleteEOT                      // flushing incomplete packet at end of
+	PacketNoError                            // no error base type packet.
 
 	PacketBranchAddress     // Branch address with optional exception.
 	PacketASync             // Alignment Synchronisation.
@@ -95,8 +95,8 @@ type ptmPacket struct {
 	AddrValidBits int
 	AddrVal       VAddr
 
-	Context ptmContext
-	Atom    ptmAtomPkt
+	Context     ptmContext
+	Atom        ptmAtomPkt
 	ISyncReason iSyncReason
 
 	CycleCount uint32

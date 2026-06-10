@@ -3,7 +3,6 @@ package coresight
 import (
 	"fmt"
 	"strings"
-
 )
 
 type itmPktType int
