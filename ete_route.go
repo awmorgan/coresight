@@ -1,6 +1,9 @@
 package coresight
 
 import (
+	"github.com/awmorgan/coresight/snapshot"
+
+	
 	"fmt"
 
 )
@@ -32,7 +35,7 @@ func (b *PipelineBuilder) buildETERoute(spec sourceRouteSpec) (Route, error) {
 	}, nil
 }
 
-func newETEConfig(coreName string, devSrc *Device) (*eteConfig, error) {
+func newETEConfig(coreName string, devSrc *snapshot.Device) (*eteConfig, error) {
 	regs, err := eteDeviceRegs(devSrc)
 	if err != nil {
 		return nil, err
@@ -52,7 +55,7 @@ func newETEConfig(coreName string, devSrc *Device) (*eteConfig, error) {
 	), nil
 }
 
-func eteDeviceRegs(dev *Device) (eteRegs, error) {
+func eteDeviceRegs(dev *snapshot.Device) (eteRegs, error) {
 	v4regs, err := etmv4DeviceRegs(dev)
 	if err != nil {
 		return eteRegs{}, err
@@ -61,7 +64,7 @@ func eteDeviceRegs(dev *Device) (eteRegs, error) {
 		etmv4Regs: v4regs,
 		devarch:   0x47705A13,
 	}
-	if err := setReg32(dev, eteRegDevArch, &regs.devarch); err != nil {
+	if err := setReg32(dev, snapshot.EteRegDevArch, &regs.devarch); err != nil {
 		return eteRegs{}, err
 	}
 	return regs, nil

@@ -1,6 +1,9 @@
 package coresight
 
 import (
+	"github.com/awmorgan/coresight/snapshot"
+
+	
 	"fmt"
 
 )
@@ -8,7 +11,7 @@ import (
 func (b *PipelineBuilder) buildSTMRoute(spec sourceRouteSpec) (Route, error) {
 	var tcsr uint32
 
-	if err := setReg32(spec.sourceDevice, stmRegTCSR, &tcsr); err != nil {
+	if err := setReg32(spec.sourceDevice, snapshot.StmRegTCSR, &tcsr); err != nil {
 		return Route{}, err
 	}
 

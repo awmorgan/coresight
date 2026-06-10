@@ -1,6 +1,9 @@
 package coresight
 
 import (
+	"github.com/awmorgan/coresight/snapshot"
+
+	
 	"fmt"
 
 )
@@ -24,7 +27,7 @@ func (b *PipelineBuilder) buildPTMRoute(spec sourceRouteSpec) (Route, error) {
 	}, nil
 }
 
-func newPTMConfig(coreName string, devSrc *Device) (*ptmConfig, error) {
+func newPTMConfig(coreName string, devSrc *snapshot.Device) (*ptmConfig, error) {
 	regs, err := etmPTMDeviceRegs(devSrc, 0x4100F310)
 	if err != nil {
 		return nil, err

@@ -1,6 +1,7 @@
-package coresight
+package snapshot
 
 import (
+	
 	"errors"
 	"fmt"
 	"io/fs"
@@ -135,7 +136,7 @@ func (r *SnapshotReader) readTraceMetadata(name string) error {
 
 	r.Trace = trace
 	for _, buf := range trace.Buffers {
-		tree, ok := sourceTree(buf.BufferName, trace)
+		tree, ok := SourceTree(buf.BufferName, trace)
 		if ok {
 			r.SourceTrees[buf.BufferName] = tree
 		}

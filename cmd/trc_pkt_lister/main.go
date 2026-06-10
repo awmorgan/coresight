@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/awmorgan/coresight"
+	"github.com/awmorgan/coresight/snapshot"
 )
 
 func main() {
@@ -47,7 +48,7 @@ func run(args []string) (err error) {
 
 	fmt.Fprintf(out, "Trace Packet Lister : reading snapshot from path %s\n", opts.ssDir)
 
-	reader := coresight.NewSnapshotReader()
+	reader := snapshot.NewSnapshotReader()
 	reader.SnapshotPath = opts.ssDir
 	if err := reader.Read(); err != nil {
 		return fmt.Errorf("trace packet lister: failed to read snapshot: %w", err)
@@ -162,7 +163,7 @@ func logCmdLine(out io.Writer, args []string) {
 	fmt.Fprintln(out)
 }
 
-func getSourceNames(reader *coresight.SnapshotReader) []string {
+func getSourceNames(reader *snapshot.SnapshotReader) []string {
 	if reader.Trace == nil {
 		return nil
 	}

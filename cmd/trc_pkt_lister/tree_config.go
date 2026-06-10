@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/awmorgan/coresight"
+	"github.com/awmorgan/coresight/snapshot"
 	"io"
 	"os"
 	"path/filepath"
@@ -47,7 +48,7 @@ func configureFrameDemux(pipe *coresight.Pipeline, out io.Writer, opts options) 
 	return nil
 }
 
-func prepareDecodeMode(builder *coresight.PipelineBuilder, reader *coresight.SnapshotReader, opts options) ([]string, error) {
+func prepareDecodeMode(builder *coresight.PipelineBuilder, reader *snapshot.SnapshotReader, opts options) ([]string, error) {
 	if !opts.decode {
 		return nil, nil
 	}
@@ -82,17 +83,17 @@ func configureDecodeMode(out io.Writer, builder *coresight.PipelineBuilder, opts
 	return nil
 }
 
-func mapMemoryRanges(mapper *coresight.GlobalMapper, ssDir string, reader *coresight.SnapshotReader) error {
+func mapMemoryRanges(mapper *coresight.GlobalMapper, ssDir string, reader *snapshot.SnapshotReader) error {
 	_, err := mapMemoryRangesWithDiagnostics(mapper, ssDir, reader)
 	return err
 }
 
-func mapMemoryRangesWithDiagnostics(mapper *coresight.GlobalMapper, ssDir string, reader *coresight.SnapshotReader) ([]string, error) {
+func mapMemoryRangesWithDiagnostics(mapper *coresight.GlobalMapper, ssDir string, reader *snapshot.SnapshotReader) ([]string, error) {
 	seenAccessors := make(map[string]struct{})
 	loadErrs := make([]string, 0)
 	diagnostics := make([]string, 0)
 
-	recordLoadErr := func(filePath string, memParams coresight.MemoryDump, format string, args ...any) {
+	recordLoadErr := func(filePath string, memParams snapshot.MemoryDump, format string, args ...any) {
 		msg := fmt.Sprintf(format, args...)
 		loadErrs = append(loadErrs, fmt.Sprintf(
 			"path=%s address=0x%x offset=%d length=%d space=%q: %s",

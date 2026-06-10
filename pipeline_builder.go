@@ -1,10 +1,14 @@
 package coresight
 
 import (
+	"github.com/awmorgan/coresight/snapshot"
+
+	
 	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
+	"strconv"
 )
 
 // archProfileMap is a package-level cache of the core architecture map (shared, read-only after init).
@@ -14,7 +18,7 @@ var snapshotNewPipeline = newPipeline
 
 // PipelineBuilder builds a pipeline from snapshot metadata.
 type PipelineBuilder struct {
-	reader         *SnapshotReader
+	reader         *snapshot.SnapshotReader
 	pipe           *Pipeline
 	packetProcOnly bool
 	bufferFileName string
@@ -36,7 +40,7 @@ type etmPTMRegs struct {
 }
 
 // NewPipelineBuilder creates a new builder for Pipeline from a 
-func NewPipelineBuilder(r *SnapshotReader) *PipelineBuilder {
+func NewPipelineBuilder(r *snapshot.SnapshotReader) *PipelineBuilder {
 	return &PipelineBuilder{
 		reader: r,
 	}
@@ -87,7 +91,7 @@ func (b *PipelineBuilder) Build(sourceName string, packetProcOnly bool) (*Pipeli
 
 	b.packetProcOnly = packetProcOnly
 	b.diagnostics = nil
-	tree, ok := sourceTree(sourceName, b.reader.Trace)
+	tree, ok := snapshot.SourceTree(sourceName, b.reader.Trace)
 	if !ok {
 		return nil, fmt.Errorf("source tree for buffer %q not found", sourceName)
 	}
@@ -135,7 +139,7 @@ func (b *PipelineBuilder) Build(sourceName string, packetProcOnly bool) (*Pipeli
 	return b.pipe, nil
 }
 
-func setReg32(dev *Device, name string, dst *uint32) error {
+func setReg32(dev *snapshot.Device, name string, dst *uint32) error {
 	val, ok := dev.RegValue(name)
 	if !ok {
 		return nil
@@ -150,16 +154,16 @@ func setReg32(dev *Device, name string, dst *uint32) error {
 	return nil
 }
 
-func etmPTMDeviceRegs(dev *Device, defaultIDR uint32) (etmPTMRegs, error) {
+func etmPTMDeviceRegs(dev *snapshot.Device, defaultIDR uint32) (etmPTMRegs, error) {
 	regs := etmPTMRegs{idr: defaultIDR}
 	for _, reg := range []struct {
 		name string
 		dst  *uint32
 	}{
-		{etmv3PTMRegCR, &regs.ctrl},
-		{etmv3PTMRegTraceIDR, &regs.trcID},
-		{etmv3PTMRegIDR, &regs.idr},
-		{etmv3PTMRegCCER, &regs.ccer},
+		{snapshot.Etmv3PTMRegCR, &regs.ctrl},
+		{snapshot.Etmv3PTMRegTraceIDR, &regs.trcID},
+		{snapshot.Etmv3PTMRegIDR, &regs.idr},
+		{snapshot.Etmv3PTMRegCCER, &regs.ccer},
 	} {
 		if err := setReg32(dev, reg.name, reg.dst); err != nil {
 			return etmPTMRegs{}, err
@@ -187,4 +191,8 @@ func getCoreProfile(coreName string) (ArchVersion, CoreProfile) {
 		return ap.Arch, ap.Profile
 	}
 	return ArchUnknown, ProfileUnknown
+}
+
+func parseUint(s string) (uint64, error) {
+	return strconv.ParseUint(strings.TrimSpace(s), 0, 64)
 }

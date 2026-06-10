@@ -1,6 +1,8 @@
-package coresight
+package snapshot
 
-import "strings"
+import (
+		"strings"
+)
 
 type ParsedDevices struct {
 	Version           string

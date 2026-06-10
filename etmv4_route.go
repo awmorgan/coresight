@@ -1,6 +1,9 @@
 package coresight
 
 import (
+	"github.com/awmorgan/coresight/snapshot"
+
+	
 	"fmt"
 
 )
@@ -41,7 +44,7 @@ func (b *PipelineBuilder) buildETMv4Route(spec sourceRouteSpec) (Route, error) {
 	}, nil
 }
 
-func newETMv4Config(coreName string, devSrc *Device) (*etmv4Config, error) {
+func newETMv4Config(coreName string, devSrc *snapshot.Device) (*etmv4Config, error) {
 	regs, err := etmv4DeviceRegs(devSrc)
 	if err != nil {
 		return nil, err
@@ -64,7 +67,7 @@ func newETMv4Config(coreName string, devSrc *Device) (*etmv4Config, error) {
 	), nil
 }
 
-func etmv4DeviceRegs(dev *Device) (etmv4Regs, error) {
+func etmv4DeviceRegs(dev *snapshot.Device) (etmv4Regs, error) {
 	regs := etmv4Regs{
 		idr0:    0x28000EA1,
 		idr1:    0x4100F403,
@@ -75,17 +78,17 @@ func etmv4DeviceRegs(dev *Device) (etmv4Regs, error) {
 		name string
 		dst  *uint32
 	}{
-		{etmv4RegCfg, &regs.configr},
-		{etmv4RegIDR, &regs.traceIDR},
-		{etmv4RegIDR0, &regs.idr0},
-		{etmv4RegIDR1, &regs.idr1},
-		{etmv4RegIDR2, &regs.idr2},
-		{etmv4RegIDR8, &regs.idr8},
-		{etmv4RegIDR9, &regs.idr9},
-		{etmv4RegIDR10, &regs.idr10},
-		{etmv4RegIDR11, &regs.idr11},
-		{etmv4RegIDR12, &regs.idr12},
-		{etmv4RegIDR13, &regs.idr13},
+		{snapshot.Etmv4RegCfg, &regs.configr},
+		{snapshot.Etmv4RegIDR, &regs.traceIDR},
+		{snapshot.Etmv4RegIDR0, &regs.idr0},
+		{snapshot.Etmv4RegIDR1, &regs.idr1},
+		{snapshot.Etmv4RegIDR2, &regs.idr2},
+		{snapshot.Etmv4RegIDR8, &regs.idr8},
+		{snapshot.Etmv4RegIDR9, &regs.idr9},
+		{snapshot.Etmv4RegIDR10, &regs.idr10},
+		{snapshot.Etmv4RegIDR11, &regs.idr11},
+		{snapshot.Etmv4RegIDR12, &regs.idr12},
+		{snapshot.Etmv4RegIDR13, &regs.idr13},
 	} {
 		if err := setReg32(dev, reg.name, reg.dst); err != nil {
 			return etmv4Regs{}, err

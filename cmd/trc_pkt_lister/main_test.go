@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"compress/gzip"
 	"github.com/awmorgan/coresight"
+	"github.com/awmorgan/coresight/snapshot"
 	"io"
 	"os"
 	"path/filepath"
@@ -91,7 +92,7 @@ func TestTraceListerGoldens(t *testing.T) {
 				t.Fatalf("parse golden %s: %v", tc.goldenPath, err)
 			}
 
-			if diffIdx, gotLine, wantLine := coresight.FirstDiff(gotLines, wantLines); diffIdx != 0 {
+			if diffIdx, gotLine, wantLine := firstDiff(gotLines, wantLines); diffIdx != 0 {
 				t.Errorf("Output mismatch at line %d\nwant: %s\n got: %s", diffIdx, wantLine, gotLine)
 				// output files for debugging and comparing files
 				repoRoot := filepath.Join("..", "..")
@@ -430,7 +431,7 @@ func comparableTraceListerOutputFromFile(path string) ([]string, error) {
 			continue
 		}
 
-		records := coresight.SplitIdxRecords(line)
+		records := splitIdxRecords(line)
 		if len(records) > 1 {
 			out = append(out, records...)
 			continue
@@ -599,12 +600,12 @@ func TestMapMemoryRangesSameFileDifferentOffsetsBothMapped(t *testing.T) {
 		t.Fatalf("write memory file: %v", err)
 	}
 
-	reader := &coresight.SnapshotReader{
-		ParsedDeviceList: map[string]*coresight.Device{
+	reader := &snapshot.SnapshotReader{
+		ParsedDeviceList: map[string]*snapshot.Device{
 			"cpu_0": {
 				Name:  "cpu_0",
 				Class: "core",
-				Memory: []coresight.MemoryDump{
+				Memory: []snapshot.MemoryDump{
 					{
 						Path:    "mem.bin",
 						Address: 0x1000,
@@ -646,12 +647,12 @@ func TestMapMemoryRangesBadOffsetReturnsError(t *testing.T) {
 		t.Fatalf("write memory file: %v", err)
 	}
 
-	reader := &coresight.SnapshotReader{
-		ParsedDeviceList: map[string]*coresight.Device{
+	reader := &snapshot.SnapshotReader{
+		ParsedDeviceList: map[string]*snapshot.Device{
 			"cpu_0": {
 				Name:  "cpu_0",
 				Class: "core",
-				Memory: []coresight.MemoryDump{
+				Memory: []snapshot.MemoryDump{
 					{
 						Path:    "mem.bin",
 						Address: 0x1000,
@@ -687,12 +688,12 @@ func TestMapMemoryRangesBadOffsetReturnsError(t *testing.T) {
 func TestMapMemoryRangesUnreadableFileIgnored(t *testing.T) {
 	dir := t.TempDir()
 
-	reader := &coresight.SnapshotReader{
-		ParsedDeviceList: map[string]*coresight.Device{
+	reader := &snapshot.SnapshotReader{
+		ParsedDeviceList: map[string]*snapshot.Device{
 			"cpu_0": {
 				Name:  "cpu_0",
 				Class: "core",
-				Memory: []coresight.MemoryDump{
+				Memory: []snapshot.MemoryDump{
 					{
 						Path:    "missing.bin",
 						Address: 0x1000,
@@ -723,12 +724,12 @@ func TestMapMemoryRangesDuplicateSemanticMappingIgnored(t *testing.T) {
 		t.Fatalf("write memory file: %v", err)
 	}
 
-	reader := &coresight.SnapshotReader{
-		ParsedDeviceList: map[string]*coresight.Device{
+	reader := &snapshot.SnapshotReader{
+		ParsedDeviceList: map[string]*snapshot.Device{
 			"cpu_0": {
 				Name:  "cpu_0",
 				Class: "core",
-				Memory: []coresight.MemoryDump{
+				Memory: []snapshot.MemoryDump{
 					{
 						Path:    "mem.bin",
 						Address: 0x1000,
@@ -761,4 +762,50 @@ func TestMapMemoryRangesDuplicateSemanticMappingIgnored(t *testing.T) {
 	if !strings.Contains(mappings, "0x1000:1003") {
 		t.Fatalf("unexpected mapped range: %s", mappings)
 	}
+}
+
+func firstDiff(got, want []string) (int, string, string) {
+	maxLen := max(len(want), len(got))
+	for i := range maxLen {
+		gotLine, wantLine := lineAt(got, i), lineAt(want, i)
+		if gotLine != wantLine {
+			return i + 1, gotLine, wantLine
+		}
+	}
+	return 0, "", ""
+}
+
+func lineAt(lines []string, i int) string {
+	if i >= len(lines) {
+		return ""
+	}
+	return lines[i]
+}
+
+func splitIdxRecords(line string) []string {
+	var records []string
+	for {
+		start := strings.Index(line, "Idx:")
+		if start < 0 {
+			return records
+		}
+		line = line[start:]
+
+		next := strings.Index(line[len("Idx:"):], "Idx:")
+		if next < 0 {
+			return appendRecord(records, line)
+		}
+
+		end := len("Idx:") + next
+		records = appendRecord(records, line[:end])
+		line = line[end:]
+	}
+}
+
+func appendRecord(records []string, record string) []string {
+	record = strings.TrimSpace(record)
+	if strings.HasPrefix(record, "Idx:") {
+		return append(records, record)
+	}
+	return records
 }

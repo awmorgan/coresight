@@ -1,6 +1,7 @@
-package coresight
+package snapshot
 
 import (
+	
 	"bufio"
 	"io"
 	"strings"

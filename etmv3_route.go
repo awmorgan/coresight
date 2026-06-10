@@ -1,6 +1,9 @@
 package coresight
 
 import (
+	"github.com/awmorgan/coresight/snapshot"
+
+	
 	"fmt"
 
 )
@@ -24,7 +27,7 @@ func (b *PipelineBuilder) buildETMv3Route(spec sourceRouteSpec) (Route, error) {
 	}, nil
 }
 
-func newETMv3Config(coreName string, devSrc *Device) (*etmv3Config, error) {
+func newETMv3Config(coreName string, devSrc *snapshot.Device) (*etmv3Config, error) {
 	regs, err := etmPTMDeviceRegs(devSrc, 0)
 	if err != nil {
 		return nil, err

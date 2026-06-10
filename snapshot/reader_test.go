@@ -1,6 +1,7 @@
-package coresight
+package snapshot
 
 import (
+	
 	"testing"
 	"testing/fstest"
 )

@@ -1,6 +1,9 @@
 package coresight
 
 import (
+	"github.com/awmorgan/coresight/snapshot"
+
+	
 	"fmt"
 	"sort"
 	"strings"
@@ -9,11 +12,11 @@ import (
 type sourceRouteSpec struct {
 	sourceName   string
 	coreName     string
-	sourceDevice *Device
-	coreDevice   *Device
+	sourceDevice *snapshot.Device
+	coreDevice   *snapshot.Device
 }
 
-func (b *PipelineBuilder) sourceRouteSpecs(tree *TraceBufferSourceTree) ([]sourceRouteSpec, []error) {
+func (b *PipelineBuilder) sourceRouteSpecs(tree *snapshot.TraceBufferSourceTree) ([]sourceRouteSpec, []error) {
 	if tree == nil {
 		return nil, []error{fmt.Errorf("source tree is nil")}
 	}
@@ -38,7 +41,7 @@ func (b *PipelineBuilder) sourceRouteSpecs(tree *TraceBufferSourceTree) ([]sourc
 		}
 
 		devType := protocolBase(devSrc.Type)
-		var coreDev *Device
+		var coreDev *snapshot.Device
 		if coreName == "" || coreName == "<none>" {
 			if protocolRequiresCore(devType) {
 				snapshotSkipped = append(snapshotSkipped, fmt.Errorf("source %q has no associated PE core", sourceName))
@@ -75,22 +78,22 @@ func (b *PipelineBuilder) attachSourceRoutes(specs []sourceRouteSpec) (int, []er
 		isSupported := false
 
 		switch devType {
-		case protocolTypePTM, protocolTypePFT:
+		case snapshot.ProtocolTypePTM, snapshot.ProtocolTypePFT:
 			route, err = b.buildPTMRoute(spec)
 			isSupported = true
-		case protocolTypeETMv3:
+		case snapshot.ProtocolTypeETMv3:
 			route, err = b.buildETMv3Route(spec)
 			isSupported = true
-		case protocolTypeETMv4:
+		case snapshot.ProtocolTypeETMv4:
 			route, err = b.buildETMv4Route(spec)
 			isSupported = true
-		case protocolTypeETE:
+		case snapshot.ProtocolTypeETE:
 			route, err = b.buildETERoute(spec)
 			isSupported = true
-		case protocolTypeITM:
+		case snapshot.ProtocolTypeITM:
 			route, err = b.buildITMRoute(spec)
 			isSupported = true
-		case protocolTypeSTM:
+		case snapshot.ProtocolTypeSTM:
 			route, err = b.buildSTMRoute(spec)
 			isSupported = true
 		}
@@ -118,7 +121,7 @@ func (b *PipelineBuilder) attachSourceRoutes(specs []sourceRouteSpec) (int, []er
 
 func protocolRequiresCore(devType string) bool {
 	switch devType {
-	case protocolTypeITM, protocolTypeSTM:
+	case snapshot.ProtocolTypeITM, snapshot.ProtocolTypeSTM:
 		return false
 	default:
 		return true

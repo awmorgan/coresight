@@ -7,9 +7,10 @@ import (
 	"path/filepath"
 
 	"github.com/awmorgan/coresight"
+	"github.com/awmorgan/coresight/snapshot"
 )
 
-func listTracePackets(out io.Writer, reader *coresight.SnapshotReader, opts options, sourceNames []string) error {
+func listTracePackets(out io.Writer, reader *snapshot.SnapshotReader, opts options, sourceNames []string) error {
 	builder, pipe, err := buildSnapshotDecodeTree(reader, opts)
 	if err != nil {
 		return err
@@ -64,7 +65,7 @@ func listTracePackets(out io.Writer, reader *coresight.SnapshotReader, opts opti
 }
 
 func buildSnapshotDecodeTree(
-	reader *coresight.SnapshotReader,
+	reader *snapshot.SnapshotReader,
 	opts options,
 ) (*coresight.PipelineBuilder, *coresight.Pipeline, error) {
 	builder := coresight.NewPipelineBuilder(reader)
@@ -99,7 +100,7 @@ func runSingleSession(
 
 func runMultiSession(
 	out io.Writer,
-	reader *coresight.SnapshotReader,
+	reader *snapshot.SnapshotReader,
 	pipe *coresight.Pipeline,
 	sourceNames []string,
 	genPrinter *coresight.GenericElementPrinter,
