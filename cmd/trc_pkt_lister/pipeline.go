@@ -67,8 +67,8 @@ func listTracePackets(out io.Writer, reader *snapshot.SnapshotReader, opts optio
 func buildSnapshotDecodeTree(
 	reader *snapshot.SnapshotReader,
 	opts options,
-) (*coresight.PipelineBuilder, *coresight.Pipeline, error) {
-	builder := coresight.NewPipelineBuilder(reader)
+) (*snapshot.PipelineBuilder, *coresight.Pipeline, error) {
+	builder := snapshot.NewPipelineBuilder(reader)
 	builder.SetErrOnAA64BadOpcode(opts.aa64OpcodeChk)
 	builder.SetInstrRangeLimit(opts.instrRangeLimit)
 	builder.SetSrcAddrNAtoms(opts.srcAddrNAtoms)

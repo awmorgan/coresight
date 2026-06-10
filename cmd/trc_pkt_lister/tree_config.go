@@ -48,7 +48,7 @@ func configureFrameDemux(pipe *coresight.Pipeline, out io.Writer, opts options) 
 	return nil
 }
 
-func prepareDecodeMode(builder *coresight.PipelineBuilder, reader *snapshot.SnapshotReader, opts options) ([]string, error) {
+func prepareDecodeMode(builder *snapshot.PipelineBuilder, reader *snapshot.SnapshotReader, opts options) ([]string, error) {
 	if !opts.decode {
 		return nil, nil
 	}
@@ -66,7 +66,7 @@ func prepareDecodeMode(builder *coresight.PipelineBuilder, reader *snapshot.Snap
 	return diagnostics, nil
 }
 
-func configureDecodeMode(out io.Writer, builder *coresight.PipelineBuilder, opts options) error {
+func configureDecodeMode(out io.Writer, builder *snapshot.PipelineBuilder, opts options) error {
 	if !opts.decode {
 		return nil
 	}
@@ -189,7 +189,7 @@ func mapMemoryRangesWithDiagnostics(mapper *coresight.GlobalMapper, ssDir string
 			}
 
 			acc := coresight.NewBufferAccessor(coresight.VAddr(memParams.Address), b, space, normPath)
-			if err := mapper.AddAccessor(acc, coresight.BadCSSrcID); err != nil {
+			if err := mapper.AddAccessor(acc); err != nil {
 				if !errors.Is(err, coresight.ErrMemAccOverlap) {
 					return diagnostics, fmt.Errorf("add memory accessor for %s @0x%x: %w", filePath, memParams.Address, err)
 				}

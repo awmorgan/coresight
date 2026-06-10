@@ -13,7 +13,7 @@ func BenchmarkDemuxer_Write(b *testing.B) {
 		flagsByte(0, 0, 0, 0, 0, 1, 1, 1),
 	}
 
-	streams := make([]internalByteSink, 128)
+	streams := make([]ByteSink, 128)
 	dec := newDemuxer(streams)
 	_ = dec.Configure(DemuxOptions{
 		FrameMemAlign: true,

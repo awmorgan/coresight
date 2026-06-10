@@ -77,35 +77,35 @@ func TestOverlapRegions(t *testing.T) {
 
 	// 1) Add single accessor: [0x0000 .. 0x7FFF], EL1N — should succeed.
 	acc1 := NewBufferAccessor(0x0000, tb.el01NS[0], MemSpaceEL1N, "")
-	if err := mapper.AddAccessor(acc1, 0); err != nil {
+	if err := mapper.AddAccessor(acc1); err != nil {
 		t.Fatalf("Adding first accessor should succeed: %v", err)
 	}
 
 	// 2) Overlapping region, same memory space — should fail with ErrMemAccOverlap.
 	//    C++: Acc2 at 0x1000, EL1N, overlaps [0x0000..0x7FFF].
 	acc2 := NewBufferAccessor(0x1000, tb.el01NS[1], MemSpaceEL1N, "")
-	if err := mapper.AddAccessor(acc2, 0); !errors.Is(err, ErrMemAccOverlap) {
+	if err := mapper.AddAccessor(acc2); !errors.Is(err, ErrMemAccOverlap) {
 		t.Fatalf("Overlapping accessor in same space should return ErrMemAccOverlap, got: %v", err)
 	}
 
 	// 3) Non-overlapping region, same memory space — should succeed.
 	//    C++: Acc2 re-ranged to [0x8000 .. 0x8000+BLOCK_SIZE-1].
 	acc2NonOverlap := NewBufferAccessor(0x8000, tb.el01NS[1], MemSpaceEL1N, "")
-	if err := mapper.AddAccessor(acc2NonOverlap, 0); err != nil {
+	if err := mapper.AddAccessor(acc2NonOverlap); err != nil {
 		t.Fatalf("Non-overlapping accessor in same space should succeed: %v", err)
 	}
 
 	// 4) Overlapping region, different specific memory space — should succeed.
 	//    C++: Acc3 at 0x0000, EL1S (different from EL1N already present).
 	acc3 := NewBufferAccessor(0x0000, tb.el01S[0], MemSpaceEL1S, "")
-	if err := mapper.AddAccessor(acc3, 0); err != nil {
+	if err := mapper.AddAccessor(acc3); err != nil {
 		t.Fatalf("Overlapping accessor in different space should succeed: %v", err)
 	}
 
 	// 5) Overlapping region, more general memory space (S) that shares bits with EL1S.
 	//    C++: Acc4 at 0x0000, OCSD_MEM_SPACE_S — should overlap with EL1S.
 	acc4 := NewBufferAccessor(0x0000, tb.el2S[0], MemSpaceS, "")
-	if err := mapper.AddAccessor(acc4, 0); !errors.Is(err, ErrMemAccOverlap) {
+	if err := mapper.AddAccessor(acc4); !errors.Is(err, ErrMemAccOverlap) {
 		t.Fatalf("Overlapping general S accessor should return ErrMemAccOverlap, got: %v", err)
 	}
 
@@ -159,7 +159,7 @@ func TestTrcIDCallbackDispatch(t *testing.T) {
 	mapper := NewGlobalMapper()
 	cbAcc := NewCallbackAccessor(0, 0xFFFFFFFF, MemSpaceAny)
 	cbAcc.SetTraceIDCallback(callback)
-	if err := mapper.AddAccessor(cbAcc, 0); err != nil {
+	if err := mapper.AddAccessor(cbAcc); err != nil {
 		t.Fatalf("Adding callback accessor failed: %v", err)
 	}
 
@@ -263,7 +263,7 @@ func TestMemSpaces(t *testing.T) {
 	mapper := NewGlobalMapper()
 	for i, spec := range specificAccs {
 		acc := NewBufferAccessor(spec.addr, spec.buffer, spec.space, "")
-		if err := mapper.AddAccessor(acc, 0); err != nil {
+		if err := mapper.AddAccessor(acc); err != nil {
 			t.Fatalf("Failed to add accessor %d (addr=0x%x, space=%v): %v", i, spec.addr, spec.space, err)
 		}
 	}
@@ -355,7 +355,7 @@ func TestMemSpaces(t *testing.T) {
 
 	for i, spec := range broaderAccs {
 		acc := NewBufferAccessor(spec.addr, spec.buffer, spec.space, "")
-		if err := mapper.AddAccessor(acc, 0); err != nil {
+		if err := mapper.AddAccessor(acc); err != nil {
 			t.Fatalf("Failed to add broader accessor %d: %v", i, err)
 		}
 	}

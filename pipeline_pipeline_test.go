@@ -29,7 +29,7 @@ func TestCAPIPacketPrintGolden(t *testing.T) {
 		MemSpaceAny,
 		"./snapshots\\juno_r1_1\\kernel_dump.bin",
 	)
-	if err := mapper.AddAccessor(acc, BadCSSrcID); err != nil {
+	if err := mapper.AddAccessor(acc); err != nil {
 		t.Fatalf("add kernel dump accessor: %v", err)
 	}
 	sb.WriteString(mapper.DumpMappings())
@@ -54,7 +54,7 @@ func TestCAPIPacketPrintGolden(t *testing.T) {
 		t.Fatalf("new ETMv4 decoder: %v", err)
 	}
 
-	pipe, err := newPipeline(true, DemuxOptions{FrameMemAlign: true})
+	pipe, err := NewPipeline(true, DemuxOptions{FrameMemAlign: true})
 	if err != nil {
 		t.Fatalf("new pipeline: %v", err)
 	}

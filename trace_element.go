@@ -105,6 +105,21 @@ type SWTItmInfo struct {
 	Overflow     uint8
 }
 
+// ElementPayload holds the protocol-specific data for a decoded trace element.
+// Only the fields relevant to the current ElemType are populated.
+type ElementPayload struct {
+	SWIte         ITEEvent
+	ExceptionNum  uint32
+	TraceEvent    TraceEvent
+	TraceOnReason TraceOnReason
+	SWTraceInfo   SWTInfo
+	NumInstrRange uint32
+	UnsyncEOTInfo UnsyncInfo
+	SyncMarker    TraceMarkerPayload
+	MemTrans      MemoryTransaction
+	SWTItm        SWTItmInfo
+}
+
 // Element is the decoded trace element passed to element sinks.
 type Element struct {
 	ExtendedDataBytes []byte
@@ -114,18 +129,7 @@ type Element struct {
 	EndAddr           VAddr
 	Timestamp         uint64
 
-	Payload struct {
-		SWIte         ITEEvent
-		ExceptionNum  uint32
-		TraceEvent    TraceEvent
-		TraceOnReason TraceOnReason
-		SWTraceInfo   SWTInfo
-		NumInstrRange uint32
-		UnsyncEOTInfo UnsyncInfo
-		SyncMarker    TraceMarkerPayload
-		MemTrans      MemoryTransaction
-		SWTItm        SWTItmInfo
-	}
+	Payload ElementPayload
 
 	ElemType         GenElemType
 	ISA              ISA

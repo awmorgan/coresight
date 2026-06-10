@@ -44,7 +44,7 @@ type pendingP0 struct {
 
 type etmv4Decoder struct {
 	Config      *etmv4Config
-	MemAccess   internalMemoryReader
+	MemAccess   MemoryReader
 	InstrDecode internalInstructionDecoder
 	internalEmitter
 
@@ -82,7 +82,7 @@ type etmv4Decoder struct {
 	flushBuf           []Element
 }
 
-func etmv4NewDecoder(cfg *etmv4Config, mem internalMemoryReader, instr internalInstructionDecoder) (*etmv4Decoder, error) {
+func etmv4NewDecoder(cfg *etmv4Config, mem MemoryReader, instr internalInstructionDecoder) (*etmv4Decoder, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("%w: ETMv4 config cannot be nil", errInvalidParamVal)
 	}

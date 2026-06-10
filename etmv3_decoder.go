@@ -18,7 +18,7 @@ const (
 // etmv3Decoder processes raw trace bytes into ETMv3 packets, then decodes them into Elements.
 type etmv3Decoder struct {
 	Config      *etmv3Config
-	MemAccess   internalMemoryReader
+	MemAccess   MemoryReader
 	InstrDecode internalInstructionDecoder
 	internalEmitter
 
@@ -50,7 +50,7 @@ type etmv3Decoder struct {
 }
 
 // etmv3NewDecoder creates a new ETMv3 decoder instance.
-func etmv3NewDecoder(cfg *etmv3Config, mem internalMemoryReader, instr internalInstructionDecoder) (*etmv3Decoder, error) {
+func etmv3NewDecoder(cfg *etmv3Config, mem MemoryReader, instr internalInstructionDecoder) (*etmv3Decoder, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("%w: ETMv3 config cannot be nil", errInvalidParamVal)
 	}

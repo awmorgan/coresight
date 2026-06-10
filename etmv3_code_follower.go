@@ -10,7 +10,7 @@ const opcodeBytes = 4
 // codeFollower follows the execution path by decoding instructions.
 type codeFollower struct {
 	InstrInfo instrInfo
-	MemAccess internalMemoryReader
+	MemAccess MemoryReader
 	IdDecode  internalInstructionDecoder
 	MemSpace  MemSpaceAcc
 	TraceID   uint8

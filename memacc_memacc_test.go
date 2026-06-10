@@ -50,7 +50,7 @@ func runMemBuffDemo(t *testing.T, sb *strings.Builder, mapper *GlobalMapper) uin
 		t.Fatalf("NewDecoder: %v", err)
 	}
 
-	pipe, err := newPipeline(true, DemuxOptions{
+	pipe, err := NewPipeline(true, DemuxOptions{
 		FrameMemAlign: true,
 	})
 	if err != nil {
@@ -126,11 +126,11 @@ func TestMemBuffDemoGoldens(t *testing.T) {
 		mapper := NewGlobalMapper()
 
 		acc1 := NewBufferAccessor(block1St, kernelDump[:block1Sz], MemSpaceAny, "")
-		if err := mapper.AddAccessor(acc1, BadCSSrcID); err != nil {
+		if err := mapper.AddAccessor(acc1); err != nil {
 			t.Fatalf("AddAccessor block1: %v", err)
 		}
 		acc2 := NewBufferAccessor(block2St, kernelDump[block1Sz:block1Sz+block2Sz], MemSpaceAny, "")
-		if err := mapper.AddAccessor(acc2, BadCSSrcID); err != nil {
+		if err := mapper.AddAccessor(acc2); err != nil {
 			t.Fatalf("AddAccessor block2: %v", err)
 		}
 
@@ -168,7 +168,7 @@ func TestMemBuffDemoGoldens(t *testing.T) {
 			return readBytes
 		})
 
-		if err := mapper.AddAccessor(cbAcc, BadCSSrcID); err != nil {
+		if err := mapper.AddAccessor(cbAcc); err != nil {
 			t.Fatalf("AddAccessor cb: %v", err)
 		}
 

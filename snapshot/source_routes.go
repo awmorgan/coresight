@@ -1,22 +1,21 @@
-package coresight
+package snapshot
 
 import (
-	"github.com/awmorgan/coresight/snapshot"
-
-	
 	"fmt"
 	"sort"
 	"strings"
+
+	"github.com/awmorgan/coresight"
 )
 
 type sourceRouteSpec struct {
 	sourceName   string
 	coreName     string
-	sourceDevice *snapshot.Device
-	coreDevice   *snapshot.Device
+	sourceDevice *Device
+	coreDevice   *Device
 }
 
-func (b *PipelineBuilder) sourceRouteSpecs(tree *snapshot.TraceBufferSourceTree) ([]sourceRouteSpec, []error) {
+func (b *PipelineBuilder) sourceRouteSpecs(tree *TraceBufferSourceTree) ([]sourceRouteSpec, []error) {
 	if tree == nil {
 		return nil, []error{fmt.Errorf("source tree is nil")}
 	}
@@ -41,7 +40,7 @@ func (b *PipelineBuilder) sourceRouteSpecs(tree *snapshot.TraceBufferSourceTree)
 		}
 
 		devType := protocolBase(devSrc.Type)
-		var coreDev *snapshot.Device
+		var coreDev *Device
 		if coreName == "" || coreName == "<none>" {
 			if protocolRequiresCore(devType) {
 				snapshotSkipped = append(snapshotSkipped, fmt.Errorf("source %q has no associated PE core", sourceName))
@@ -66,34 +65,34 @@ func (b *PipelineBuilder) sourceRouteSpecs(tree *snapshot.TraceBufferSourceTree)
 	return specs, snapshotSkipped
 }
 
-func (b *PipelineBuilder) attachSourceRoutes(specs []sourceRouteSpec) (int, []error) {
+func (b *PipelineBuilder) attachSourceRoutes(specs []sourceRouteSpec, mem coresight.MemoryReader) (int, []error) {
 	created := 0
 	var snapshotSkipped []error
 
 	for _, spec := range specs {
 		devType := protocolBase(spec.sourceDevice.Type)
 
-		var route Route
+		var route coresight.Route
 		var err error
 		isSupported := false
 
 		switch devType {
-		case snapshot.ProtocolTypePTM, snapshot.ProtocolTypePFT:
+		case ProtocolTypePTM, ProtocolTypePFT:
 			route, err = b.buildPTMRoute(spec)
 			isSupported = true
-		case snapshot.ProtocolTypeETMv3:
+		case ProtocolTypeETMv3:
 			route, err = b.buildETMv3Route(spec)
 			isSupported = true
-		case snapshot.ProtocolTypeETMv4:
+		case ProtocolTypeETMv4:
 			route, err = b.buildETMv4Route(spec)
 			isSupported = true
-		case snapshot.ProtocolTypeETE:
+		case ProtocolTypeETE:
 			route, err = b.buildETERoute(spec)
 			isSupported = true
-		case snapshot.ProtocolTypeITM:
+		case ProtocolTypeITM:
 			route, err = b.buildITMRoute(spec)
 			isSupported = true
-		case snapshot.ProtocolTypeSTM:
+		case ProtocolTypeSTM:
 			route, err = b.buildSTMRoute(spec)
 			isSupported = true
 		}
@@ -119,9 +118,14 @@ func (b *PipelineBuilder) attachSourceRoutes(specs []sourceRouteSpec) (int, []er
 	return created, snapshotSkipped
 }
 
+func protocolBase(name string) string {
+	base, _, _ := strings.Cut(name, ".")
+	return base
+}
+
 func protocolRequiresCore(devType string) bool {
 	switch devType {
-	case snapshot.ProtocolTypeITM, snapshot.ProtocolTypeSTM:
+	case ProtocolTypeITM, ProtocolTypeSTM:
 		return false
 	default:
 		return true

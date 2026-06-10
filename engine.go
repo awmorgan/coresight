@@ -5,10 +5,6 @@ import (
 
 )
 
-// ElementSink is the public callback type. Because it is route-specific,
-// users can use Go closures to capture core-specific context out-of-band.
-type ElementSink func(elem Element)
-
 // RawFrameHandler is the callback type for observing raw frame bytes.
 type RawFrameHandler func(index uint64, elem RawframeElem, data []byte, traceID uint8) error
 
@@ -52,7 +48,7 @@ func NewEngine(cfg EngineConfig) (*Engine, error) {
 			space = MemSpaceAny
 		}
 		acc := NewReaderAtAccessor(VAddr(m.BaseAddress), m.Size, m.Source, space)
-		if err := mapper.AddAccessor(acc, BadCSSrcID); err != nil {
+		if err := mapper.AddAccessor(acc); err != nil {
 			return nil, fmt.Errorf("failed to add memory accessor: %w", err)
 		}
 	}
@@ -74,7 +70,7 @@ func NewEngine(cfg EngineConfig) (*Engine, error) {
 		}
 	}
 
-	p, err := newPipeline(cfg.FramedInput, demuxOpts)
+	p, err := NewPipeline(cfg.FramedInput, demuxOpts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create pipeline: %w", err)
 	}
@@ -92,7 +88,7 @@ func NewEngine(cfg EngineConfig) (*Engine, error) {
 	}, nil
 }
 
-// Write feeds a block of raw binary trace data directly into the decoding 
+// Write feeds a block of raw binary trace data directly into the decoding pipeline.
 // Execution is entirely synchronous and runs down the call chain to the registered sinks.
 func (e *Engine) Write(p []byte) (int, error) {
 	n, err := e.pipe.Write(e.index, p)
@@ -117,108 +113,75 @@ func (e *Engine) DumpMappings() string {
 	return e.mapper.DumpMappings()
 }
 
+// Mapper returns the GlobalMapper used by this engine.
+// Callers can use it to add additional memory accessors after construction.
+func (e *Engine) Mapper() *GlobalMapper {
+	return e.mapper
+}
+
 // RegisterETMv3 registers an ETMv3 macrocell decoder on a Trace ID.
 func (e *Engine) RegisterETMv3(traceID uint8, cfg ETMv3Config, sink ElementSink) error {
-	if traceID >= 128 {
-		return fmt.Errorf("invalid coresight trace ID: %d", traceID)
-	}
-	internalSink := func(elem Element) { sink(elem) }
-	c := makeETMv3Config(traceID, cfg)
-	dec, err := etmv3NewDecoder(c, e.mapper, decodeInstruction)
+	route, err := NewETMv3Route(traceID, cfg, e.mapper, sink)
 	if err != nil {
-		return fmt.Errorf("failed to create ETMv3 decoder: %w", err)
+		return err
 	}
-	setupObservers(dec, cfg.PacketObserver, cfg.TraceEndObserver, internalSink)
-	e.pipe.AddRoute(Route{
-		TraceID:  traceID,
-		Protocol: ProtocolETMV3,
-		ByteSink: dec,
-	})
+	e.pipe.AddRoute(route)
 	return nil
 }
 
 // RegisterETMv4 registers an ETMv4 macrocell decoder on a Trace ID.
 func (e *Engine) RegisterETMv4(traceID uint8, cfg ETMv4Config, sink ElementSink) error {
-	if traceID >= 128 {
-		return fmt.Errorf("invalid coresight trace ID: %d", traceID)
-	}
-	internalSink := func(elem Element) { sink(elem) }
-	c := makeETMv4Config(traceID, cfg)
-	dec, err := etmv4NewDecoder(c, e.mapper, decodeInstruction)
+	route, err := NewETMv4Route(traceID, cfg, e.mapper, sink)
 	if err != nil {
-		return fmt.Errorf("failed to create ETMv4 decoder: %w", err)
+		return err
 	}
-	setupObservers(dec, cfg.PacketObserver, cfg.TraceEndObserver, internalSink)
-	e.pipe.AddRoute(Route{
-		TraceID:  traceID,
-		Protocol: ProtocolETMV4I,
-		ByteSink: dec,
-	})
+	e.pipe.AddRoute(route)
 	return nil
 }
 
 // RegisterPTM registers a PTM macrocell decoder on a Trace ID.
 func (e *Engine) RegisterPTM(traceID uint8, cfg PTMConfig, sink ElementSink) error {
-	if traceID >= 128 {
-		return fmt.Errorf("invalid coresight trace ID: %d", traceID)
-	}
-	internalSink := func(elem Element) { sink(elem) }
-	c := makePTMConfig(traceID, cfg)
-	dec, err := ptmNewDecoder(c, e.mapper, decodeInstruction)
+	route, err := NewPTMRoute(traceID, cfg, e.mapper, sink)
 	if err != nil {
-		return fmt.Errorf("failed to create PTM decoder: %w", err)
+		return err
 	}
-	setupObservers(dec, cfg.PacketObserver, cfg.TraceEndObserver, internalSink)
-	e.pipe.AddRoute(Route{
-		TraceID:  traceID,
-		Protocol: ProtocolPTM,
-		ByteSink: dec,
-	})
+	e.pipe.AddRoute(route)
 	return nil
 }
 
 // RegisterSTM registers an STM macrocell decoder on a Trace ID.
 func (e *Engine) RegisterSTM(traceID uint8, cfg STMConfig, sink ElementSink) error {
-	if traceID >= 128 {
-		return fmt.Errorf("invalid coresight trace ID: %d", traceID)
-	}
-	internalSink := func(elem Element) { sink(elem) }
-	c := makeSTMConfig(traceID, cfg)
-	dec, err := stmNewDecoder(c)
+	route, err := NewSTMRoute(traceID, cfg, sink)
 	if err != nil {
-		return fmt.Errorf("failed to create STM decoder: %w", err)
+		return err
 	}
-	setupObservers(dec, cfg.PacketObserver, cfg.TraceEndObserver, internalSink)
-	e.pipe.AddRoute(Route{
-		TraceID:  traceID,
-		Protocol: ProtocolSTM,
-		ByteSink: dec,
-	})
+	e.pipe.AddRoute(route)
 	return nil
 }
 
 // RegisterITM registers an ITM macrocell decoder on a Trace ID.
 func (e *Engine) RegisterITM(traceID uint8, cfg ITMConfig, sink ElementSink) error {
-	if traceID >= 128 {
-		return fmt.Errorf("invalid coresight trace ID: %d", traceID)
-	}
-	internalSink := func(elem Element) { sink(elem) }
-	c := makeITMConfig(traceID, cfg)
-	dec, err := itmNewDecoder(c)
+	route, err := NewITMRoute(traceID, cfg, sink)
 	if err != nil {
-		return fmt.Errorf("failed to create ITM decoder: %w", err)
+		return err
 	}
-	setupObservers(dec, cfg.PacketObserver, cfg.TraceEndObserver, internalSink)
-	e.pipe.AddRoute(Route{
-		TraceID:  traceID,
-		Protocol: ProtocolITM,
-		ByteSink: dec,
-	})
+	e.pipe.AddRoute(route)
 	return nil
 }
 
-func setupObservers(dec any, pktObs PacketObserver, endObs func(), sink internalElementSink) {
-	if s, ok := any(dec).(interface{ SetElementSink(internalElementSink) }); ok {
+// RegisterETE registers an ETE macrocell decoder on a Trace ID.
+// ETE is a superset of ETMv4; use ETEConfig (which aliases ETMv4Config) to configure it.
+func (e *Engine) RegisterETE(traceID uint8, cfg ETEConfig, sink ElementSink) error {
+	route, err := NewETERoute(traceID, cfg, e.mapper, sink)
+	if err != nil {
+		return err
+	}
+	e.pipe.AddRoute(route)
+	return nil
+}
+
+func setupObservers(dec any, pktObs PacketObserver, endObs func(), sink ElementSink) {
+	if s, ok := any(dec).(interface{ SetElementSink(ElementSink) }); ok {
 		s.SetElementSink(sink)
 	}
 	if pktObs != nil {
@@ -263,7 +226,7 @@ func makeETMv4Config(traceID uint8, c ETMv4Config) *etmv4Config {
 	if c.CoreProfile != ProfileUnknown {
 		cfg.CoreProf = c.CoreProfile
 	}
-	cfg.errOnAA64BadOpcode = c.errOnAA64BadOpcode
+	cfg.errOnAA64BadOpcode = c.ErrOnAA64BadOpcode
 	cfg.InstrRangeLimit = c.InstrRangeLimit
 	cfg.SrcAddrNAtoms = c.SrcAddrNAtoms
 	return cfg

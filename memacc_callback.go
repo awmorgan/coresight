@@ -7,8 +7,8 @@ import (
 // CallbackAccessor represents a callback trace memory accessor.
 type CallbackAccessor struct {
 	BaseAccessor
-	callback        internalMemoryCallback
-	traceIDCallback internalMemoryCallback
+	callback        MemoryCallback
+	traceIDCallback MemoryCallback
 }
 
 func NewCallbackAccessor(startAddr VAddr, endAddr VAddr, memSpace MemSpaceAcc) *CallbackAccessor {
@@ -34,13 +34,13 @@ func (c *CallbackAccessor) ReadBytes(address VAddr, memSpace MemSpaceAcc, trcID 
 }
 
 // SetCallback sets a callback function that does not take a trace ID.
-func (c *CallbackAccessor) SetCallback(fn internalMemoryCallback) {
+func (c *CallbackAccessor) SetCallback(fn MemoryCallback) {
 	c.callback = fn
 	c.traceIDCallback = nil
 }
 
 // SetTraceIDCallback sets a callback function that includes trace ID.
-func (c *CallbackAccessor) SetTraceIDCallback(fn internalMemoryCallback) {
+func (c *CallbackAccessor) SetTraceIDCallback(fn MemoryCallback) {
 	c.traceIDCallback = fn
 	c.callback = nil
 }

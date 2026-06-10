@@ -75,7 +75,7 @@ func (m *GlobalMapper) Read(address VAddr, trcID uint8, memSpace MemSpaceAcc, re
 	return read, nil
 }
 
-func (m *GlobalMapper) AddAccessor(accessor Accessor, _ uint8) error {
+func (m *GlobalMapper) AddAccessor(accessor Accessor) error {
 	if accessor == nil {
 		return errInvalidParamVal
 	}

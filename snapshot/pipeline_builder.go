@@ -1,30 +1,23 @@
-package coresight
+package snapshot
 
 import (
-	"github.com/awmorgan/coresight/snapshot"
-
-	
 	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
-	"strconv"
+
+	"github.com/awmorgan/coresight"
 )
 
-// archProfileMap is a package-level cache of the core architecture map (shared, read-only after init).
-var archProfileMap = newCoreArchProfileMap()
+var snapshotNewPipeline = coresight.NewPipeline
 
-var snapshotNewPipeline = newPipeline
-
-// PipelineBuilder builds a pipeline from snapshot metadata.
+// PipelineBuilder builds a coresight.Pipeline from snapshot metadata.
 type PipelineBuilder struct {
-	reader         *snapshot.SnapshotReader
-	pipe           *Pipeline
+	reader         *SnapshotReader
+	pipe           *coresight.Pipeline
 	packetProcOnly bool
 	bufferFileName string
-	mapper         *GlobalMapper
-	memIf          internalMemoryReader
-	instrDecode    internalInstructionDecoder
+	mapper         *coresight.GlobalMapper
 	diagnostics    []string
 
 	errOnAA64BadOpcode bool
@@ -32,22 +25,13 @@ type PipelineBuilder struct {
 	srcAddrNAtoms      bool
 }
 
-type etmPTMRegs struct {
-	ctrl  uint32
-	trcID uint32
-	idr   uint32
-	ccer  uint32
+// NewPipelineBuilder creates a new builder for a coresight.Pipeline from a SnapshotReader.
+func NewPipelineBuilder(r *SnapshotReader) *PipelineBuilder {
+	return &PipelineBuilder{reader: r}
 }
 
-// NewPipelineBuilder creates a new builder for Pipeline from a 
-func NewPipelineBuilder(r *snapshot.SnapshotReader) *PipelineBuilder {
-	return &PipelineBuilder{
-		reader: r,
-	}
-}
-
-// Pipeline returns the built 
-func (b *PipelineBuilder) Pipeline() *Pipeline {
+// Pipeline returns the built coresight.Pipeline, or nil if Build has not succeeded.
+func (b *PipelineBuilder) Pipeline() *coresight.Pipeline {
 	return b.pipe
 }
 
@@ -58,7 +42,7 @@ func (b *PipelineBuilder) BufferFileName() string {
 
 // MemoryMapper returns the builder-managed memory mapper used in full decode mode.
 // It returns nil when packet-only mode is selected.
-func (b *PipelineBuilder) MemoryMapper() *GlobalMapper {
+func (b *PipelineBuilder) MemoryMapper() *coresight.GlobalMapper {
 	return b.mapper
 }
 
@@ -67,20 +51,23 @@ func (b *PipelineBuilder) Diagnostics() []string {
 	return append([]string(nil), b.diagnostics...)
 }
 
+// SetErrOnAA64BadOpcode controls whether the decoder returns an error on bad AArch64 opcodes.
 func (b *PipelineBuilder) SetErrOnAA64BadOpcode(enabled bool) {
 	b.errOnAA64BadOpcode = enabled
 }
 
+// SetInstrRangeLimit sets an optional limit on consecutive instructions decoded per range element.
 func (b *PipelineBuilder) SetInstrRangeLimit(limit uint32) {
 	b.instrRangeLimit = limit
 }
 
+// SetSrcAddrNAtoms controls whether source addresses are emitted on N-atom packets.
 func (b *PipelineBuilder) SetSrcAddrNAtoms(enabled bool) {
 	b.srcAddrNAtoms = enabled
 }
 
 // Build builds the pipeline for a specific named source buffer (e.g., "ETB_0").
-func (b *PipelineBuilder) Build(sourceName string, packetProcOnly bool) (*Pipeline, error) {
+func (b *PipelineBuilder) Build(sourceName string, packetProcOnly bool) (*coresight.Pipeline, error) {
 	if !b.reader.ReadOK {
 		return nil, fmt.Errorf("supplied snapshot reader has not correctly read the snapshot")
 	}
@@ -91,16 +78,16 @@ func (b *PipelineBuilder) Build(sourceName string, packetProcOnly bool) (*Pipeli
 
 	b.packetProcOnly = packetProcOnly
 	b.diagnostics = nil
-	tree, ok := snapshot.SourceTree(sourceName, b.reader.Trace)
+	tree, ok := SourceTree(sourceName, b.reader.Trace)
 	if !ok {
 		return nil, fmt.Errorf("source tree for buffer %q not found", sourceName)
 	}
 
-	var demuxOpts DemuxOptions
 	b.bufferFileName = filepath.Join(b.reader.SnapshotPath, tree.BufferInfo.DataFileName)
 
 	dataFormat := strings.ToLower(tree.BufferInfo.DataFormat)
 	framedInput := dataFormat != "source_data"
+	var demuxOpts coresight.DemuxOptions
 	if dataFormat == "dstream_coresight" {
 		demuxOpts.HasFsyncs = true
 	} else {
@@ -113,18 +100,15 @@ func (b *PipelineBuilder) Build(sourceName string, packetProcOnly bool) (*Pipeli
 	}
 	b.pipe = newPipe
 
-	// Create a memory accessor mapper in full-decoder mode only.
 	b.mapper = nil
-	b.memIf = nil
-	b.instrDecode = nil
+	var mem coresight.MemoryReader
 	if !packetProcOnly {
-		b.mapper = NewGlobalMapper()
-		b.memIf = b.mapper
-		b.instrDecode = decodeInstruction
+		b.mapper = coresight.NewGlobalMapper()
+		mem = b.mapper
 	}
 
 	sourceSpecs, snapshotSkipped := b.sourceRouteSpecs(tree)
-	created, routeSkipped := b.attachSourceRoutes(sourceSpecs)
+	created, routeSkipped := b.attachSourceRoutes(sourceSpecs, mem)
 	snapshotSkipped = append(snapshotSkipped, routeSkipped...)
 
 	if created == 0 {
@@ -139,7 +123,9 @@ func (b *PipelineBuilder) Build(sourceName string, packetProcOnly bool) (*Pipeli
 	return b.pipe, nil
 }
 
-func setReg32(dev *snapshot.Device, name string, dst *uint32) error {
+var errNoProtocol = errors.New("trace protocol unsupported")
+
+func setReg32(dev *Device, name string, dst *uint32) error {
 	val, ok := dev.RegValue(name)
 	if !ok {
 		return nil
@@ -154,16 +140,23 @@ func setReg32(dev *snapshot.Device, name string, dst *uint32) error {
 	return nil
 }
 
-func etmPTMDeviceRegs(dev *snapshot.Device, defaultIDR uint32) (etmPTMRegs, error) {
+type etmPTMRegs struct {
+	ctrl  uint32
+	trcID uint32
+	idr   uint32
+	ccer  uint32
+}
+
+func etmPTMDeviceRegs(dev *Device, defaultIDR uint32) (etmPTMRegs, error) {
 	regs := etmPTMRegs{idr: defaultIDR}
 	for _, reg := range []struct {
 		name string
 		dst  *uint32
 	}{
-		{snapshot.Etmv3PTMRegCR, &regs.ctrl},
-		{snapshot.Etmv3PTMRegTraceIDR, &regs.trcID},
-		{snapshot.Etmv3PTMRegIDR, &regs.idr},
-		{snapshot.Etmv3PTMRegCCER, &regs.ccer},
+		{Etmv3PTMRegCR, &regs.ctrl},
+		{Etmv3PTMRegTraceIDR, &regs.trcID},
+		{Etmv3PTMRegIDR, &regs.idr},
+		{Etmv3PTMRegCCER, &regs.ccer},
 	} {
 		if err := setReg32(dev, reg.name, reg.dst); err != nil {
 			return etmPTMRegs{}, err
@@ -172,27 +165,10 @@ func etmPTMDeviceRegs(dev *snapshot.Device, defaultIDR uint32) (etmPTMRegs, erro
 	return regs, nil
 }
 
-func (b *PipelineBuilder) decodeInterfaces() (internalMemoryReader, internalInstructionDecoder) {
+func (b *PipelineBuilder) decodeInterfaces() coresight.MemoryReader {
 	if b.packetProcOnly {
-		return nil, nil
+		return nil
 	}
-	return b.memIf, b.instrDecode
+	return b.mapper
 }
 
-func protocolBase(name string) string {
-	base, _, _ := strings.Cut(name, ".")
-	return base
-}
-
-// getCoreProfile maps a core device type name (e.g. "Cortex-A57") to its architecture version
-// and core profile
-func getCoreProfile(coreName string) (ArchVersion, CoreProfile) {
-	if ap, ok := archProfileMap.ArchProfile(coreName); ok {
-		return ap.Arch, ap.Profile
-	}
-	return ArchUnknown, ProfileUnknown
-}
-
-func parseUint(s string) (uint64, error) {
-	return strconv.ParseUint(strings.TrimSpace(s), 0, 64)
-}

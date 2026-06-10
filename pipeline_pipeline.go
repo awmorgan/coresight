@@ -1,22 +1,24 @@
 package coresight
 
 
-// Route links a Trace ID to its processors.
+// Route links a Trace ID to its protocol decoder.
 type Route struct {
 	TraceID  uint8
 	Protocol TraceProtocol
-	ByteSink internalByteSink
+	ByteSink ByteSink
 }
 
 // Pipeline orchestrates the demuxer and registered decoders.
 type Pipeline struct {
 	Demuxer        *Demuxer
 	Routes         []Route
-	sinksByTraceID [MaxTraceID]internalByteSink
+	sinksByTraceID [MaxTraceID]ByteSink
 	FramedInput    bool
 }
 
-func newPipeline(framedInput bool, opts DemuxOptions) (*Pipeline, error) {
+// NewPipeline creates a configured Pipeline. framedInput selects TPIU
+// frame demultiplexing; opts configures the demuxer when framedInput is true.
+func NewPipeline(framedInput bool, opts DemuxOptions) (*Pipeline, error) {
 	p := &Pipeline{FramedInput: framedInput}
 	if framedInput {
 		p.Demuxer = newDemuxer(p.sinksByTraceID[:])
@@ -54,17 +56,17 @@ func (p *Pipeline) Close() error {
 	if p.FramedInput && p.Demuxer != nil {
 		return p.Demuxer.Close()
 	}
-	return p.controlRoutes(func(s internalByteSink) error { return s.Close() })
+	return p.controlRoutes(func(s ByteSink) error { return s.Close() })
 }
 
 func (p *Pipeline) Reset(index Index) error {
 	if p.FramedInput && p.Demuxer != nil {
 		return p.Demuxer.Reset(index)
 	}
-	return p.controlRoutes(func(s internalByteSink) error { return s.Reset(index) })
+	return p.controlRoutes(func(s ByteSink) error { return s.Reset(index) })
 }
 
-func (p *Pipeline) controlRoutes(op func(internalByteSink) error) error {
+func (p *Pipeline) controlRoutes(op func(ByteSink) error) error {
 	var outErr error
 	for _, r := range p.Routes {
 		if r.ByteSink == nil {
@@ -78,9 +80,9 @@ func (p *Pipeline) controlRoutes(op func(internalByteSink) error) error {
 }
 
 // SetElementSink attaches the sink to all decoders that support it.
-func (p *Pipeline) SetElementSink(sink internalElementSink) {
+func (p *Pipeline) SetElementSink(sink ElementSink) {
 	for _, r := range p.Routes {
-		if s, ok := r.ByteSink.(interface{ SetElementSink(internalElementSink) }); ok {
+		if s, ok := r.ByteSink.(interface{ SetElementSink(ElementSink) }); ok {
 			s.SetElementSink(sink)
 		}
 	}

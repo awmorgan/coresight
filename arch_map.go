@@ -59,6 +59,18 @@ func newCoreArchProfileMap() *coreArchProfileMap {
 	return &coreArchProfileMap{coreMap: m}
 }
 
+// archProfileMap is a package-level cache of the core architecture map (shared, read-only after init).
+var archProfileMap = newCoreArchProfileMap()
+
+// LookupCoreProfile maps a core device type name (e.g. "Cortex-A57") to its
+// ArchVersion and CoreProfile.
+func LookupCoreProfile(coreName string) (ArchVersion, CoreProfile) {
+	if ap, ok := archProfileMap.ArchProfile(coreName); ok {
+		return ap.Arch, ap.Profile
+	}
+	return ArchUnknown, ProfileUnknown
+}
+
 // ArchProfile returns the architecture profile for a given core name.
 func (m *coreArchProfileMap) ArchProfile(coreName string) (archProfile, bool) {
 	if val, ok := m.coreMap[coreName]; ok {

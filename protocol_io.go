@@ -7,12 +7,12 @@ import (
 
 // internalEmitter holds the observers shared by packet decoders.
 type internalEmitter struct {
-	ElementSink      internalElementSink
+	ElementSink      ElementSink
 	PacketObserver   PacketObserver
 	TraceEndObserver func()
 }
 
-func (o *internalEmitter) SetElementSink(sink internalElementSink) {
+func (o *internalEmitter) SetElementSink(sink ElementSink) {
 	o.ElementSink = sink
 }
 

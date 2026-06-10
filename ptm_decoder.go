@@ -37,7 +37,7 @@ type ptmDecoder struct {
 	ctx ptmParseContext
 
 	// ptmPacket decoding state
-	MemAccess      internalMemoryReader
+	MemAccess      MemoryReader
 	InstrDecode    internalInstructionDecoder
 	IndexCurrPkt   Index
 	CurrPacketIn   *ptmPacket
@@ -60,7 +60,7 @@ type ptmDecoder struct {
 	fetchBuf [4]byte
 }
 
-func ptmNewDecoder(cfg *ptmConfig, mem internalMemoryReader, instr internalInstructionDecoder) (*ptmDecoder, error) {
+func ptmNewDecoder(cfg *ptmConfig, mem MemoryReader, instr internalInstructionDecoder) (*ptmDecoder, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("%w: PTM config cannot be nil", errInvalidParamVal)
 	}

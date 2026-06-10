@@ -22,7 +22,7 @@ func BenchmarkPTM_PipelineDecode_Snowball(b *testing.B) {
 		MemSpaceAny,
 		"",
 	)
-	if err := mapper.AddAccessor(acc, BadCSSrcID); err != nil {
+	if err := mapper.AddAccessor(acc); err != nil {
 		b.Fatalf("add kernel dump accessor: %v", err)
 	}
 
@@ -41,7 +41,7 @@ func BenchmarkPTM_PipelineDecode_Snowball(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		pipe, err := newPipeline(true, DemuxOptions{FrameMemAlign: true})
+		pipe, err := NewPipeline(true, DemuxOptions{FrameMemAlign: true})
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -73,7 +73,7 @@ func BenchmarkETMv4_PipelineDecode_Juno(b *testing.B) {
 		MemSpaceAny,
 		"",
 	)
-	if err := mapper.AddAccessor(acc, BadCSSrcID); err != nil {
+	if err := mapper.AddAccessor(acc); err != nil {
 		b.Fatalf("add kernel dump accessor: %v", err)
 	}
 
@@ -88,7 +88,7 @@ func BenchmarkETMv4_PipelineDecode_Juno(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		pipe, err := newPipeline(true, DemuxOptions{FrameMemAlign: true})
+		pipe, err := NewPipeline(true, DemuxOptions{FrameMemAlign: true})
 		if err != nil {
 			b.Fatal(err)
 		}

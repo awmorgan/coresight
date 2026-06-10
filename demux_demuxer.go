@@ -25,7 +25,7 @@ type Demuxer struct {
 	outUnpackedRaw bool
 	rawChanEnable  []bool
 
-	streams         []internalByteSink
+	streams         []ByteSink
 	rawFrameHandler internalFrameObserver
 
 	trcCurrIdx  Index
@@ -43,7 +43,7 @@ type Demuxer struct {
 	unpackBuf [16]byte
 }
 
-func newDemuxer(streams []internalByteSink) *Demuxer {
+func newDemuxer(streams []ByteSink) *Demuxer {
 	d := &Demuxer{
 		rawChanEnable: make([]bool, maxTraceID),
 		streams:       streams,
@@ -113,18 +113,18 @@ func (d *Demuxer) outputRawMonBytes(index Index, frameElem RawframeElem, data []
 }
 
 func (d *Demuxer) flushAllIDs() error {
-	return d.controlAllIDs(func(stream internalByteSink) error { return stream.Flush() })
+	return d.controlAllIDs(func(stream ByteSink) error { return stream.Flush() })
 }
 
 func (d *Demuxer) resetAllIDs(index Index) error {
-	return d.controlAllIDs(func(stream internalByteSink) error { return stream.Reset(index) })
+	return d.controlAllIDs(func(stream ByteSink) error { return stream.Reset(index) })
 }
 
 func (d *Demuxer) closeAllIDs() error {
-	return d.controlAllIDs(func(stream internalByteSink) error { return stream.Close() })
+	return d.controlAllIDs(func(stream ByteSink) error { return stream.Close() })
 }
 
-func (d *Demuxer) controlAllIDs(streamOp func(internalByteSink) error) error {
+func (d *Demuxer) controlAllIDs(streamOp func(ByteSink) error) error {
 	var outErr error
 	for _, stream := range d.streams {
 		if stream == nil {
@@ -306,7 +306,7 @@ func (d *Demuxer) dataByteWithFlag(i int, frameFlagBit uint8) byte {
 	return b
 }
 
-func (d *Demuxer) outputStream(id uint8) internalByteSink {
+func (d *Demuxer) outputStream(id uint8) ByteSink {
 	if !validTraceID(id) {
 		return nil
 	}

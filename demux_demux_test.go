@@ -134,7 +134,7 @@ func TestTraceDemuxGoldens(t *testing.T) {
 	logMsg("Check bad combination flag error: PASS\n")
 
 	var d *Demuxer
-	streams := make([]internalByteSink, 128)
+	streams := make([]ByteSink, 128)
 
 	// Helper to setup active decoder
 	setupDecoder := func(opts DemuxOptions) *Demuxer {
