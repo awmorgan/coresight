@@ -2,7 +2,6 @@ package coresight
 
 import (
 	"fmt"
-
 )
 
 // instrInfo structure moved from trace package.
@@ -30,7 +29,6 @@ type archProfile struct {
 	Profile CoreProfile
 }
 
-func isV8Arch(arch ArchVersion) bool              { return arch >= ArchV8 && arch <= ArchV8max }
 func isArchMinVer(arch, minArch ArchVersion) bool { return arch >= minArch }
 
 const (
@@ -116,15 +114,11 @@ const (
 
 const (
 	BadIndex   Index = ^Index(0)
-	MaxTraceID             = 128
+	MaxTraceID       = 128
 )
 
 func IsValidCSSrcID(id uint8) bool {
 	return id > 0 && id < 0x70
-}
-
-func isReservedCSSrcID(id uint8) bool {
-	return id == 0 || (id >= 0x70 && id <= 0x7F)
 }
 
 const (

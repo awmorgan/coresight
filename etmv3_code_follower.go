@@ -3,7 +3,6 @@ package coresight
 import (
 	"encoding/binary"
 	"errors"
-
 )
 
 const opcodeBytes = 4
@@ -35,11 +34,6 @@ type followResult struct {
 	RangeEn   VAddr
 	NextAddr  VAddr
 	InstrInfo instrInfo
-}
-
-// setDSBDMBasWP configures the follower to treat DSB/DMB as waypoints.
-func (cf *codeFollower) setDSBDMBasWP() {
-	cf.InstrInfo.DsbDmbWaypoints = 1
 }
 
 // decodeSingleOpCode decodes a single opcode at instrInfo.InstrAddr.

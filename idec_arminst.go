@@ -1,6 +1,5 @@
 package coresight
 
-
 // decodeInfo provides supplementary decode information
 type decodeInfo struct {
 	ArchVersion  ArchVersion
@@ -88,11 +87,6 @@ func instARMIsIndirectBranch(inst uint32, info *decodeInfo) bool {
 	}
 }
 
-func instThumbIsDirectBranch(inst uint32, info *decodeInfo) bool {
-	isBranch, _, _ := instThumbIsDirectBranchLink(inst, info)
-	return isBranch
-}
-
 func instThumbIsDirectBranchLink(inst uint32, info *decodeInfo) (isBranch, isLink, isCond bool) {
 	switch {
 	case (inst&0xf0000000) == 0xd0000000 && (inst&0x0e000000) != 0x0e000000:
@@ -133,11 +127,6 @@ func instThumbWfiWfe(inst uint32) bool {
 	// WFI, WFE may be branches in etm4.3++.
 	return inst&0xfffffffe == 0xf3af8002 || // encoding T2
 		inst&0xffef0000 == 0xbf200000 // encoding T1
-}
-
-func instThumbIsIndirectBranch(inst uint32, info *decodeInfo) bool {
-	isBranch, _ := instThumbIsIndirectBranchLink(inst, info)
-	return isBranch
 }
 
 func instThumbIsIndirectBranchLink(inst uint32, info *decodeInfo) (isBranch, isLink bool) {
@@ -203,11 +192,6 @@ func instThumbIsIndirectBranchLink(inst uint32, info *decodeInfo) (isBranch, isL
 	}
 }
 
-func instA64IsDirectBranch(inst uint32, info *decodeInfo) bool {
-	isBranch, _ := instA64IsDirectBranchLink(inst, info)
-	return isBranch
-}
-
 func instA64IsCmpBr(inst uint32) bool {
 	opcode := inst & 0xFF000000
 	desc := inst & 0x0000C000
@@ -264,11 +248,6 @@ func instA64WfiWfe(inst uint32, info *decodeInfo) bool {
 
 func instA64Tstart(inst uint32) bool {
 	return (inst & 0xffffffe0) == 0xd5233060
-}
-
-func instA64IsIndirectBranch(inst uint32, info *decodeInfo) bool {
-	isBranch, _ := instA64IsIndirectBranchLink(inst, info)
-	return isBranch
 }
 
 func instA64IsIndirectBranchLink(inst uint32, info *decodeInfo) (isBranch, isLink bool) {
@@ -438,18 +417,6 @@ func instA64BranchDestination(addr uint64, inst uint32, pnpc *uint64) bool {
 	return true
 }
 
-func instARMIsBranch(inst uint32, info *decodeInfo) bool {
-	return instARMIsIndirectBranch(inst, info) || instARMIsDirectBranch(inst)
-}
-
-func instThumbIsBranch(inst uint32, info *decodeInfo) bool {
-	return instThumbIsIndirectBranch(inst, info) || instThumbIsDirectBranch(inst, info)
-}
-
-func instA64IsBranch(inst uint32, info *decodeInfo) bool {
-	return instA64IsIndirectBranch(inst, info) || instA64IsDirectBranch(inst, info)
-}
-
 func instARMIsBranchAndLink(inst uint32, info *decodeInfo) bool {
 	switch {
 	case (inst&0xf0000000) == 0xf0000000 && (inst&0xfe000000) == 0xfa000000, // BLX (imm)
@@ -457,38 +424,6 @@ func instARMIsBranchAndLink(inst uint32, info *decodeInfo) bool {
 		(inst & 0x0ff000f0) == 0x01200030: // BLX (reg)
 		info.InstrSubType = SInstrBrLink
 		return true
-	default:
-		return false
-	}
-}
-
-func instThumbIsBranchAndLink(inst uint32, info *decodeInfo) bool {
-	switch {
-	case (inst & 0xff800000) == 0x47800000, // BLX (reg)
-		(inst & 0xf800c000) == 0xf000c000: // BL, BLX (imm)
-		info.InstrSubType = SInstrBrLink
-		return true
-	default:
-		return false
-	}
-}
-
-func instA64IsBranchAndLink(inst uint32, info *decodeInfo) bool {
-	switch {
-	case (inst & 0xfffffc1f) == 0xd63f0000, // BLR
-		(inst & 0xfc000000) == 0x94000000: // BL
-		info.InstrSubType = SInstrBrLink
-		return true
-	case isArchMinVer(info.ArchVersion, ArchV8r3):
-		// new pointer auth instr for v8.3 arch
-		switch {
-		case (inst & 0xfffff800) == 0xd73f0800, // BLRAA, BLRBB
-			(inst & 0xfffff81F) == 0xd63f081F: // BLRAAZ, BLRBBZ
-			info.InstrSubType = SInstrBrLink
-			return true
-		default:
-			return false
-		}
 	default:
 		return false
 	}
@@ -611,24 +546,3 @@ func instA64Barrier(inst uint32) armBarrierT {
 	}
 }
 
-func instARMIsUDF(inst uint32) bool {
-	return (inst & 0xfff000f0) == 0xe7f000f0
-}
-
-func instThumbIsUDF(inst uint32) bool {
-	switch {
-	case (inst & 0xff000000) == 0xde000000:
-		return true // T1
-	case (inst & 0xfff0f000) == 0xf7f0a000:
-		return true // T2
-	default:
-		return false
-	}
-}
-
-func instA64IsUDF(inst uint32) bool {
-	// No A64 encodings are formally allocated as permanently undefined,
-	// but gocsd treats the low and high 21-bit regions as undefined.
-	return (inst&0xffe00000) == 0x00000000 ||
-		(inst&0xffe00000) == 0xffe00000
-}

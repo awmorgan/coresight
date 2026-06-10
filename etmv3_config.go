@@ -30,33 +30,6 @@ const (
 	idrAltBranch uint32 = 0x100000
 )
 
-type etmv3TraceMode int
-
-const (
-	etmv3TMInstrOnly etmv3TraceMode = iota
-	etmv3TMIDataVal
-	etmv3TMIDataAddr
-	etmv3TMIDataValAddr
-	etmv3TMDataOnlyVal
-	etmv3TMDataOnlyAddr
-	etmv3TMDataOnlyValAddr
-)
-
-// etmv3TraceMode returns the combination enum describing the trace mode.
-func (c *etmv3Config) etmv3TraceMode() etmv3TraceMode {
-	mode := 0
-	if c.DataValTrace() {
-		mode += 1
-	}
-	if c.DataAddrTrace() {
-		mode += 2
-	}
-	if !c.InstrTrace() {
-		mode += 3
-	}
-	return etmv3TraceMode(mode)
-}
-
 func (c *etmv3Config) InstrTrace() bool    { return (c.RegCtrl & ctrlDataOnly) == 0 }
 func (c *etmv3Config) DataValTrace() bool  { return (c.RegCtrl & ctrlDataVal) != 0 }
 func (c *etmv3Config) DataAddrTrace() bool { return (c.RegCtrl & ctrlDataAddr) != 0 }

@@ -2,7 +2,6 @@ package coresight
 
 import (
 	"fmt"
-
 )
 
 type eteConfig struct {
@@ -27,20 +26,6 @@ func eteParseConfig(traceID, configr, idr0, idr1, idr2, idr8, devarch uint32, ar
 	)
 	cfg.RegDevArch = devarch
 	return &eteConfig{etmv4Config: cfg}
-}
-
-func eteNewDefaultConfig() *eteConfig {
-	return eteParseConfig(
-		0,
-		0xC1,
-		0x28000EA1,
-		0x4100FFF3,
-		0x00000488,
-		0,
-		0x47705A13,
-		ArchAA64,
-		ProfileCortexA,
-	)
 }
 
 func (c *eteConfig) String() string {

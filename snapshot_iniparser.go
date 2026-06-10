@@ -21,10 +21,6 @@ func newIniFile() *iniFile {
 	}
 }
 
-func (ini *iniFile) section(sectionName string) map[string]string {
-	return ini.Sections[sectionName]
-}
-
 func (ini *iniFile) ensureSection(name string) {
 	if _, ok := ini.Sections[name]; ok {
 		return

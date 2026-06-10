@@ -1,20 +1,19 @@
 package coresight
 
-
 const (
 	ctrlBranchBcast = 1 << 8
-	ptmCtrlCycleAcc    = 1 << 12
-	ptmCtrlTsEna       = 1 << 28
+	ptmCtrlCycleAcc = 1 << 12
+	ptmCtrlTsEna    = 1 << 28
 	ctrlRetStackEna = 1 << 29
-	ptmCtrlVmidEna     = 1 << 30
+	ptmCtrlVmidEna  = 1 << 30
 
 	ccerTsImpl      = 1 << 22
 	ccerRestackImpl = 1 << 23
 	ccerDmsbWpt     = 1 << 24
 	ccerTsDmsb      = 1 << 25
-	ptmCcerVirtExt     = 1 << 26
+	ptmCcerVirtExt  = 1 << 26
 	ccerTsEncNat    = 1 << 28
-	ptmCcerTs64Bit     = 1 << 29
+	ptmCcerTs64Bit  = 1 << 29
 )
 
 // ptmConfig represents the trace capture time configuration of a PTM hardware component.
@@ -62,16 +61,4 @@ func ptmParseConfig(traceID, idr, ctrl, ccer uint32, arch ArchVersion, prof Core
 		DmsbGenTS:      (ccer & ccerTsDmsb) != 0,
 		DmsbWayPt:      (ccer & ccerDmsbWpt) != 0,
 	}
-}
-
-// ptmNewDefaultConfig replicates the C++ default constructor, setting ETMv1.1 and V7A defaults.
-func ptmNewDefaultConfig() *ptmConfig {
-	return ptmParseConfig(
-		0,
-		0x4100F310,
-		0,
-		0,
-		ArchV7,
-		ProfileCortexA,
-	)
 }
