@@ -191,56 +191,75 @@ func (d *Demuxer) Write(index Index, dataBlock []byte) (uint32, error) {
 		combinedBlock = dataBlock
 	}
 
-	totalLen := uint32(len(combinedBlock))
-	processSize := totalLen - (totalLen % d.alignment)
-	if processSize == 0 {
-		d.pending = append(d.pending, dataBlock...)
-		d.lastWriteEndIndex = index + Index(len(dataBlock))
-		d.lastWriteProcessedEndIndex = index
-		return 0, nil
-	}
-
-	processedFromDataBlock := int(processSize) - origPendingLen
-
-	remainingTail := combinedBlock[processSize:]
-	if len(remainingTail) > 0 {
-		newPending := make([]byte, len(remainingTail))
-		copy(newPending, remainingTail)
-		d.pending = newPending
-	} else {
-		d.pending = nil
-	}
-
 	d.trcCurrIdx = index - Index(origPendingLen)
-	d.inBlock = combinedBlock[:processSize]
+	d.inBlock = combinedBlock
 
 	if !d.checkForSync() {
+		if len(d.inBlock) > 0 {
+			newPending := make([]byte, len(d.inBlock))
+			copy(newPending, d.inBlock)
+			d.pending = newPending
+		} else {
+			d.pending = nil
+		}
+		processedFromDataBlock := max(int(d.trcCurrIdx-index), 0)
 		d.lastWriteEndIndex = index + Index(len(dataBlock))
 		d.lastWriteProcessedEndIndex = index + Index(processedFromDataBlock)
 		return uint32(processedFromDataBlock), nil
 	}
 
+	var err error
 	for len(d.inBlock) > 0 {
-		processing, err := d.extractFrame()
-		if err != nil {
-			d.lastWriteEndIndex = index + Index(len(dataBlock))
-			d.lastWriteProcessedEndIndex = index + Index(processedFromDataBlock)
-			return uint32(processedFromDataBlock), err
+		limit := len(d.inBlock)
+		if d.exFrmBytes == 0 {
+			limit -= d.partialSyncLen()
+		}
+
+		if d.opts.FrameMemAlign {
+			if limit < int(dfrmtrFrameSize) {
+				break
+			}
+		} else {
+			limit = limit - (limit % 2)
+			if limit < 2 {
+				break
+			}
+		}
+
+		origInBlock := d.inBlock
+		d.inBlock = origInBlock[:limit]
+
+		processing, extractErr := d.extractFrame()
+
+		consumed := limit - len(d.inBlock)
+		d.inBlock = origInBlock[consumed:]
+
+		if extractErr != nil {
+			err = extractErr
+			break
 		}
 		if processing {
-			if err := d.unpackAndOutputFrame(); err != nil {
-				d.lastWriteEndIndex = index + Index(len(dataBlock))
-				d.lastWriteProcessedEndIndex = index + Index(processedFromDataBlock)
-				return uint32(processedFromDataBlock), err
+			if unpackErr := d.unpackAndOutputFrame(); unpackErr != nil {
+				err = unpackErr
+				break
 			}
 		} else {
 			break
 		}
 	}
 
+	if len(d.inBlock) > 0 {
+		newPending := make([]byte, len(d.inBlock))
+		copy(newPending, d.inBlock)
+		d.pending = newPending
+	} else {
+		d.pending = nil
+	}
+
+	processedFromDataBlock := max(int(d.trcCurrIdx-index), 0)
 	d.lastWriteEndIndex = index + Index(len(dataBlock))
 	d.lastWriteProcessedEndIndex = index + Index(processedFromDataBlock)
-	return uint32(processedFromDataBlock), nil
+	return uint32(processedFromDataBlock), err
 }
 
 // Close forwards an EOT operation through the legacy multiplexer.
@@ -361,4 +380,28 @@ func (d *Demuxer) outputStream(id uint8) ByteSink {
 		return nil
 	}
 	return d.streams[id]
+}
+
+func (d *Demuxer) partialSyncLen() int {
+	n := len(d.inBlock)
+	if n == 0 {
+		return 0
+	}
+	if d.opts.HasFsyncs {
+		if n >= 3 && d.inBlock[n-3] == 0xff && d.inBlock[n-2] == 0xff && d.inBlock[n-1] == 0xff {
+			return 3
+		}
+		if n >= 2 && d.inBlock[n-2] == 0xff && d.inBlock[n-1] == 0xff {
+			return 2
+		}
+		if n >= 1 && d.inBlock[n-1] == 0xff {
+			return 1
+		}
+	}
+	if d.opts.HasHsyncs {
+		if n >= 1 && d.inBlock[n-1] == 0xff {
+			return 1
+		}
+	}
+	return 0
 }

@@ -48,16 +48,22 @@ func (d *Demuxer) unsyncedPrefixLenForForcedSync() uint32 {
 }
 
 func (d *Demuxer) findfirstFSync() uint32 {
-	if len(d.inBlock) < len(fSyncPatternBytes) {
-		return uint32(len(d.inBlock))
-	}
-
 	idx := bytes.Index(d.inBlock, fSyncPatternBytes)
 	if idx >= 0 {
 		d.frameSynced = true
 		return uint32(idx)
 	}
-	return uint32(len(d.inBlock) - len(fSyncPatternBytes) + 1)
+
+	for s := len(fSyncPatternBytes) - 1; s >= 1; s-- {
+		if len(d.inBlock) >= s {
+			suffix := d.inBlock[len(d.inBlock)-s:]
+			if bytes.Equal(suffix, fSyncPatternBytes[:s]) {
+				return uint32(len(d.inBlock) - s)
+			}
+		}
+	}
+
+	return uint32(len(d.inBlock))
 }
 
 func (d *Demuxer) checkForResetFSyncPatterns() (uint32, error) {

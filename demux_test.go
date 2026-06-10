@@ -531,3 +531,179 @@ func TestTraceDemuxStreaming(t *testing.T) {
 		}
 	})
 }
+
+func TestTraceDemuxSplitSync(t *testing.T) {
+	normalizePrinterOutput := func(s string) string {
+		lines := strings.Split(s, "\n")
+		var filtered []string
+		for _, line := range lines {
+			if strings.Contains(line, "RAW_PACKED") {
+				continue
+			}
+			trimmed := strings.TrimSpace(line)
+			if trimmed == "" {
+				continue
+			}
+			// Skip line wraps of RAW_PACKED hex bytes
+			isHexWrap := true
+			parts := strings.FieldsSeq(trimmed)
+			for part := range parts {
+				if len(part) != 2 {
+					isHexWrap = false
+					break
+				}
+				for _, r := range part {
+					if (r < '0' || r > '9') && (r < 'a' || r > 'f') && (r < 'A' || r > 'F') {
+						isHexWrap = false
+						break
+					}
+				}
+			}
+			if isHexWrap {
+				continue
+			}
+			filtered = append(filtered, line)
+		}
+		return strings.Join(filtered, "\n")
+	}
+
+	// Base data with FSYNC
+	fsyncData := appendSlice(nil,
+		[]byte{0x00, 0x11}, // some noise before sync (unaligned, odd length)
+		fsyncBytes,
+		[]byte{idByteID(0x10), 0x01, idByteData(0x02), 0x03},
+		[]byte{idByteData(0x04), 0x05, idByteData(0x06), 0x07},
+		[]byte{idByteID(0x20), 0x08, idByteData(0x09), 0x0A},
+		[]byte{idByteData(0x0B), 0x0C, idByteData(0x0D)},
+		[]byte{flagsByte(0, 0, 0, 0, 0, 1, 1, 1)},
+	)
+
+	fsyncOpts := DemuxOptions{
+		HasFsyncs:      true,
+		PackedRawOut:   true,
+		UnpackedRawOut: true,
+	}
+
+	// Baseline for FSYNC
+	baselineFsyncPrinter, baselineFsyncStreams, err := runDemuxTest(fsyncOpts, fsyncData, len(fsyncData), true, false)
+	if err != nil {
+		t.Fatalf("Failed to run baseline FSYNC: %v", err)
+	}
+	normalizedBaselineFsyncPrinter := normalizePrinterOutput(baselineFsyncPrinter)
+
+	// Test splitting FSYNC data at every possible byte boundary across two writes
+	for i := 1; i < len(fsyncData); i++ {
+		t.Run(fmt.Sprintf("FsyncSplitAt_%d", i), func(t *testing.T) {
+			var sb strings.Builder
+			streams := make([]ByteSink, 128)
+			mockStreams := make(map[uint8]*mockStream)
+			for j := range streams {
+				ms := &mockStream{}
+				streams[j] = ms
+				mockStreams[uint8(j)] = ms
+			}
+
+			dec := newDemuxer(streams)
+			if err := dec.Configure(fsyncOpts); err != nil {
+				t.Fatalf("Configure failed: %v", err)
+			}
+			fp := NewRawFramePrinter(&sb)
+			dec.SetRawFrameHandler(fp.WriteRawFrame)
+
+			// Write 1
+			_, err = dec.Write(0, fsyncData[:i])
+			if err != nil {
+				t.Fatalf("Write 1 failed: %v", err)
+			}
+			// Write 2
+			_, err = dec.Write(Index(i), fsyncData[i:])
+			if err != nil {
+				t.Fatalf("Write 2 failed: %v", err)
+			}
+			if err := dec.Close(); err != nil {
+				t.Fatalf("Close failed: %v", err)
+			}
+
+			actualPrinter := normalizePrinterOutput(sb.String())
+			if actualPrinter != normalizedBaselineFsyncPrinter {
+				t.Errorf("Printer output mismatch\nExpected:\n%s\nActual:\n%s", normalizedBaselineFsyncPrinter, actualPrinter)
+			}
+			for id, baselineData := range baselineFsyncStreams {
+				actualData := mockStreams[id].chunks
+				if !bytes.Equal(actualData, baselineData) {
+					t.Errorf("Stream %d mismatch: expected %v, got %v", id, baselineData, actualData)
+				}
+			}
+		})
+	}
+
+	// Base data with HSYNC
+	hsyncData := appendSlice(nil,
+		[]byte{0x00, 0x11}, // some noise before sync
+		hsyncBytes,
+		[]byte{idByteID(0x10), 0x01, idByteData(0x02), 0x03},
+		[]byte{idByteData(0x04), 0x05, idByteData(0x06), 0x07},
+		[]byte{idByteID(0x20), 0x08, idByteData(0x09), 0x0A},
+		[]byte{idByteData(0x0B), 0x0C, idByteData(0x0D)},
+		[]byte{flagsByte(0, 0, 0, 0, 0, 1, 1, 1)},
+	)
+
+	hsyncOpts := DemuxOptions{
+		HasHsyncs:      true,
+		PackedRawOut:   true,
+		UnpackedRawOut: true,
+	}
+
+	// Baseline for HSYNC
+	baselineHsyncPrinter, baselineHsyncStreams, err := runDemuxTest(hsyncOpts, hsyncData, len(hsyncData), true, false)
+	if err != nil {
+		t.Fatalf("Failed to run baseline HSYNC: %v", err)
+	}
+	normalizedBaselineHsyncPrinter := normalizePrinterOutput(baselineHsyncPrinter)
+
+	// Test splitting HSYNC data at every possible byte boundary across two writes
+	for i := 1; i < len(hsyncData); i++ {
+		t.Run(fmt.Sprintf("HsyncSplitAt_%d", i), func(t *testing.T) {
+			var sb strings.Builder
+			streams := make([]ByteSink, 128)
+			mockStreams := make(map[uint8]*mockStream)
+			for j := range streams {
+				ms := &mockStream{}
+				streams[j] = ms
+				mockStreams[uint8(j)] = ms
+			}
+
+			dec := newDemuxer(streams)
+			if err := dec.Configure(hsyncOpts); err != nil {
+				t.Fatalf("Configure failed: %v", err)
+			}
+			fp := NewRawFramePrinter(&sb)
+			dec.SetRawFrameHandler(fp.WriteRawFrame)
+
+			// Write 1
+			_, err = dec.Write(0, hsyncData[:i])
+			if err != nil {
+				t.Fatalf("Write 1 failed: %v", err)
+			}
+			// Write 2
+			_, err = dec.Write(Index(i), hsyncData[i:])
+			if err != nil {
+				t.Fatalf("Write 2 failed: %v", err)
+			}
+			if err := dec.Close(); err != nil {
+				t.Fatalf("Close failed: %v", err)
+			}
+
+			actualPrinter := normalizePrinterOutput(sb.String())
+			if actualPrinter != normalizedBaselineHsyncPrinter {
+				t.Errorf("Printer output mismatch\nExpected:\n%s\nActual:\n%s", normalizedBaselineHsyncPrinter, actualPrinter)
+			}
+			for id, baselineData := range baselineHsyncStreams {
+				actualData := mockStreams[id].chunks
+				if !bytes.Equal(actualData, baselineData) {
+					t.Errorf("Stream %d mismatch: expected %v, got %v", id, baselineData, actualData)
+				}
+			}
+		})
+	}
+}
