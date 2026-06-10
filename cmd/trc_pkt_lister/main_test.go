@@ -809,3 +809,71 @@ func appendRecord(records []string, record string) []string {
 	}
 	return records
 }
+
+func TestParseOptionsInstrRangeLimit(t *testing.T) {
+	testCases := []struct {
+		args      []string
+		expectErr bool
+		expected  uint32
+	}{
+		{[]string{"-instr_range_limit", "42"}, false, 42},
+		{[]string{"-instr_range_limit", "0"}, false, 0},
+		{[]string{"-instr_range_limit", "4294967295"}, false, 4294967295}, // math.MaxUint32
+		{[]string{"-instr_range_limit", "4294967296"}, true, 0},           // math.MaxUint32 + 1 (overflows 32-bit)
+		{[]string{"-instr_range_limit", "-1"}, true, 0},                   // negative
+		{[]string{"-instr_range_limit", "invalid"}, true, 0},
+	}
+
+	for _, tc := range testCases {
+		opts, err := parseOptions(tc.args)
+		if tc.expectErr {
+			if err == nil {
+				t.Errorf("parseOptions(%v) expected error, got nil", tc.args)
+			}
+		} else {
+			if err != nil {
+				t.Errorf("parseOptions(%v) unexpected error: %v", tc.args, err)
+			}
+			if opts.instrRangeLimit != tc.expected {
+				t.Errorf("parseOptions(%v) expected instrRangeLimit %d, got %d", tc.args, tc.expected, opts.instrRangeLimit)
+			}
+		}
+	}
+}
+
+func TestPipelineIndexDoesNotWrap(t *testing.T) {
+	sink := &indexRecordingSink{}
+	pipe, err := coresight.NewPipeline(false, coresight.DemuxOptions{})
+	if err != nil {
+		t.Fatalf("failed to create pipeline: %v", err)
+	}
+	pipe.AddRoute(coresight.Route{
+		TraceID:  0,
+		Protocol: coresight.ProtocolETMV4I,
+		ByteSink: sink,
+	})
+
+	// Write at a very large index (5 GiB)
+	largeIndex := coresight.Index(0x140000000) // 5 GiB
+	_, err = pipe.Write(largeIndex, []byte{0x00, 0x01})
+	if err != nil {
+		t.Fatalf("unexpected pipe write error: %v", err)
+	}
+
+	if sink.lastIndex != largeIndex {
+		t.Fatalf("expected index %d, got wrapped index %d", largeIndex, sink.lastIndex)
+	}
+}
+
+type indexRecordingSink struct {
+	lastIndex coresight.Index
+}
+
+func (s *indexRecordingSink) Write(index coresight.Index, dataBlock []byte) (uint32, error) {
+	s.lastIndex = index
+	return uint32(len(dataBlock)), nil
+}
+
+func (s *indexRecordingSink) Close() error                      { return nil }
+func (s *indexRecordingSink) Flush() error                      { return nil }
+func (s *indexRecordingSink) Reset(index coresight.Index) error { return nil }

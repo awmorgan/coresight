@@ -20,7 +20,7 @@ func processTraceFile(out io.Writer, pipe *coresight.Pipeline, fileName string, 
 	start := time.Now()
 	buf := make([]byte, 4096)
 	var footer [8]byte
-	var traceIndex uint32
+	var traceIndex coresight.Index
 	dataPathFatal := false
 	haveDStreamFooter := false
 
@@ -33,8 +33,8 @@ func processTraceFile(out io.Writer, pipe *coresight.Pipeline, fileName string, 
 		}
 
 		if n > 0 {
-			_, wErr := pipe.Write(coresight.Index(traceIndex), buf[:n])
-			traceIndex += uint32(n)
+			_, wErr := pipe.Write(traceIndex, buf[:n])
+			traceIndex += coresight.Index(n)
 
 			if wErr != nil {
 				fmt.Fprintln(out, "Trace Packet Lister : Data Path fatal error")
@@ -104,7 +104,7 @@ func readDStreamFooter(out io.Writer, in io.Reader, footer []byte, opts options,
 	return ferr
 }
 
-func reportProcessedInput(out io.Writer, traceIndex uint32, start time.Time, genPrinter *coresight.GenericElementPrinter, opts options) {
+func reportProcessedInput(out io.Writer, traceIndex coresight.Index, start time.Time, genPrinter *coresight.GenericElementPrinter, opts options) {
 	fmt.Fprintf(out, "Trace Packet Lister : Trace buffer done, processed %d bytes", traceIndex)
 	if opts.noTimePrint {
 		fmt.Fprintln(out, ".")
