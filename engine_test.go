@@ -95,7 +95,7 @@ func TestEngineETMv4Golden(t *testing.T) {
 
 func TestEngineRegisterAllDecoders(t *testing.T) {
 	engine, err := coresight.NewEngine(coresight.EngineConfig{
-		FramedInput: false,
+		FramedInput: true,
 	})
 	if err != nil {
 		t.Fatalf("failed to create engine: %v", err)

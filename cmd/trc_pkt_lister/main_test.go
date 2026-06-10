@@ -850,11 +850,13 @@ func TestPipelineIndexDoesNotWrap(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create pipeline: %v", err)
 	}
-	pipe.AddRoute(coresight.Route{
+	if err := pipe.AddRoute(coresight.Route{
 		TraceID:  0,
 		Protocol: coresight.ProtocolETMV4I,
 		ByteSink: sink,
-	})
+	}); err != nil {
+		t.Fatalf("failed to add route: %v", err)
+	}
 
 	// Write at a very large index (5 GiB)
 	largeIndex := coresight.Index(0x140000000) // 5 GiB

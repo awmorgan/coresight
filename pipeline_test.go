@@ -58,11 +58,13 @@ func TestCAPIPacketPrintGolden(t *testing.T) {
 	if err != nil {
 		t.Fatalf("new pipeline: %v", err)
 	}
-	pipe.AddRoute(Route{
+	if err := pipe.AddRoute(Route{
 		TraceID:  cfg.TraceID(),
 		Protocol: ProtocolETMV4I,
 		ByteSink: dec,
-	})
+	}); err != nil {
+		t.Fatalf("add route: %v", err)
+	}
 
 	printer := cAPITracePrinter{writer: &sb}
 	dec.SetPacketObserver(printer.ObservePacket)
@@ -180,3 +182,129 @@ func normalizeCAPIGoldenText(s string) string {
 	s = strings.ReplaceAll(s, "\r", "\n")
 	return cAPIWindowsTestExePathRE.ReplaceAllString(s, "$1")
 }
+
+func TestAddRouteValidation(t *testing.T) {
+	sink1 := &indexRecordingSink{}
+	sink2 := &indexRecordingSink{}
+
+	t.Run("NilByteSink", func(t *testing.T) {
+		pipe, err := NewPipeline(true, DemuxOptions{FrameMemAlign: true})
+		if err != nil {
+			t.Fatalf("failed to create pipeline: %v", err)
+		}
+		err = pipe.AddRoute(Route{
+			TraceID:  10,
+			Protocol: ProtocolETMV4I,
+			ByteSink: nil,
+		})
+		if err != ErrNilByteSink {
+			t.Errorf("expected ErrNilByteSink, got: %v", err)
+		}
+	})
+
+	t.Run("InvalidFramedTraceID", func(t *testing.T) {
+		pipe, err := NewPipeline(true, DemuxOptions{FrameMemAlign: true})
+		if err != nil {
+			t.Fatalf("failed to create pipeline: %v", err)
+		}
+		err = pipe.AddRoute(Route{
+			TraceID:  MaxTraceID, // 128, which is invalid
+			Protocol: ProtocolETMV4I,
+			ByteSink: sink1,
+		})
+		if err != ErrInvalidTraceID {
+			t.Errorf("expected ErrInvalidTraceID, got: %v", err)
+		}
+	})
+
+	t.Run("DuplicateFramedTraceID", func(t *testing.T) {
+		pipe, err := NewPipeline(true, DemuxOptions{FrameMemAlign: true})
+		if err != nil {
+			t.Fatalf("failed to create pipeline: %v", err)
+		}
+		err = pipe.AddRoute(Route{
+			TraceID:  10,
+			Protocol: ProtocolETMV4I,
+			ByteSink: sink1,
+		})
+		if err != nil {
+			t.Fatalf("failed to add first route: %v", err)
+		}
+
+		err = pipe.AddRoute(Route{
+			TraceID:  10,
+			Protocol: ProtocolETMV3,
+			ByteSink: sink2,
+		})
+		if err != ErrDuplicateTraceID {
+			t.Errorf("expected ErrDuplicateTraceID, got: %v", err)
+		}
+	})
+
+	t.Run("MultipleNonFramedRoutes", func(t *testing.T) {
+		pipe, err := NewPipeline(false, DemuxOptions{})
+		if err != nil {
+			t.Fatalf("failed to create pipeline: %v", err)
+		}
+		err = pipe.AddRoute(Route{
+			TraceID:  0,
+			Protocol: ProtocolETMV4I,
+			ByteSink: sink1,
+		})
+		if err != nil {
+			t.Fatalf("failed to add first route: %v", err)
+		}
+
+		err = pipe.AddRoute(Route{
+			TraceID:  0,
+			Protocol: ProtocolETMV3,
+			ByteSink: sink2,
+		})
+		if err != ErrMultipleRoutesNonFramed {
+			t.Errorf("expected ErrMultipleRoutesNonFramed, got: %v", err)
+		}
+	})
+
+	t.Run("ValidFramedRoute", func(t *testing.T) {
+		pipe, err := NewPipeline(true, DemuxOptions{FrameMemAlign: true})
+		if err != nil {
+			t.Fatalf("failed to create pipeline: %v", err)
+		}
+		err = pipe.AddRoute(Route{
+			TraceID:  10,
+			Protocol: ProtocolETMV4I,
+			ByteSink: sink1,
+		})
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("ValidNonFramedRoute", func(t *testing.T) {
+		pipe, err := NewPipeline(false, DemuxOptions{})
+		if err != nil {
+			t.Fatalf("failed to create pipeline: %v", err)
+		}
+		err = pipe.AddRoute(Route{
+			TraceID:  0,
+			Protocol: ProtocolETMV4I,
+			ByteSink: sink1,
+		})
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+	})
+}
+
+type indexRecordingSink struct {
+	lastIndex Index
+}
+
+func (s *indexRecordingSink) Write(index Index, dataBlock []byte) (uint32, error) {
+	s.lastIndex = index
+	return uint32(len(dataBlock)), nil
+}
+
+func (s *indexRecordingSink) Close() error            { return nil }
+func (s *indexRecordingSink) Flush() error            { return nil }
+func (s *indexRecordingSink) Reset(index Index) error { return nil }

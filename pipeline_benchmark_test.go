@@ -45,11 +45,13 @@ func BenchmarkPTM_PipelineDecode_Snowball(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		pipe.AddRoute(Route{
+		if err := pipe.AddRoute(Route{
 			TraceID:  cfg.TraceID,
 			Protocol: ProtocolPTM,
 			ByteSink: dec,
-		})
+		}); err != nil {
+			b.Fatal(err)
+		}
 
 		_, _ = pipe.Write(0, traceData)
 		_ = pipe.Close()
@@ -92,11 +94,13 @@ func BenchmarkETMv4_PipelineDecode_Juno(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		pipe.AddRoute(Route{
+		if err := pipe.AddRoute(Route{
 			TraceID:  cfg.TraceID(),
 			Protocol: ProtocolETMV4I,
 			ByteSink: dec,
-		})
+		}); err != nil {
+			b.Fatal(err)
+		}
 
 		_, _ = pipe.Write(0, traceData)
 		_ = pipe.Close()

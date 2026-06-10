@@ -124,8 +124,7 @@ func (e *Engine) RegisterETMv3(traceID uint8, cfg ETMv3Config, sink ElementSink)
 	if err != nil {
 		return err
 	}
-	e.pipe.AddRoute(route)
-	return nil
+	return e.pipe.AddRoute(route)
 }
 
 // RegisterETMv4 registers an ETMv4 macrocell decoder on a Trace ID.
@@ -134,8 +133,7 @@ func (e *Engine) RegisterETMv4(traceID uint8, cfg ETMv4Config, sink ElementSink)
 	if err != nil {
 		return err
 	}
-	e.pipe.AddRoute(route)
-	return nil
+	return e.pipe.AddRoute(route)
 }
 
 // RegisterPTM registers a PTM macrocell decoder on a Trace ID.
@@ -144,8 +142,7 @@ func (e *Engine) RegisterPTM(traceID uint8, cfg PTMConfig, sink ElementSink) err
 	if err != nil {
 		return err
 	}
-	e.pipe.AddRoute(route)
-	return nil
+	return e.pipe.AddRoute(route)
 }
 
 // RegisterSTM registers an STM macrocell decoder on a Trace ID.
@@ -154,8 +151,7 @@ func (e *Engine) RegisterSTM(traceID uint8, cfg STMConfig, sink ElementSink) err
 	if err != nil {
 		return err
 	}
-	e.pipe.AddRoute(route)
-	return nil
+	return e.pipe.AddRoute(route)
 }
 
 // RegisterITM registers an ITM macrocell decoder on a Trace ID.
@@ -164,8 +160,7 @@ func (e *Engine) RegisterITM(traceID uint8, cfg ITMConfig, sink ElementSink) err
 	if err != nil {
 		return err
 	}
-	e.pipe.AddRoute(route)
-	return nil
+	return e.pipe.AddRoute(route)
 }
 
 // RegisterETE registers an ETE macrocell decoder on a Trace ID.
@@ -175,8 +170,7 @@ func (e *Engine) RegisterETE(traceID uint8, cfg ETEConfig, sink ElementSink) err
 	if err != nil {
 		return err
 	}
-	e.pipe.AddRoute(route)
-	return nil
+	return e.pipe.AddRoute(route)
 }
 
 func setupObservers(dec any, pktObs PacketObserver, endObs func(), sink ElementSink) {

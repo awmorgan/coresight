@@ -28,17 +28,31 @@ func NewPipeline(framedInput bool, opts DemuxOptions) (*Pipeline, error) {
 	return p, nil
 }
 
-func (p *Pipeline) AddRoute(route Route) {
-	// For non-framed pipelines there is only one stream, so the trace ID is
-	// irrelevant for routing purposes. Force it to 0 to match the behaviour
-	// of the old DecodeTree.normalizedRouteID and keep golden output stable.
-	if !p.FramedInput {
+func (p *Pipeline) AddRoute(route Route) error {
+	if route.ByteSink == nil {
+		return ErrNilByteSink
+	}
+	if p.FramedInput {
+		if route.TraceID >= MaxTraceID {
+			return ErrInvalidTraceID
+		}
+		if p.sinksByTraceID[route.TraceID] != nil {
+			return ErrDuplicateTraceID
+		}
+	} else {
+		if len(p.Routes) >= 1 {
+			return ErrMultipleRoutesNonFramed
+		}
+		// For non-framed pipelines there is only one stream, so the trace ID is
+		// irrelevant for routing purposes. Force it to 0 to match the behaviour
+		// of the old DecodeTree.normalizedRouteID and keep golden output stable.
 		route.TraceID = 0
 	}
 	p.Routes = append(p.Routes, route)
 	if route.TraceID < MaxTraceID {
 		p.sinksByTraceID[route.TraceID] = route.ByteSink
 	}
+	return nil
 }
 
 func (p *Pipeline) Write(index Index, data []byte) (uint32, error) {

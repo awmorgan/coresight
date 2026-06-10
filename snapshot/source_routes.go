@@ -111,7 +111,10 @@ func (b *PipelineBuilder) attachSourceRoutes(specs []sourceRouteSpec, mem coresi
 			continue
 		}
 
-		b.pipe.AddRoute(route)
+		if err := b.pipe.AddRoute(route); err != nil {
+			snapshotSkipped = append(snapshotSkipped, fmt.Errorf("create PE route for %q: %w", spec.sourceName, err))
+			continue
+		}
 		created++
 	}
 

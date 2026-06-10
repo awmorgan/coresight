@@ -56,11 +56,13 @@ func runMemBuffDemo(t *testing.T, sb *strings.Builder, mapper *GlobalMapper) uin
 	if err != nil {
 		t.Fatalf("NewPipeline: %v", err)
 	}
-	pipe.AddRoute(Route{
+	if err := pipe.AddRoute(Route{
 		TraceID:  cfg.TraceID(),
 		Protocol: ProtocolETMV4I,
 		ByteSink: dec,
-	})
+	}); err != nil {
+		t.Fatalf("AddRoute: %v", err)
+	}
 
 	elemPrinter := NewGenericElementPrinter(sb)
 	pipe.SetElementSink(elemPrinter.PrintElement)

@@ -27,4 +27,9 @@ var (
 	errInvalidOpcode        = errors.New("illegal Opcode found while decoding program memory")
 	errIRangeLimitOverrun   = errors.New("an optional limit on consecutive instructions in range during decode has been exceeded")
 	errDfrmtrIncompleteTail = errors.New("incomplete trailing bytes in frame stream at close")
+
+	ErrNilByteSink             = errors.New("nil ByteSink not allowed")
+	ErrInvalidTraceID          = errors.New("invalid coresight trace ID")
+	ErrDuplicateTraceID        = errors.New("duplicate trace ID in pipeline")
+	ErrMultipleRoutesNonFramed = errors.New("non-framed pipeline only supports a single route")
 )
