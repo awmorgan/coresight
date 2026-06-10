@@ -95,7 +95,7 @@ func TestTraceListerGoldens(t *testing.T) {
 			if diffIdx, gotLine, wantLine := firstDiff(gotLines, wantLines); diffIdx != 0 {
 				t.Errorf("Output mismatch at line %d\nwant: %s\n got: %s", diffIdx, wantLine, gotLine)
 				// output files for debugging and comparing files
-				repoRoot := filepath.Join("..", "..")
+				debugDir := t.TempDir()
 				gotBytes, err := os.ReadFile(outPath)
 				if err != nil {
 					t.Fatalf("read generated output %s: %v", outPath, err)
@@ -104,12 +104,15 @@ func TestTraceListerGoldens(t *testing.T) {
 				if err != nil {
 					t.Fatalf("read golden %s: %v", tc.goldenPath, err)
 				}
-				if err := os.WriteFile(filepath.Join(repoRoot, "got.txt"), gotBytes, 0644); err != nil {
+				gotFile := filepath.Join(debugDir, "got.txt")
+				wantFile := filepath.Join(debugDir, "want.txt")
+				if err := os.WriteFile(gotFile, gotBytes, 0644); err != nil {
 					t.Fatalf("copy generated output %s to got.txt: %v", outPath, err)
 				}
-				if err := os.WriteFile(filepath.Join(repoRoot, "want.txt"), wantBytes, 0644); err != nil {
+				if err := os.WriteFile(wantFile, wantBytes, 0644); err != nil {
 					t.Fatalf("copy golden %s to want.txt: %v", tc.goldenPath, err)
 				}
+				t.Logf("Mismatch debug files output to:\n  got:  %s\n  want: %s", gotFile, wantFile)
 			}
 
 			if t.Failed() {
