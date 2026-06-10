@@ -140,6 +140,13 @@ func setReg32(dev *Device, name string, dst *uint32) error {
 	return nil
 }
 
+func validateTraceID(name string, value uint32) (uint8, error) {
+	if value >= 128 {
+		return 0, fmt.Errorf("invalid trace ID in register %s: %d", name, value)
+	}
+	return uint8(value), nil
+}
+
 type etmPTMRegs struct {
 	ctrl  uint32
 	trcID uint32

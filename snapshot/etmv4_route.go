@@ -46,7 +46,11 @@ func (b *PipelineBuilder) buildETMv4Route(spec sourceRouteSpec) (coresight.Route
 		SrcAddrNAtoms:      b.srcAddrNAtoms,
 	}
 	mem := b.decodeInterfaces()
-	route, err := coresight.NewETMv4Route(uint8(regs.traceIDR), cfg, mem, nil)
+	traceID, err := validateTraceID(Etmv4RegIDR, regs.traceIDR)
+	if err != nil {
+		return coresight.Route{}, fmt.Errorf("ETMv4 route creation failed: %w", err)
+	}
+	route, err := coresight.NewETMv4Route(traceID, cfg, mem, nil)
 	if err != nil {
 		return coresight.Route{}, fmt.Errorf("ETMv4 route creation failed: %w", err)
 	}

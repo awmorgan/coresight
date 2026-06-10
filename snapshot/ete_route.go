@@ -33,7 +33,11 @@ func (b *PipelineBuilder) buildETERoute(spec sourceRouteSpec) (coresight.Route, 
 		SrcAddrNAtoms:      b.srcAddrNAtoms,
 	}
 	mem := b.decodeInterfaces()
-	route, err := coresight.NewETERoute(uint8(regs.traceIDR), cfg, mem, nil)
+	traceID, err := validateTraceID(Etmv4RegIDR, regs.traceIDR)
+	if err != nil {
+		return coresight.Route{}, fmt.Errorf("ETE route creation failed: %w", err)
+	}
+	route, err := coresight.NewETERoute(traceID, cfg, mem, nil)
 	if err != nil {
 		return coresight.Route{}, fmt.Errorf("ETE route creation failed: %w", err)
 	}

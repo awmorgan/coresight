@@ -21,7 +21,11 @@ func (b *PipelineBuilder) buildETMv3Route(spec sourceRouteSpec) (coresight.Route
 		CoreProfile: prof,
 	}
 	mem := b.decodeInterfaces()
-	route, err := coresight.NewETMv3Route(uint8(regs.trcID), cfg, mem, nil)
+	traceID, err := validateTraceID(Etmv3PTMRegTraceIDR, regs.trcID)
+	if err != nil {
+		return coresight.Route{}, fmt.Errorf("ETMv3 route creation failed: %w", err)
+	}
+	route, err := coresight.NewETMv3Route(traceID, cfg, mem, nil)
 	if err != nil {
 		return coresight.Route{}, fmt.Errorf("ETMv3 route creation failed: %w", err)
 	}
