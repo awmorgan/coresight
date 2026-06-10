@@ -75,7 +75,7 @@ type ptmParseContext struct {
 
 func (p *ptmDecoder) Write(index Index, dataBlock []byte) (uint32, error) {
 	if len(dataBlock) == 0 {
-		return 0, fmt.Errorf("%w: packet processor: zero length data block", ErrInvalidParamVal)
+		return 0, fmt.Errorf("%w: packet processor: zero length data block", errInvalidParamVal)
 	}
 	processed, err := p.processData(index, dataBlock)
 	if err != nil {
@@ -124,12 +124,12 @@ func (p *ptmDecoder) readNextByte() (uint8, bool) {
 
 func (p *ptmDecoder) malformedPacketErr(msg string) error {
 	p.ctx.currPacket.SetErrType(PacketBadSequence)
-	return fmt.Errorf("%w: %s", ErrBadPacketSeq, msg)
+	return fmt.Errorf("%w: %s", errBadPacketSeq, msg)
 }
 
 func (p *ptmDecoder) processData(index Index, dataBlock []uint8) (uint32, error) {
 	if p.Config == nil {
-		return 0, ErrNotInit
+		return 0, errNotInit
 	}
 
 	p.ctx.Feed(index, dataBlock)
@@ -152,7 +152,7 @@ func (p *ptmDecoder) processData(index Index, dataBlock []uint8) (uint32, error)
 				p.ctx.currPacket.Type = headerToPacketType(currByte)
 				p.ctx.processState = ptmStateProcData
 			} else {
-				err = fmt.Errorf("%w: Data Buffer Overrun", ErrPktInterpFail)
+				err = fmt.Errorf("%w: Data Buffer Overrun", errPktInterpFail)
 			}
 			if p.ctx.processState != ptmStateProcData {
 				break
@@ -174,7 +174,7 @@ func (p *ptmDecoder) processData(index Index, dataBlock []uint8) (uint32, error)
 		}
 
 		if err != nil {
-			if errors.Is(err, ErrBadPacketSeq) || errors.Is(err, ErrInvalidPcktHdr) {
+			if errors.Is(err, errBadPacketSeq) || errors.Is(err, errInvalidPcktHdr) {
 				p.ctx.processState = ptmStateSendPkt
 			} else {
 				break

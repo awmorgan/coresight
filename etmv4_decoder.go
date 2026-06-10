@@ -84,7 +84,7 @@ type etmv4Decoder struct {
 
 func etmv4NewDecoder(cfg *etmv4Config, mem internalMemoryReader, instr internalInstructionDecoder) (*etmv4Decoder, error) {
 	if cfg == nil {
-		return nil, fmt.Errorf("%w: ETMv4 config cannot be nil", ErrInvalidParamVal)
+		return nil, fmt.Errorf("%w: ETMv4 config cannot be nil", errInvalidParamVal)
 	}
 	pendingP0Cap := min(max(64, int(cfg.MaxSpecDepth())+32), 512)
 	d := &etmv4Decoder{
@@ -95,7 +95,7 @@ func etmv4NewDecoder(cfg *etmv4Config, mem internalMemoryReader, instr internalI
 			MemAccess:          mem,
 			IdDecode:           instr,
 			TraceID:            cfg.TraceID(),
-			ErrOnAA64BadOpcode: cfg.ErrOnAA64BadOpcode,
+			errOnAA64BadOpcode: cfg.errOnAA64BadOpcode,
 			InstrRangeLimit:    cfg.InstrRangeLimit,
 			Arch: archProfile{
 				Arch:    cfg.ArchVer,
@@ -126,7 +126,7 @@ func (d *etmv4Decoder) IsElementSource() bool {
 
 func (d *etmv4Decoder) Write(index Index, dataBlock []byte) (uint32, error) {
 	if len(dataBlock) == 0 {
-		return 0, fmt.Errorf("%w: packet processor: zero length data block", ErrInvalidParamVal)
+		return 0, fmt.Errorf("%w: packet processor: zero length data block", errInvalidParamVal)
 	}
 	d.seenData = true
 	return d.processData(index, dataBlock)
@@ -138,7 +138,7 @@ func (d *etmv4Decoder) Close() error {
 	}
 	d.isClosed = true
 	if len(d.ctx.raw) > 0 {
-		d.ctx.currPacket.updateErr(etmv4PktIncompleteEOT, ErrBadPacketSeq)
+		d.ctx.currPacket.updateErr(etmv4PktIncompleteEOT, errBadPacketSeq)
 		_ = d.outputPacket()
 	}
 
@@ -259,7 +259,7 @@ func (d *etmv4Decoder) decodePacket(pkt *etmv4Packet) error {
 		if pkt.Type == etmv4PktIncompleteEOT {
 			return nil
 		}
-		if errors.Is(pkt.Err, ErrBadPacketSeq) || errors.Is(pkt.Err, ErrInvalidPcktHdr) {
+		if errors.Is(pkt.Err, errBadPacketSeq) || errors.Is(pkt.Err, errInvalidPcktHdr) {
 			reason := "Unknown packet type."
 			switch pkt.Type {
 			case PktReservedCfg:
@@ -511,10 +511,10 @@ func (d *etmv4Decoder) processExceptionPacket(pkt *etmv4Packet, retAddr VAddr, f
 			d.codeFollower.TempInstr.InstrAddr = rangeEnd
 			d.codeFollower.TempInstr.PeType = d.codeFollower.Arch
 			err := d.codeFollower.decodeSingleOpCode(&d.codeFollower.TempInstr, d.Config.TraceID(), memSpace)
-			if err != nil && !errors.Is(err, ErrMemNacc) {
+			if err != nil && !errors.Is(err, errMemNacc) {
 				return err
 			}
-			if errors.Is(err, ErrMemNacc) {
+			if errors.Is(err, errMemNacc) {
 				elem := Element{ElemType: GenElemAddrNacc}
 				elem.StartAddr = rangeEnd
 				elem.Payload.ExceptionNum = uint32(memSpace)
@@ -845,12 +845,12 @@ func (d *etmv4Decoder) processatomEntries(atoms []pendingP0) error {
 	for i, atom := range atoms {
 		val := atom.atom
 		res, err := d.codeFollower.followAtomWaypoint(d.iAddr, val)
-		if err != nil && !errors.Is(err, ErrMemNacc) {
+		if err != nil && !errors.Is(err, errMemNacc) {
 			d.handlePacketSequenceError(atom.index, err, "Error processing atom packet.")
 			return nil
 		}
 		elem := Element{ElemType: GenElemInstrRange}
-		if errors.Is(err, ErrMemNacc) {
+		if errors.Is(err, errMemNacc) {
 			elem.ElemType = GenElemAddrNacc
 			elem.StartAddr = res.NaccAddr
 			elem.Payload.ExceptionNum = uint32(memSpace)
@@ -901,7 +901,7 @@ func (d *etmv4Decoder) processSourceAddress(pkt *etmv4Packet) error {
 	isa := d.calcISA(d.lastIS)
 	srcInstrInfo, err := d.decodeSourceAddressInstr(pkt.Addr.Val, isa, memSpace)
 	if err != nil {
-		if errors.Is(err, ErrMemNacc) {
+		if errors.Is(err, errMemNacc) {
 			elem := Element{ElemType: GenElemAddrNacc}
 			elem.StartAddr = pkt.Addr.Val
 			elem.Payload.ExceptionNum = uint32(memSpace)
@@ -970,7 +970,7 @@ func (d *etmv4Decoder) outputSplitSourceAddressRanges(index Index, start, end VA
 			var err error
 			instrInfo, err = d.decodeSourceAddressInstr(addr, isa, memSpace)
 			if err != nil {
-				if errors.Is(err, ErrMemNacc) {
+				if errors.Is(err, errMemNacc) {
 					elem := Element{ElemType: GenElemAddrNacc}
 					elem.StartAddr = addr
 					elem.Payload.ExceptionNum = uint32(memSpace)
@@ -1024,10 +1024,10 @@ func (d *etmv4Decoder) handlePacketSequenceError(index Index, err error, reason 
 }
 
 func (d *etmv4Decoder) packetSequenceDiagnostic(index Index, err error, reason string) string {
-	if errors.Is(err, ErrInvalidOpcode) {
+	if errors.Is(err, errInvalidOpcode) {
 		return fmt.Sprintf("DCD_ETMV4_0016 : 0x002c (OCSD_ERR_INVALID_OPCODE) [Illegal Opode found while decoding program memory.]; TrcIdx=%d; CS ID=%x; %s", index, d.Config.TraceID(), reason)
 	}
-	if errors.Is(err, ErrIRangeLimitOverrun) {
+	if errors.Is(err, errIRangeLimitOverrun) {
 		errText := "An optional limit on consecutive instructions in range during decode has been exceeded."
 		return fmt.Sprintf("DCD_ETMV4_0016 : 0x002d (OCSD_ERR_I_RANGE_LIMIT_OVERRUN) [%s]; Decode Instruction Range Limit OverrunDCD_ETMV4_0016 : 0x002d (OCSD_ERR_I_RANGE_LIMIT_OVERRUN) [%s]; TrcIdx=%d; CS ID=%x; %s", errText, errText, index, d.Config.TraceID(), reason)
 	}

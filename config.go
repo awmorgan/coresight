@@ -23,7 +23,7 @@ type ETMv4Config struct {
 	DevArch            uint32
 	ArchVersion        ArchVersion
 	CoreProfile        CoreProfile
-	ErrOnAA64BadOpcode bool
+	errOnAA64BadOpcode bool
 	InstrRangeLimit    uint32
 	SrcAddrNAtoms      bool
 

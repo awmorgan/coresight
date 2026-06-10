@@ -308,7 +308,7 @@ func (p *etmv3Packet) AppendStringTo(dst []byte) []byte {
 	dst = append(dst, desc...)
 
 	if p.Err != nil {
-		if errors.Is(p.Err, ErrBadPacketSeq) {
+		if errors.Is(p.Err, errBadPacketSeq) {
 			return append(dst, "[BAD_SEQUENCE]"...)
 		}
 		return append(dst, "[I_RESERVED]"...)

@@ -263,7 +263,7 @@ func makeETMv4Config(traceID uint8, c ETMv4Config) *etmv4Config {
 	if c.CoreProfile != ProfileUnknown {
 		cfg.CoreProf = c.CoreProfile
 	}
-	cfg.ErrOnAA64BadOpcode = c.ErrOnAA64BadOpcode
+	cfg.errOnAA64BadOpcode = c.errOnAA64BadOpcode
 	cfg.InstrRangeLimit = c.InstrRangeLimit
 	cfg.SrcAddrNAtoms = c.SrcAddrNAtoms
 	return cfg

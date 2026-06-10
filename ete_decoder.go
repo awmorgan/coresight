@@ -11,7 +11,7 @@ type eteDecoder struct {
 
 func eteNewDecoder(cfg *eteConfig, mem internalMemoryReader, instr internalInstructionDecoder) (*eteDecoder, error) {
 	if cfg == nil || cfg.etmv4Config == nil {
-		return nil, fmt.Errorf("%w: ETE config cannot be nil", ErrInvalidParamVal)
+		return nil, fmt.Errorf("%w: ETE config cannot be nil", errInvalidParamVal)
 	}
 	dec, err := etmv4NewDecoder(cfg.etmv4Config, mem, instr)
 	if err != nil {

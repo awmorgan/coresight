@@ -69,7 +69,7 @@ func (d *Demuxer) checkForResetFSyncPatterns() (uint32, error) {
 
 	fSyncBytes := uint32(numFsyncs * len(fSyncPatternBytes))
 	if numFsyncs%4 != 0 {
-		return fSyncBytes, ErrDfrmtrBadFhsync
+		return fSyncBytes, errDfrmtrBadFhsync
 	}
 
 	err := d.resetAllIDs(d.trcCurrIdx)
@@ -109,11 +109,11 @@ func (d *Demuxer) extractFrame() (bool, error) {
 	}
 
 	totalProcessed := uint32(d.trcCurrIdx - startIdx)
-	if (d.exFrmBytes == DfrmtrFrameSize || len(d.inBlock) == 0) && d.outPackedRaw {
+	if (d.exFrmBytes == dfrmtrFrameSize || len(d.inBlock) == 0) && d.outPackedRaw {
 		d.outputRawMonBytes(startIdx, FrmPacked, startInBlock[:totalProcessed], 0)
 	}
 
-	return d.exFrmBytes == DfrmtrFrameSize, nil
+	return d.exFrmBytes == dfrmtrFrameSize, nil
 }
 
 func (d *Demuxer) extractAlignedFrame() error {
@@ -126,14 +126,14 @@ func (d *Demuxer) extractAlignedFrame() error {
 	if len(d.inBlock) == 0 {
 		return nil
 	}
-	if len(d.inBlock) < int(DfrmtrFrameSize) {
-		return ErrDfrmtrUnaligned
+	if len(d.inBlock) < int(dfrmtrFrameSize) {
+		return errDfrmtrUnaligned
 	}
 
 	d.trcCurrIdxSof = d.trcCurrIdx
-	copy(d.exFrmData[:], d.inBlock[:DfrmtrFrameSize])
-	d.exFrmBytes = DfrmtrFrameSize
-	d.advanceInput(DfrmtrFrameSize)
+	copy(d.exFrmData[:], d.inBlock[:dfrmtrFrameSize])
+	d.exFrmBytes = dfrmtrFrameSize
+	d.advanceInput(dfrmtrFrameSize)
 	return nil
 }
 
@@ -148,8 +148,8 @@ func (d *Demuxer) consumeResetFSyncs() error {
 	if err == nil {
 		return nil
 	}
-	if errors.Is(err, ErrDfrmtrBadFhsync) {
-		return ErrDfrmtrBadFsyncReset
+	if errors.Is(err, errDfrmtrBadFhsync) {
+		return errDfrmtrBadFsyncReset
 	}
 	return err
 }
@@ -164,7 +164,7 @@ func (d *Demuxer) extractUnalignedFrame() error {
 		}
 	}
 
-	for d.exFrmBytes < DfrmtrFrameSize && len(d.inBlock) >= 2 {
+	for d.exFrmBytes < dfrmtrFrameSize && len(d.inBlock) >= 2 {
 		if d.exFrmBytes == 0 {
 			d.trcCurrIdxSof = d.trcCurrIdx
 		}
@@ -173,19 +173,19 @@ func (d *Demuxer) extractUnalignedFrame() error {
 		switch pair {
 		case hSyncPattern:
 			if !hasHSyncs {
-				return ErrDfrmtrBadHSync
+				return errDfrmtrBadHSync
 			}
 			d.advanceInput(2)
 		case fSyncStart:
-			return ErrDfrmtrBadFsyncStart
+			return errDfrmtrBadFsyncStart
 		default:
 			d.copyFramePair()
 			d.advanceInput(2)
 		}
 	}
 
-	if len(d.inBlock) == 1 && d.exFrmBytes < DfrmtrFrameSize {
-		return ErrDfrmtrOddByte
+	if len(d.inBlock) == 1 && d.exFrmBytes < dfrmtrFrameSize {
+		return errDfrmtrOddByte
 	}
 
 	return nil
@@ -195,7 +195,7 @@ func (d *Demuxer) consumeLeadingUnalignedFSyncs() error {
 	if d.fsyncStartEOB {
 		if len(d.inBlock) >= 2 {
 			if binary.LittleEndian.Uint16(d.inBlock) != hSyncPattern {
-				return ErrDfrmtrBadFsyncStart
+				return errDfrmtrBadFsyncStart
 			}
 			d.advanceInput(2)
 		}

@@ -85,7 +85,7 @@ type ptmExcep struct {
 type ptmPacket struct {
 	Index   Index
 	Type    ptmPacketType
-	ErrType ptmPacketType
+	errType ptmPacketType
 
 	CurrISA ISA
 	PrevISA ISA
@@ -109,7 +109,7 @@ type ptmPacket struct {
 }
 
 func (p *ptmPacket) Clear() {
-	p.ErrType = PacketNoError
+	p.errType = PacketNoError
 	p.CycleCount = 0
 	p.CCValid = false
 	p.Context.Updated = false
@@ -148,7 +148,7 @@ func (p *ptmPacket) SetType(pktType ptmPacketType) {
 }
 
 func (p *ptmPacket) SetErrType(errType ptmPacketType) {
-	p.ErrType = p.Type
+	p.errType = p.Type
 	p.Type = errType
 }
 
@@ -250,7 +250,7 @@ func (p *ptmPacket) String() string {
 func (p *ptmPacket) writeDetails(sb *strings.Builder) {
 	switch p.Type {
 	case PacketBadSequence:
-		fmt.Fprintf(sb, "[%s]; ", packetTypeName(p.ErrType))
+		fmt.Fprintf(sb, "[%s]; ", packetTypeName(p.errType))
 	case PacketAtom:
 		sb.WriteString(p.getAtomStr())
 	case PacketContextID:

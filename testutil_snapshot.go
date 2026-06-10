@@ -15,8 +15,8 @@ type snapshotLine struct {
 	order int
 }
 
-// SanitizePPL filters and normalizes PPL output lines for diff comparison.
-func SanitizePPL(s string, traceIDs []string) string {
+// sanitizePPL filters and normalizes PPL output lines for diff comparison.
+func sanitizePPL(s string, traceIDs []string) string {
 	lines := strings.Split(normalizeNewlines(s), "\n")
 	parsed := parseSnapshotLines(lines[firstRecordLine(lines):])
 	sortSnapshotLines(parsed)
@@ -71,17 +71,17 @@ func parseSnapshotLines(lines []string) []snapshotLine {
 }
 
 func parseSnapshotLine(line string, order int) (snapshotLine, bool) {
-	normalized := NormalizeSnapshotLine(line)
+	normalized := normalizeSnapshotLine(line)
 	if normalized == "" {
 		return snapshotLine{}, false
 	}
 
-	id, ok := ExtractLineID(line)
+	id, ok := extractLineID(line)
 	if !ok {
 		return snapshotLine{}, false
 	}
 
-	idx, ok := ExtractLineIdx(line)
+	idx, ok := extractLineIdx(line)
 	if !ok {
 		return snapshotLine{}, false
 	}
@@ -153,7 +153,7 @@ func appendRecord(records []string, record string) []string {
 	return records
 }
 
-func NormalizeSnapshotLine(line string) string {
+func normalizeSnapshotLine(line string) string {
 	if strings.Contains(line, "OCSD_GEN_TRC_ELEM_") {
 		return line
 	}
@@ -163,14 +163,14 @@ func NormalizeSnapshotLine(line string) string {
 		return ""
 	}
 
-	packetType := ExtractPacketType(right)
+	packetType := extractPacketType(right)
 	if packetType == "" {
 		return ""
 	}
 	return strings.TrimSpace(left) + "\t" + packetType
 }
 
-func ExtractPacketType(s string) string {
+func extractPacketType(s string) string {
 	before, _, ok := strings.Cut(strings.TrimSpace(s), ":")
 	if !ok {
 		return ""
@@ -196,7 +196,7 @@ func lineAt(lines []string, i int) string {
 	return lines[i]
 }
 
-func FindParsedDeviceByName(devs map[string]*Device, name string) *Device {
+func findParsedDeviceByName(devs map[string]*Device, name string) *Device {
 	for _, dev := range devs {
 		if dev != nil && dev.Name == name {
 			return dev
@@ -218,7 +218,7 @@ func parseHexOrDecErr(s string) (uint64, error) {
 	return v, nil
 }
 
-func ParseHexOrDec(s string) uint64 {
+func parseHexOrDec(s string) uint64 {
 	v, err := parseHexOrDecErr(s)
 	if err != nil {
 		return 0
@@ -226,7 +226,7 @@ func ParseHexOrDec(s string) uint64 {
 	return v
 }
 
-func ExtractLineID(line string) (string, bool) {
+func extractLineID(line string) (string, bool) {
 	id, ok := extractDelimitedField(line, "ID:")
 	if !ok {
 		return "", false
@@ -234,7 +234,7 @@ func ExtractLineID(line string) (string, bool) {
 	return strings.ToLower(id), true
 }
 
-func ExtractLineIdx(line string) (int, bool) {
+func extractLineIdx(line string) (int, bool) {
 	field, ok := extractDelimitedField(line, "Idx:")
 	if !ok {
 		return 0, false

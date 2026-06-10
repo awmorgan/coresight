@@ -17,7 +17,7 @@ func decodeInstruction(instrInfo *instrInfo) error {
 	case ISAAArch64:
 		err = decodeA64(instrInfo, &info)
 	default:
-		err = ErrUnsupportedISA
+		err = errUnsupportedISA
 	}
 
 	instrInfo.Subtype = info.InstrSubType

@@ -15,7 +15,7 @@ func (b *PipelineBuilder) buildETERoute(spec sourceRouteSpec) (Route, error) {
 	if err != nil {
 		return Route{}, err
 	}
-	cfg.ErrOnAA64BadOpcode = b.errOnAA64BadOpcode
+	cfg.errOnAA64BadOpcode = b.errOnAA64BadOpcode
 	cfg.InstrRangeLimit = b.instrRangeLimit
 	cfg.SrcAddrNAtoms = b.srcAddrNAtoms
 
@@ -61,7 +61,7 @@ func eteDeviceRegs(dev *Device) (eteRegs, error) {
 		etmv4Regs: v4regs,
 		devarch:   0x47705A13,
 	}
-	if err := setReg32(dev, ETERegDevArch, &regs.devarch); err != nil {
+	if err := setReg32(dev, eteRegDevArch, &regs.devarch); err != nil {
 		return eteRegs{}, err
 	}
 	return regs, nil

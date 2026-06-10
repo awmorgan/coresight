@@ -8,7 +8,7 @@ import (
 func (b *PipelineBuilder) buildSTMRoute(spec sourceRouteSpec) (Route, error) {
 	var tcsr uint32
 
-	if err := setReg32(spec.sourceDevice, STMRegTCSR, &tcsr); err != nil {
+	if err := setReg32(spec.sourceDevice, stmRegTCSR, &tcsr); err != nil {
 		return Route{}, err
 	}
 

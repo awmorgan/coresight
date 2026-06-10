@@ -9,11 +9,11 @@ import (
 
 // Sentinel errors for memory access lookups.
 var (
-	// ErrNoAccessor indicates no memory accessor can service the request.
-	ErrNoAccessor = errors.New("no memory accessor")
+	// errNoAccessor indicates no memory accessor can service the request.
+	errNoAccessor = errors.New("no memory accessor")
 
-	// ErrAddressNotMapped indicates the address is not mapped in any accessor.
-	ErrAddressNotMapped = errors.New("address not mapped")
+	// errAddressNotMapped indicates the address is not mapped in any accessor.
+	errAddressNotMapped = errors.New("address not mapped")
 )
 
 // GlobalMapper implements a global registry of memory accessors.
@@ -68,23 +68,23 @@ func (m *GlobalMapper) Read(address VAddr, trcID uint8, memSpace MemSpaceAcc, re
 
 	acc, ok := m.findAccessor(address, memSpace)
 	if !ok {
-		return 0, ErrNoAccessor
+		return 0, errNoAccessor
 	}
 
 	read := acc.ReadBytes(address, memSpace, trcID, bytesToRead, buffer)
 	if read > bytesToRead {
-		return read, ErrMemAccBadLen
+		return read, errMemAccBadLen
 	}
 	return read, nil
 }
 
 func (m *GlobalMapper) AddAccessor(accessor Accessor, _ uint8) error {
 	if accessor == nil {
-		return ErrInvalidParamVal
+		return errInvalidParamVal
 	}
 	st, en := accessor.Range()
 	if st >= en || st&0x1 != 0 || (en+1)&0x1 != 0 {
-		return ErrMemAccRangeInvalid
+		return errMemAccRangeInvalid
 	}
 	if m.overlapsExisting(accessor) {
 		return ErrMemAccOverlap
@@ -107,14 +107,14 @@ func (m *GlobalMapper) overlapsExisting(accessor Accessor) bool {
 	return false
 }
 
-func (m *GlobalMapper) RemoveAccessor(accessor Accessor) error {
+func (m *GlobalMapper) removeAccessor(accessor Accessor) error {
 	for i, acc := range m.accessors {
 		if acc == accessor {
 			m.removeAccessorAt(i)
 			return nil
 		}
 	}
-	return ErrInvalidParamVal
+	return errInvalidParamVal
 }
 
 func (m *GlobalMapper) removeAccessorAt(i int) {
@@ -126,7 +126,7 @@ func (m *GlobalMapper) removeAccessorAt(i int) {
 	m.accessors = m.accessors[:len(m.accessors)-1]
 }
 
-func (m *GlobalMapper) RemoveAllAccessors() {
+func (m *GlobalMapper) removeAllAccessors() {
 	clear(m.accessors)
 	m.accessors = nil
 	m.last = nil

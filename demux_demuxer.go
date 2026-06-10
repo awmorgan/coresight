@@ -36,7 +36,7 @@ type Demuxer struct {
 	fsyncStartEOB bool
 	trcCurrIdxSof Index
 
-	exFrmData [DfrmtrFrameSize]byte
+	exFrmData [dfrmtrFrameSize]byte
 
 	inBlock []byte
 
@@ -74,11 +74,11 @@ func (d *Demuxer) Configure(opts DemuxOptions) error {
 func validateFormatterOptions(opts DemuxOptions) error {
 	if !opts.HasFsyncs && !opts.HasHsyncs && !opts.FrameMemAlign &&
 		!opts.PackedRawOut && !opts.UnpackedRawOut && !opts.ResetOn4xFsync {
-		return ErrInvalidParamVal
+		return errInvalidParamVal
 	}
 
 	if opts.FrameMemAlign && (opts.HasFsyncs || opts.HasHsyncs) {
-		return ErrInvalidParamVal
+		return errInvalidParamVal
 	}
 	return nil
 }
@@ -90,7 +90,7 @@ func alignmentForOptions(opts DemuxOptions) uint32 {
 	case opts.HasFsyncs:
 		return 4
 	default:
-		return DfrmtrFrameSize
+		return dfrmtrFrameSize
 	}
 }
 
@@ -160,10 +160,10 @@ func (d *Demuxer) resetStateParams() {
 func (d *Demuxer) Write(index Index, dataBlock []byte) (uint32, error) {
 	d.updateRawOutputState()
 	if len(dataBlock) == 0 {
-		return 0, ErrInvalidParamVal
+		return 0, errInvalidParamVal
 	}
 	if d.alignment == 0 {
-		return 0, ErrDfrmtrNotConfigured
+		return 0, errDfrmtrNotConfigured
 	}
 
 	processSize := uint32(len(dataBlock))

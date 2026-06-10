@@ -195,13 +195,13 @@ func (d *etmv4Decoder) iPktNoPayload(lastByte byte) error {
 }
 
 func (d *etmv4Decoder) iPktReserved(lastByte byte) error {
-	d.ctx.currPacket.updateErr(etmv4PktReserved, ErrInvalidPcktHdr)
+	d.ctx.currPacket.updateErr(etmv4PktReserved, errInvalidPcktHdr)
 	d.ctx.processState = etmv4StateSendPkt
 	return nil
 }
 
 func (d *etmv4Decoder) iPktInvalidCfg(lastByte byte) error {
-	d.ctx.currPacket.updateErr(PktReservedCfg, ErrInvalidPcktHdr)
+	d.ctx.currPacket.updateErr(PktReservedCfg, errInvalidPcktHdr)
 	d.ctx.processState = etmv4StateSendPkt
 	return nil
 }
@@ -226,7 +226,7 @@ func (d *etmv4Decoder) iPktExtension(lastByte byte) error {
 		d.ctx.currPacket.Type = PktOverflow
 		d.ctx.processState = etmv4StateSendPkt
 	default:
-		d.ctx.currPacket.updateErr(etmv4PktBadSequence, ErrBadPacketSeq)
+		d.ctx.currPacket.updateErr(etmv4PktBadSequence, errBadPacketSeq)
 		d.ctx.processState = etmv4StateSendPkt
 	}
 	return nil
@@ -241,7 +241,7 @@ func (d *etmv4Decoder) iPktASync(lastByte byte) error {
 		}
 		d.ctx.processState = etmv4StateSendPkt
 		if len(d.ctx.raw) != 12 || lastByte != 0x80 {
-			d.ctx.currPacket.updateErr(etmv4PktBadSequence, ErrBadPacketSeq)
+			d.ctx.currPacket.updateErr(etmv4PktBadSequence, errBadPacketSeq)
 		} else {
 			d.ctx.isSync = true
 		}
@@ -250,7 +250,7 @@ func (d *etmv4Decoder) iPktASync(lastByte byte) error {
 			d.ctx.dumpUnsyncedBytes = 1
 			d.ctx.processState = stateSendUnsynced
 		} else {
-			d.ctx.currPacket.updateErr(etmv4PktBadSequence, ErrBadPacketSeq)
+			d.ctx.currPacket.updateErr(etmv4PktBadSequence, errBadPacketSeq)
 			d.ctx.processState = etmv4StateSendPkt
 		}
 	}
@@ -678,7 +678,7 @@ func (d *etmv4Decoder) iPktQ(lastByte byte) error {
 			d.ctx.countDone = true
 
 		default:
-			d.ctx.currPacket.updateErr(etmv4PktBadSequence, ErrBadPacketSeq)
+			d.ctx.currPacket.updateErr(etmv4PktBadSequence, errBadPacketSeq)
 			d.ctx.processState = etmv4StateSendPkt
 			return nil
 		}
@@ -786,7 +786,7 @@ func (d *etmv4Decoder) iAtom(lastByte byte) error {
 }
 
 func (d *etmv4Decoder) iPktUnsupported(lastByte byte) error {
-	d.ctx.currPacket.updateErr(etmv4PktBadTraceMode, ErrHWCfgUnsupp)
+	d.ctx.currPacket.updateErr(etmv4PktBadTraceMode, errHWCfgUnsupp)
 	d.ctx.processState = etmv4StateSendPkt
 	return nil
 }

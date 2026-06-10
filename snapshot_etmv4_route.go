@@ -24,7 +24,7 @@ func (b *PipelineBuilder) buildETMv4Route(spec sourceRouteSpec) (Route, error) {
 	if err != nil {
 		return Route{}, err
 	}
-	cfg.ErrOnAA64BadOpcode = b.errOnAA64BadOpcode
+	cfg.errOnAA64BadOpcode = b.errOnAA64BadOpcode
 	cfg.InstrRangeLimit = b.instrRangeLimit
 	cfg.SrcAddrNAtoms = b.srcAddrNAtoms
 
@@ -75,17 +75,17 @@ func etmv4DeviceRegs(dev *Device) (etmv4Regs, error) {
 		name string
 		dst  *uint32
 	}{
-		{ETMv4RegCfg, &regs.configr},
-		{ETMv4RegIDR, &regs.traceIDR},
-		{ETMv4RegIDR0, &regs.idr0},
-		{ETMv4RegIDR1, &regs.idr1},
-		{ETMv4RegIDR2, &regs.idr2},
-		{ETMv4RegIDR8, &regs.idr8},
-		{ETMv4RegIDR9, &regs.idr9},
-		{ETMv4RegIDR10, &regs.idr10},
-		{ETMv4RegIDR11, &regs.idr11},
-		{ETMv4RegIDR12, &regs.idr12},
-		{ETMv4RegIDR13, &regs.idr13},
+		{etmv4RegCfg, &regs.configr},
+		{etmv4RegIDR, &regs.traceIDR},
+		{etmv4RegIDR0, &regs.idr0},
+		{etmv4RegIDR1, &regs.idr1},
+		{etmv4RegIDR2, &regs.idr2},
+		{etmv4RegIDR8, &regs.idr8},
+		{etmv4RegIDR9, &regs.idr9},
+		{etmv4RegIDR10, &regs.idr10},
+		{etmv4RegIDR11, &regs.idr11},
+		{etmv4RegIDR12, &regs.idr12},
+		{etmv4RegIDR13, &regs.idr13},
 	} {
 		if err := setReg32(dev, reg.name, reg.dst); err != nil {
 			return etmv4Regs{}, err

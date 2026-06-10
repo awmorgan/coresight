@@ -138,7 +138,7 @@ type etmv4ITEInfo struct {
 
 type etmv4Packet struct {
 	Type      etmv4PacketType
-	ErrType   etmv4PacketType
+	errType   etmv4PacketType
 	Err       error
 	Index     Index
 	IsETE     bool
@@ -170,7 +170,7 @@ type etmv4Packet struct {
 }
 
 func (p *etmv4Packet) InitStartState() {
-	*p = etmv4Packet{Type: etmv4PktNotSync, ErrType: PktNoErrType}
+	*p = etmv4Packet{Type: etmv4PktNotSync, errType: PktNoErrType}
 	p.Addr = etmv4Address{Size: 64, ValidBits: 64}
 	for i := range p.addrStack {
 		p.addrStack[i] = etmv4Address{Size: 64, ValidBits: 64}
@@ -179,7 +179,7 @@ func (p *etmv4Packet) InitStartState() {
 
 func (p *etmv4Packet) InitNextPacket() {
 	p.Err = nil
-	p.ErrType = PktNoErrType
+	p.errType = PktNoErrType
 	p.RawPrefix = ""
 	p.CCValid = false
 	p.CommitValid = false
@@ -193,7 +193,7 @@ func (p *etmv4Packet) InitNextPacket() {
 }
 
 func (p *etmv4Packet) updateErr(t etmv4PacketType, err error) {
-	p.ErrType = p.Type
+	p.errType = p.Type
 	p.Type = t
 	p.Err = err
 }
@@ -313,7 +313,7 @@ func (p *etmv4Packet) String() string {
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "%s : %s", info.name, info.desc)
 	if p.Err != nil {
-		if ei, ok := packetInfos[p.ErrType]; ok && (!errors.Is(p.Err, ErrInvalidPcktHdr) || p.Type == PktReservedCfg) {
+		if ei, ok := packetInfos[p.errType]; ok && (!errors.Is(p.Err, errInvalidPcktHdr) || p.Type == PktReservedCfg) {
 			fmt.Fprintf(&sb, "[%s]", ei.name)
 		}
 		return sb.String()
@@ -527,7 +527,7 @@ func (p *etmv4Packet) TraceErrorPrefix(index Index, id uint8) string {
 	if p.RawPrefix != "" {
 		return p.RawPrefix
 	}
-	if !errors.Is(p.Err, ErrInvalidPcktHdr) || p.Type == PktReservedCfg {
+	if !errors.Is(p.Err, errInvalidPcktHdr) || p.Type == PktReservedCfg {
 		return ""
 	}
 	return fmt.Sprintf("PKTP_ETMV4I_%04x : 0x0014 (OCSD_ERR_INVALID_PCKT_HDR) [Invalid packet header]; TrcIdx=%d; CS ID=%02X; ", id, index, id)

@@ -82,7 +82,7 @@ func (d *stmDecoder) processData(index Index, dataBlock []byte) (uint32, error) 
 		case stmStateSendPkt:
 			err = d.outputPacket()
 		}
-		if errors.Is(err, ErrBadPacketSeq) || errors.Is(err, ErrInvalidPcktHdr) {
+		if errors.Is(err, errBadPacketSeq) || errors.Is(err, errInvalidPcktHdr) {
 			return uint32(d.ctx.off), fmt.Errorf("%w: %v", ErrDataDecodeFatal, err)
 		}
 	}
@@ -225,12 +225,12 @@ func (d *stmDecoder) waitForSync(blockStart Index) {
 
 func (d *stmDecoder) throwBadSequenceError(msg string) error {
 	d.ctx.currPacket.UpdateErrType(stmPktBadSequence)
-	return fmt.Errorf("%w: %s", ErrBadPacketSeq, msg)
+	return fmt.Errorf("%w: %s", errBadPacketSeq, msg)
 }
 
 func (d *stmDecoder) throwReservedHdrError(msg string) error {
 	d.ctx.currPacket.SetType(stmPktReserved, false)
-	return fmt.Errorf("%w: %s", ErrInvalidPcktHdr, msg)
+	return fmt.Errorf("%w: %s", errInvalidPcktHdr, msg)
 }
 
 func (d *stmDecoder) op1(n uint8) pktFn {

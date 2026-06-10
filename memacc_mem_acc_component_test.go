@@ -109,7 +109,7 @@ func TestOverlapRegions(t *testing.T) {
 		t.Fatalf("Overlapping general S accessor should return ErrMemAccOverlap, got: %v", err)
 	}
 
-	mapper.RemoveAllAccessors()
+	mapper.removeAllAccessors()
 }
 
 // --------------------------------------------------------------------------
@@ -205,7 +205,7 @@ func TestTrcIDCallbackDispatch(t *testing.T) {
 	// Test 4: Read from range 1 again.
 	readAndCheck(t, "test4: range1 offset=0x10 again", 1, 0x10)
 
-	mapper.RemoveAllAccessors()
+	mapper.removeAllAccessors()
 }
 
 // --------------------------------------------------------------------------
@@ -344,7 +344,7 @@ func TestMemSpaces(t *testing.T) {
 	})
 
 	// Phase 2: test broader space accessors (ANY, N, S, R) with specific read spaces.
-	mapper.RemoveAllAccessors()
+	mapper.removeAllAccessors()
 
 	broaderAccs := []accSpec{
 		{addrCommon, tb.el01NS[0], MemSpaceAny},
@@ -400,5 +400,5 @@ func TestMemSpaces(t *testing.T) {
 		}
 	})
 
-	mapper.RemoveAllAccessors()
+	mapper.removeAllAccessors()
 }

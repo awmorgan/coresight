@@ -17,7 +17,7 @@ type codeFollower struct {
 	Arch      archProfile
 	Isa       ISA
 
-	ErrOnAA64BadOpcode bool
+	errOnAA64BadOpcode bool
 	InstrRangeLimit    uint32
 
 	ReadBuf   [opcodeBytes]byte
@@ -39,19 +39,19 @@ type followResult struct {
 // decodeSingleOpCode decodes a single opcode at instrInfo.InstrAddr.
 func (cf *codeFollower) decodeSingleOpCode(instrInfo *instrInfo, traceID uint8, memSpace MemSpaceAcc) error {
 	readBytes, err := cf.MemAccess.Read(instrInfo.InstrAddr, traceID, memSpace, opcodeBytes, cf.ReadBuf[:])
-	if errors.Is(err, ErrNoAccessor) {
-		return ErrMemNacc
+	if errors.Is(err, errNoAccessor) {
+		return errMemNacc
 	}
 	if err != nil {
 		return err
 	}
 	if readBytes != opcodeBytes {
-		return ErrMemNacc
+		return errMemNacc
 	}
 
 	instrInfo.Opcode = binary.LittleEndian.Uint32(cf.ReadBuf[:])
-	if cf.ErrOnAA64BadOpcode && instrInfo.ISA == ISAAArch64 && instrInfo.Opcode&0xFFFF0000 == 0 {
-		return ErrInvalidOpcode
+	if cf.errOnAA64BadOpcode && instrInfo.ISA == ISAAArch64 && instrInfo.Opcode&0xFFFF0000 == 0 {
+		return errInvalidOpcode
 	}
 
 	return cf.IdDecode(instrInfo)
@@ -70,7 +70,7 @@ func (cf *codeFollower) followSingleAtom(addrStart VAddr, atom atmVal) (followRe
 	}
 
 	if err := cf.decodeSingleOpCode(&cf.TempInstr, cf.TraceID, cf.MemSpace); err != nil {
-		res.HasNacc = errors.Is(err, ErrMemNacc)
+		res.HasNacc = errors.Is(err, errMemNacc)
 		res.InstrInfo = cf.TempInstr
 		return res, err
 	}
@@ -122,7 +122,7 @@ func (cf *codeFollower) followAtomWaypoint(addrStart VAddr, atom atmVal) (follow
 			out.InstrInfo = res.InstrInfo
 		}
 		if cf.InstrRangeLimit > 0 && out.NumInstr > cf.InstrRangeLimit {
-			return out, ErrIRangeLimitOverrun
+			return out, errIRangeLimitOverrun
 		}
 
 		switch res.InstrInfo.Type {

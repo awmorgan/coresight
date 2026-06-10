@@ -127,7 +127,7 @@ func (b *PipelineBuilder) Build(sourceName string, packetProcOnly bool) (*Pipeli
 		b.pipe = nil
 		err := errors.Join(snapshotSkipped...)
 		if err == nil {
-			err = ErrNoProtocol
+			err = errNoProtocol
 		}
 		return nil, fmt.Errorf("no supported protocols found: %w", err)
 	}
@@ -156,10 +156,10 @@ func etmPTMDeviceRegs(dev *Device, defaultIDR uint32) (etmPTMRegs, error) {
 		name string
 		dst  *uint32
 	}{
-		{ETMv3PTMRegCR, &regs.ctrl},
-		{ETMv3PTMRegTraceIDR, &regs.trcID},
-		{ETMv3PTMRegIDR, &regs.idr},
-		{ETMv3PTMRegCCER, &regs.ccer},
+		{etmv3PTMRegCR, &regs.ctrl},
+		{etmv3PTMRegTraceIDR, &regs.trcID},
+		{etmv3PTMRegIDR, &regs.idr},
+		{etmv3PTMRegCCER, &regs.ccer},
 	} {
 		if err := setReg32(dev, reg.name, reg.dst); err != nil {
 			return etmPTMRegs{}, err

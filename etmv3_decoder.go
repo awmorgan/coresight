@@ -52,7 +52,7 @@ type etmv3Decoder struct {
 // etmv3NewDecoder creates a new ETMv3 decoder instance.
 func etmv3NewDecoder(cfg *etmv3Config, mem internalMemoryReader, instr internalInstructionDecoder) (*etmv3Decoder, error) {
 	if cfg == nil {
-		return nil, fmt.Errorf("%w: ETMv3 config cannot be nil", ErrInvalidParamVal)
+		return nil, fmt.Errorf("%w: ETMv3 config cannot be nil", errInvalidParamVal)
 	}
 
 	d := &etmv3Decoder{
@@ -132,7 +132,7 @@ func (d *etmv3Decoder) OutputTraceElementIdx(idx Index, elem Element) {
 // Write consumes trace data from the demuxer.
 func (d *etmv3Decoder) Write(index Index, dataBlock []byte) (uint32, error) {
 	if len(dataBlock) == 0 {
-		return 0, fmt.Errorf("%w: packet processor: zero length data block", ErrInvalidParamVal)
+		return 0, fmt.Errorf("%w: packet processor: zero length data block", errInvalidParamVal)
 	}
 	processed, err := d.processData(index, dataBlock)
 	if err != nil {
@@ -203,7 +203,7 @@ func (d *etmv3Decoder) resetProcessorState() {
 // processPacket is the entrypoint for the Step 5 decoder logic.
 func (d *etmv3Decoder) processPacket(pkt *etmv3Packet) error {
 	if pkt == nil {
-		return ErrInvalidParamVal
+		return errInvalidParamVal
 	}
 	if !d.canDecodeElements() {
 		return nil
@@ -257,7 +257,7 @@ func (d *etmv3Decoder) decodePacket() error {
 	d.committedPendThisPacket = false
 
 	if pkt.Err != nil {
-		if errors.Is(pkt.Err, ErrBadPacketSeq) || errors.Is(pkt.Err, ErrInvalidPcktHdr) {
+		if errors.Is(pkt.Err, errBadPacketSeq) || errors.Is(pkt.Err, errInvalidPcktHdr) {
 			d.unsyncInfo = UnsyncBadPacket
 			d.currState = etmv3DecodeWaitSync
 			d.needIsync = true
@@ -504,7 +504,7 @@ func (d *etmv3Decoder) processPHdr() error {
 				d.codeFollower.InstrInfo.ISA = pkt.CurrISA
 
 				res, err := d.codeFollower.followSingleAtom(VAddr(d.iAddr), val)
-				if err != nil && !errors.Is(err, ErrMemNacc) {
+				if err != nil && !errors.Is(err, errMemNacc) {
 					return err
 				}
 
@@ -525,7 +525,7 @@ func (d *etmv3Decoder) processPHdr() error {
 					}
 				}
 
-				if errors.Is(err, ErrMemNacc) {
+				if errors.Is(err, errMemNacc) {
 					if res.NumInstr > 0 {
 						outputElem(elem)
 

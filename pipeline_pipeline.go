@@ -47,7 +47,7 @@ func (p *Pipeline) Write(index Index, data []byte) (uint32, error) {
 	if len(p.Routes) > 0 && p.Routes[0].ByteSink != nil {
 		return p.Routes[0].ByteSink.Write(index, data)
 	}
-	return 0, ErrNotInit
+	return 0, errNotInit
 }
 
 func (p *Pipeline) Close() error {

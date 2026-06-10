@@ -32,7 +32,7 @@ type stmDecoder struct {
 
 func stmNewDecoder(cfg *stmConfig) (*stmDecoder, error) {
 	if cfg == nil {
-		return nil, fmt.Errorf("%w: STM config cannot be nil", ErrInvalidParamVal)
+		return nil, fmt.Errorf("%w: STM config cannot be nil", errInvalidParamVal)
 	}
 
 	d := &stmDecoder{Config: cfg}
@@ -100,7 +100,7 @@ func (d *stmDecoder) resetProcessorState() {
 
 func (d *stmDecoder) processPacket(pktIn *stmPacket) error {
 	if pktIn == nil {
-		return ErrInvalidParamVal
+		return errInvalidParamVal
 	}
 	d.CurrPacketIn = pktIn
 	d.IndexCurrPkt = pktIn.Index

@@ -72,8 +72,8 @@ func (d *etmv3Decoder) resetPacketState() {
 
 func (d *etmv3Decoder) throwMalformedPacketErr(msg string) error {
 	d.ctx.processState = etmv3StateProcErr
-	d.ctx.currPacket.Err = ErrBadPacketSeq
-	d.ctx.procErrReason = fmt.Errorf("%w: %s", ErrBadPacketSeq, msg)
+	d.ctx.currPacket.Err = errBadPacketSeq
+	d.ctx.procErrReason = fmt.Errorf("%w: %s", errBadPacketSeq, msg)
 	return d.ctx.procErrReason
 }
 
@@ -97,7 +97,7 @@ func (d *etmv3Decoder) processData(index Index, dataBlock []uint8) (uint32, erro
 			if currByte, ok := d.readNextByte(); ok {
 				d.decodeHeaderByte(currByte)
 			} else {
-				err = fmt.Errorf("%w: Data Buffer Overrun", ErrPktInterpFail)
+				err = fmt.Errorf("%w: Data Buffer Overrun", errPktInterpFail)
 			}
 
 		case etmv3StateProcData:
@@ -115,12 +115,12 @@ func (d *etmv3Decoder) processData(index Index, dataBlock []uint8) (uint32, erro
 		case etmv3StateProcErr:
 			err = d.ctx.procErrReason
 			if err == nil {
-				err = ErrPktInterpFail
+				err = errPktInterpFail
 			}
 		}
 
 		if err != nil {
-			if errors.Is(err, ErrBadPacketSeq) || errors.Is(err, ErrInvalidPcktHdr) || errors.Is(err, ErrHWCfgUnsupp) {
+			if errors.Is(err, errBadPacketSeq) || errors.Is(err, errInvalidPcktHdr) || errors.Is(err, errHWCfgUnsupp) {
 				d.ctx.processState = etmv3StateSendPkt
 				err = nil
 			} else {
@@ -271,35 +271,35 @@ func (d *etmv3Decoder) decodeHeaderByte(by uint8) {
 	} else if (by & 0x03) == 0x00 {
 		if (by & 0x93) == 0x00 {
 			d.ctx.currPacket.Type = PktOOOData
-			d.ctx.currPacket.Err = ErrHWCfgUnsupp
+			d.ctx.currPacket.Err = errHWCfgUnsupp
 			d.ctx.processState = etmv3StateSendPkt
 		} else if by == 0x70 {
 			d.ctx.currPacket.Type = PktISyncCycle
 		} else if by == 0x50 {
 			d.ctx.currPacket.Type = PktStoreFail
-			d.ctx.currPacket.Err = ErrHWCfgUnsupp
+			d.ctx.currPacket.Err = errHWCfgUnsupp
 			d.ctx.processState = etmv3StateSendPkt
 		} else if (by & 0xD3) == 0x50 {
 			d.ctx.currPacket.Type = PktOOOAddrPlc
-			d.ctx.currPacket.Err = ErrHWCfgUnsupp
+			d.ctx.currPacket.Err = errHWCfgUnsupp
 			d.ctx.processState = etmv3StateSendPkt
 		} else if by == 0x3C {
 			d.ctx.currPacket.Type = PktVMID
 		} else {
-			d.ctx.currPacket.Err = ErrInvalidPcktHdr
+			d.ctx.currPacket.Err = errInvalidPcktHdr
 			d.ctx.processState = etmv3StateSendPkt
 		}
 	} else if (by & 0xD3) == 0x02 {
 		d.ctx.currPacket.Type = PktNormData
-		d.ctx.currPacket.Err = ErrHWCfgUnsupp
+		d.ctx.currPacket.Err = errHWCfgUnsupp
 		d.ctx.processState = etmv3StateSendPkt
 	} else if by == 0x62 {
 		d.ctx.currPacket.Type = PktDataSuppressed
-		d.ctx.currPacket.Err = ErrHWCfgUnsupp
+		d.ctx.currPacket.Err = errHWCfgUnsupp
 		d.ctx.processState = etmv3StateSendPkt
 	} else if (by & 0xEF) == 0x6A {
 		d.ctx.currPacket.Type = PktValNotTraced
-		d.ctx.currPacket.Err = ErrHWCfgUnsupp
+		d.ctx.currPacket.Err = errHWCfgUnsupp
 		d.ctx.processState = etmv3StateSendPkt
 	} else if by == 0x66 {
 		d.ctx.currPacket.Type = PktIgnore
@@ -316,7 +316,7 @@ func (d *etmv3Decoder) decodeHeaderByte(by uint8) {
 	} else if (by & 0xFB) == 0x42 {
 		d.ctx.currPacket.Type = PktTimestamp
 	} else {
-		d.ctx.currPacket.Err = ErrInvalidPcktHdr
+		d.ctx.currPacket.Err = errInvalidPcktHdr
 		d.ctx.processState = etmv3StateSendPkt
 	}
 }

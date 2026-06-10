@@ -30,7 +30,7 @@ func (s *addrReturnStack) push(addr VAddr, isa ISA) {
 // pop removes and returns the top entry.
 func (s *addrReturnStack) pop() (VAddr, ISA, bool) {
 	if !s.Active || len(s.Stack) == 0 {
-		return VAddr(VAMask), 0, false
+		return VAddr(vaMask), 0, false
 	}
 	top := len(s.Stack) - 1
 	elem := s.Stack[top]

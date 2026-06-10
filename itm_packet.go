@@ -42,7 +42,7 @@ type itmPacket struct {
 	Value   uint32
 	ValSz   uint8
 	ValExt  uint8
-	ErrType itmPktType
+	errType itmPktType
 }
 
 func (p *itmPacket) Clear() {
@@ -51,11 +51,11 @@ func (p *itmPacket) Clear() {
 	p.Value = 0
 	p.ValSz = 0
 	p.ValExt = 0
-	p.ErrType = itmPktNoErrType
+	p.errType = itmPktNoErrType
 }
 
 func (p *itmPacket) UpdateErrType(errType itmPktType) {
-	p.ErrType = p.Type
+	p.errType = p.Type
 	p.Type = errType
 }
 
@@ -146,7 +146,7 @@ func (p *itmPacket) writePacketBody(sb *strings.Builder) {
 	case itmPktExtension:
 		p.writeExtensionPacketBody(sb)
 	case itmPktIncompleteEOT, itmPktBadSequence:
-		name, _ := itmPacketTypeNameDesc(p.ErrType)
+		name, _ := itmPacketTypeNameDesc(p.errType)
 		fmt.Fprintf(sb, "[Init type: %s] ", name)
 	}
 }

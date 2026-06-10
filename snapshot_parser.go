@@ -25,17 +25,17 @@ func parseOptionalUint(sec map[string]string, secName, key string) (uint64, erro
 
 // parseMemoryDump builds a MemoryDump from a parsed INI section map.
 func parseMemoryDump(secName string, sec map[string]string) (MemoryDump, error) {
-	addr, err := parseOptionalUint(sec, secName, DumpAddressKey)
+	addr, err := parseOptionalUint(sec, secName, dumpAddressKey)
 	if err != nil {
 		return MemoryDump{}, err
 	}
 
-	length, err := parseOptionalUint(sec, secName, DumpLengthKey)
+	length, err := parseOptionalUint(sec, secName, dumpLengthKey)
 	if err != nil {
 		return MemoryDump{}, err
 	}
 
-	offset, err := parseOptionalUint(sec, secName, DumpOffsetKey)
+	offset, err := parseOptionalUint(sec, secName, dumpOffsetKey)
 	if err != nil {
 		return MemoryDump{}, err
 	}
@@ -44,8 +44,8 @@ func parseMemoryDump(secName string, sec map[string]string) (MemoryDump, error) 
 		Address: addr,
 		Length:  length,
 		Offset:  offset,
-		Path:    sec[DumpFileKey],
-		Space:   sec[DumpSpaceKey],
+		Path:    sec[dumpFileKey],
+		Space:   sec[dumpSpaceKey],
 	}, nil
 }
 
@@ -61,26 +61,26 @@ func parseSingleDevice(input io.Reader) (*Device, error) {
 		ExtRegs: make(map[uint32]uint32),
 	}
 
-	if globalSec, ok := ini.Sections[GlobalSectionName]; ok {
+	if globalSec, ok := ini.Sections[globalSectionName]; ok {
 		parsed.FoundGlobal = true
-		if core, ok := globalSec[CoreKey]; ok {
+		if core, ok := globalSec[coreKey]; ok {
 			parsed.Core = core
 		}
 	}
 
-	if deviceSec, ok := ini.Sections[DeviceSectionName]; ok {
-		parsed.Name = deviceSec[DeviceNameKey]
-		parsed.Class = deviceSec[DeviceClassKey]
-		parsed.Type = deviceSec[DeviceTypeKey]
+	if deviceSec, ok := ini.Sections[deviceSectionName]; ok {
+		parsed.Name = deviceSec[deviceNameKey]
+		parsed.Class = deviceSec[deviceClassKey]
+		parsed.Type = deviceSec[deviceTypeKey]
 	}
 
-	if regsSec, ok := ini.Sections[SymbolicRegsSectionName]; ok {
+	if regsSec, ok := ini.Sections[symbolicRegsSectionName]; ok {
 		for k, v := range regsSec {
 			parsed.Regs[strings.ToLower(k)] = v
 		}
 	}
 
-	if extSec, ok := ini.Sections[ExtendedRegsSectionName]; ok {
+	if extSec, ok := ini.Sections[extendedRegsSectionName]; ok {
 		for k, v := range extSec {
 			addr, errA := strconv.ParseUint(strings.TrimSpace(k), 0, 32)
 			val, errV := strconv.ParseUint(strings.TrimSpace(v), 0, 32)
@@ -91,7 +91,7 @@ func parseSingleDevice(input io.Reader) (*Device, error) {
 	}
 
 	for _, secName := range ini.SectionOrder {
-		if !strings.HasPrefix(strings.ToLower(secName), DumpFileSectionPrefix) {
+		if !strings.HasPrefix(strings.ToLower(secName), dumpFileSectionPrefix) {
 			continue
 		}
 
@@ -116,25 +116,25 @@ func parseDeviceList(input io.Reader) (*ParsedDevices, error) {
 		DeviceList: make(map[string]string),
 	}
 
-	if snapSec, ok := ini.Sections[SnapshotSectionName]; ok {
-		parsed.Version = snapSec[VersionKey]
-		parsed.Description = snapSec[DescriptionKey]
+	if snapSec, ok := ini.Sections[snapshotSectionName]; ok {
+		parsed.Version = snapSec[versionKey]
+		parsed.Description = snapSec[descriptionKey]
 	}
 
-	if devListSec, ok := ini.Sections[DeviceListSectionName]; ok {
+	if devListSec, ok := ini.Sections[deviceListSectionName]; ok {
 		maps.Copy(parsed.DeviceList, devListSec)
 	}
 
 	if parsed.Version == "" {
-		if _, hasDeviceList := ini.Sections[DeviceListSectionName]; hasDeviceList {
+		if _, hasDeviceList := ini.Sections[deviceListSectionName]; hasDeviceList {
 			parsed.Version = "0.1"
 		} else {
 			parsed.Version = "0.0"
 		}
 	}
 
-	if traceSec, ok := ini.Sections[TraceSectionName]; ok {
-		parsed.TraceMetaDataName = traceSec[MetadataKey]
+	if traceSec, ok := ini.Sections[traceSectionName]; ok {
+		parsed.TraceMetaDataName = traceSec[metadataKey]
 	}
 
 	return parsed, nil
@@ -153,8 +153,8 @@ func parseTraceMetaData(input io.Reader) (*Trace, error) {
 		CPUSourceAssoc:     make(map[string]string),
 	}
 
-	if tbSec, ok := ini.Sections[BuffersSectionName]; ok {
-		if buffers, ok := tbSec[BufferListKey]; ok {
+	if tbSec, ok := ini.Sections[buffersSectionName]; ok {
+		if buffers, ok := tbSec[bufferListKey]; ok {
 			for bufName := range strings.SplitSeq(buffers, ",") {
 				name := strings.TrimSpace(bufName)
 				if name != "" {
@@ -167,21 +167,21 @@ func parseTraceMetaData(input io.Reader) (*Trace, error) {
 	for _, bufSecName := range parsed.BufferSectionNames {
 		if bufSec, ok := ini.Sections[bufSecName]; ok {
 			var info Buffer
-			info.BufferName = bufSec[BufferNameKey]
-			info.DataFileName = bufSec[BufferFileKey]
-			info.DataFormat = bufSec[BufferFormatKey]
+			info.BufferName = bufSec[bufferNameKey]
+			info.DataFileName = bufSec[bufferFileKey]
+			info.DataFormat = bufSec[bufferFormatKey]
 			parsed.Buffers = append(parsed.Buffers, info)
 		}
 	}
 
-	if sbSec, ok := ini.Sections[SourceBuffersSectionName]; ok {
+	if sbSec, ok := ini.Sections[sourceBuffersSectionName]; ok {
 		maps.Copy(parsed.SourceBufferAssoc, sbSec)
 	}
 
 	// Each entry has format core_name=source_name. A core may appear multiple times with
 	// different sources (e.g. multi-session ETE), resulting in comma-separated accumulated
 	// values from the INI parser's duplicate-key handling.
-	if ctsSec, ok := ini.Sections[CoreSourcesSectionName]; ok {
+	if ctsSec, ok := ini.Sections[coreSourcesSectionName]; ok {
 		maps.Copy(parsed.CPUSourceAssoc, ctsSec)
 	}
 

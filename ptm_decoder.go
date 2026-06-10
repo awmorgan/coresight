@@ -62,7 +62,7 @@ type ptmDecoder struct {
 
 func ptmNewDecoder(cfg *ptmConfig, mem internalMemoryReader, instr internalInstructionDecoder) (*ptmDecoder, error) {
 	if cfg == nil {
-		return nil, fmt.Errorf("%w: PTM config cannot be nil", ErrInvalidParamVal)
+		return nil, fmt.Errorf("%w: PTM config cannot be nil", errInvalidParamVal)
 	}
 
 	d := &ptmDecoder{
@@ -102,7 +102,7 @@ func (d *ptmDecoder) AccessMemory(address VAddr, traceID uint8, memSpace MemSpac
 	if d.MemAccess != nil {
 		return d.MemAccess.Read(address, traceID, memSpace, reqBytes, buffer)
 	}
-	return 0, ErrDcdInterfaceUnused
+	return 0, errDcdInterfaceUnused
 }
 
 // InstrDecodeCall calls the attached instruction decoder.
@@ -110,7 +110,7 @@ func (d *ptmDecoder) InstrDecodeCall(instrInfo *instrInfo) error {
 	if d.InstrDecode != nil {
 		return d.InstrDecode(instrInfo)
 	}
-	return ErrDcdInterfaceUnused
+	return errDcdInterfaceUnused
 }
 
 func (d *ptmDecoder) Close() error {
@@ -161,7 +161,7 @@ func (d *ptmDecoder) Reset(index Index) error {
 
 func (d *ptmDecoder) Flush() error {
 	if d.Config == nil {
-		return ErrNotInit
+		return errNotInit
 	}
 	return nil
 }
@@ -198,7 +198,7 @@ func (d *ptmDecoder) resetDecoder() {
 // processPacket encapsulates the core state machine for decoding a single packet.
 func (d *ptmDecoder) processPacket(pktIn *ptmPacket) error {
 	if pktIn == nil {
-		return ErrInvalidParamVal
+		return errInvalidParamVal
 	}
 	d.CurrPacketIn = pktIn
 	d.IndexCurrPkt = pktIn.Index
@@ -453,7 +453,7 @@ func (d *ptmDecoder) processAtomRange(A atmVal, traceWPOp waypointTraceOp, nextA
 
 	wpFound, err := d.traceInstrToWP(traceWPOp, nextAddrMatch, &elem)
 	if err != nil {
-		if errors.Is(err, ErrUnsupportedISA) {
+		if errors.Is(err, errUnsupportedISA) {
 			d.currPeState.valid = false
 			return nil // Warning
 		}
@@ -479,7 +479,7 @@ func (d *ptmDecoder) processAtomRange(A atmVal, traceWPOp waypointTraceOp, nextA
 				if d.returnStack.Active && d.CurrPacketIn.Type == PacketAtom {
 					popAddr, nextIsa, ok := d.returnStack.pop()
 					if !ok {
-						return ErrRetStackOverflow // fatal
+						return errRetStackOverflow // fatal
 					} else {
 						d.instrInfo.InstrAddr = popAddr
 						d.instrInfo.NextISA = nextIsa
@@ -524,7 +524,7 @@ func (d *ptmDecoder) traceInstrToWP(traceWPOp waypointTraceOp, nextAddrMatch VAd
 		currOpAddress := d.instrInfo.InstrAddr
 		opcode, size, errFetch := d.fetchAndDecodeOpcode(currOpAddress, d.instrInfo.ISA)
 		if errFetch != nil {
-			if errors.Is(errFetch, ErrNoAccessor) || errors.Is(errFetch, ErrMemNacc) {
+			if errors.Is(errFetch, errNoAccessor) || errors.Is(errFetch, errMemNacc) {
 				d.memNaccPending = true
 				d.naccAddr = currOpAddress
 				break
@@ -565,7 +565,7 @@ func (d *ptmDecoder) fetchAndDecodeOpcode(addr VAddr, isa ISA) (uint32, int, err
 
 	// Match OpenCSD PTM: strictly requires 4 bytes returned or assumes NACC
 	if bytesRead != 4 {
-		return 0, 0, ErrMemNacc
+		return 0, 0, errMemNacc
 	}
 
 	opcode := uint32(d.fetchBuf[0])

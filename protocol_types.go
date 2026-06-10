@@ -32,16 +32,16 @@ type archProfile struct {
 func isArchMinVer(arch, minArch ArchVersion) bool { return arch >= minArch }
 
 const (
-	MaxVABitsize = 64
-	VAMask       = ^uint64(0)
+	maxVABitsize = 64
+	vaMask       = ^uint64(0)
 )
 
 func bitMask(bits int) uint64 {
 	switch {
 	case bits <= 0:
 		return 0
-	case bits >= MaxVABitsize:
-		return VAMask
+	case bits >= maxVABitsize:
+		return vaMask
 	default:
 		return (uint64(1) << bits) - 1
 	}
@@ -122,5 +122,5 @@ func IsValidCSSrcID(id uint8) bool {
 }
 
 const (
-	DfrmtrFrameSize = 0x10
+	dfrmtrFrameSize = 0x10
 )

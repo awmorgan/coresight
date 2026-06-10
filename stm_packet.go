@@ -50,7 +50,7 @@ type stmPacket struct {
 	TSType    tsType
 	HasMarker bool
 	Payload   uint64
-	ErrType   stmPktType
+	errType   stmPktType
 	TSUpdate  uint64
 }
 
@@ -64,7 +64,7 @@ func (p *stmPacket) InitStartState() {
 }
 
 func (p *stmPacket) InitNextPacket() {
-	p.ErrType = stmPktNoErrType
+	p.errType = stmPktNoErrType
 	p.PktTSBits = 0
 	p.HasTS = false
 	p.HasMarker = false
@@ -80,7 +80,7 @@ func (p *stmPacket) SetType(t stmPktType, marker bool) {
 }
 
 func (p *stmPacket) UpdateErrType(t stmPktType) {
-	p.ErrType = p.Type
+	p.errType = p.Type
 	p.Type = t
 }
 
@@ -131,7 +131,7 @@ func (p *stmPacket) AppendStringTo(dst []byte) []byte {
 	switch p.Type {
 	case stmPktIncompleteEOT, stmPktBadSequence:
 		dst = append(dst, '[')
-		dst = p.appendTypeName(dst, p.ErrType)
+		dst = p.appendTypeName(dst, p.errType)
 		dst = append(dst, ']')
 	case PktVersion:
 		dst = append(dst, "; Ver="...)
