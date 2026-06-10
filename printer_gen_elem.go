@@ -90,7 +90,7 @@ func (p *GenericElementPrinter) SetIDFilter(idList []uint8) {
 
 type ElementFormatter struct{}
 
-var elemDescs = map[GenElemType]string{
+var elemDescs = [...]string{
 	GenElemUnknown:         "OCSD_GEN_TRC_ELEM_UNKNOWN",
 	GenElemNoSync:          "OCSD_GEN_TRC_ELEM_NO_SYNC",
 	GenElemTraceOn:         "OCSD_GEN_TRC_ELEM_TRACE_ON",
@@ -113,7 +113,7 @@ var elemDescs = map[GenElemType]string{
 	GenElemCustom:          "OCSD_GEN_TRC_ELEM_CUSTOM",
 }
 
-var instrTypeNames = map[InstrType]string{
+var instrTypeNames = [...]string{
 	InstrOther:      "--- ",
 	InstrBr:         "BR  ",
 	InstrBrIndirect: "iBR ",
@@ -123,7 +123,7 @@ var instrTypeNames = map[InstrType]string{
 	InstrTstart:     "TSTART",
 }
 
-var instrSubtypeNames = map[InstrSubtype]string{
+var instrSubtypeNames = [...]string{
 	SInstrNone:         "--- ",
 	SInstrBrLink:       "b+link ",
 	SInstrV8Ret:        "A64:ret ",
@@ -131,13 +131,13 @@ var instrSubtypeNames = map[InstrSubtype]string{
 	SInstrV7ImpliedRet: "V7:impl ret",
 }
 
-var traceOnNames = map[TraceOnReason]string{
+var traceOnNames = [...]string{
 	TraceOnNormal:   "begin or filter",
 	TraceOnOverflow: "overflow",
 	TraceOnExDebug:  "debug restart",
 }
 
-var isaNames = map[ISA]string{
+var isaNames = [...]string{
 	ISAArm:     "A32",
 	ISAThumb2:  "T32",
 	ISAAArch64: "A64",
@@ -147,7 +147,7 @@ var isaNames = map[ISA]string{
 	ISAUnknown: "Unk",
 }
 
-var unsyncNames = map[UnsyncInfo]string{
+var unsyncNames = [...]string{
 	UnsyncUnknown:      "undefined",
 	UnsyncInitDecoder:  "init-decoder",
 	UnsyncResetDecoder: "reset-decoder",
@@ -158,18 +158,18 @@ var unsyncNames = map[UnsyncInfo]string{
 	UnsyncEOT:          "end-of-trace",
 }
 
-var transTypeNames = map[MemoryTransaction]string{
+var transTypeNames = [...]string{
 	MemTransTraceInit: "Init",
 	MemTransStart:     "Start",
 	MemTransCommit:    "Commit",
 	MemTransFail:      "Fail",
 }
 
-var markerTypeNames = map[TraceSyncMarker]string{
+var markerTypeNames = [...]string{
 	ElemMarkerTS: "Timestamp marker",
 }
 
-var itmLocalTimestampNames = map[SWTItmType]string{
+var itmLocalTimestampNames = [...]string{
 	TSSync:       "TS Sync",
 	TSDelay:      "TS Delay",
 	TSPKTDelay:   "Packet Delay",
@@ -177,11 +177,11 @@ var itmLocalTimestampNames = map[SWTItmType]string{
 }
 
 func (f *ElementFormatter) FormatElementTo(sb *bytes.Buffer, e Element) {
-	desc, ok := elemDescs[e.ElemType]
-	if !ok {
+	if e.ElemType >= GenElemType(len(elemDescs)) {
 		sb.WriteString("OCSD_GEN_TRC_ELEM??: index out of range.")
 		return
 	}
+	desc := elemDescs[e.ElemType]
 
 	sb.WriteString(desc)
 	sb.WriteByte('(')
@@ -202,8 +202,8 @@ func (f *ElementFormatter) FormatElement(e Element) string {
 }
 
 func (f *ElementFormatter) GetElemName(t GenElemType) string {
-	if name, ok := elemDescs[t]; ok {
-		return name
+	if t < GenElemType(len(elemDescs)) {
+		return elemDescs[t]
 	}
 	return elemDescs[GenElemUnknown]
 }
@@ -234,9 +234,9 @@ func (f *ElementFormatter) writeElementPayload(sb *bytes.Buffer, e Element) {
 	case GenElemPeContext:
 		f.writePEContext(sb, e)
 	case GenElemTraceOn:
-		if s, ok := traceOnNames[e.Payload.TraceOnReason]; ok {
+		if e.Payload.TraceOnReason < TraceOnReason(len(traceOnNames)) {
 			sb.WriteString(" [")
-			sb.WriteString(s)
+			sb.WriteString(traceOnNames[e.Payload.TraceOnReason])
 			sb.WriteByte(']')
 		}
 	case GenElemTimestamp:
@@ -255,16 +255,16 @@ func (f *ElementFormatter) writeElementPayload(sb *bytes.Buffer, e Element) {
 	case GenElemEvent:
 		f.writeEvent(sb, e)
 	case GenElemEOTrace, GenElemNoSync:
-		if s, ok := unsyncNames[e.Payload.UnsyncEOTInfo]; ok {
+		if e.Payload.UnsyncEOTInfo < UnsyncInfo(len(unsyncNames)) {
 			sb.WriteString(" [")
-			sb.WriteString(s)
+			sb.WriteString(unsyncNames[e.Payload.UnsyncEOTInfo])
 			sb.WriteByte(']')
 		}
 	case GenElemSyncMarker:
 		marker := e.Payload.SyncMarker
-		if s, ok := markerTypeNames[marker.Type]; ok {
+		if marker.Type < TraceSyncMarker(len(markerTypeNames)) {
 			sb.WriteString(" [")
-			sb.WriteString(s)
+			sb.WriteString(markerTypeNames[marker.Type])
 			sb.WriteString("(0x")
 			var buf [24]byte
 			b := strconv.AppendUint(buf[:0], uint64(marker.Value), 16)
@@ -275,8 +275,8 @@ func (f *ElementFormatter) writeElementPayload(sb *bytes.Buffer, e Element) {
 			sb.WriteString(")]")
 		}
 	case GenElemMemTrans:
-		if s, ok := transTypeNames[e.Payload.MemTrans]; ok {
-			sb.WriteString(s)
+		if e.Payload.MemTrans < MemoryTransaction(len(transTypeNames)) {
+			sb.WriteString(transTypeNames[e.Payload.MemTrans])
 		}
 	case GenElemInstrumentation:
 		sb.WriteString("EL")
@@ -309,12 +309,12 @@ func (f *ElementFormatter) writeInstrRange(sb *bytes.Buffer, e Element) {
 	} else {
 		sb.WriteString("N ")
 	}
-	if s, ok := instrTypeNames[e.LastInstrType]; ok {
-		sb.WriteString(s)
+	if e.LastInstrType < InstrType(len(instrTypeNames)) {
+		sb.WriteString(instrTypeNames[e.LastInstrType])
 	}
 	if e.LastInstrSubtype != SInstrNone {
-		if s, ok := instrSubtypeNames[e.LastInstrSubtype]; ok {
-			sb.WriteString(s)
+		if e.LastInstrSubtype < InstrSubtype(len(instrSubtypeNames)) {
+			sb.WriteString(instrSubtypeNames[e.LastInstrSubtype])
 		}
 	}
 	if e.LastInstrCond {
@@ -377,8 +377,8 @@ func (f *ElementFormatter) writeEvent(sb *bytes.Buffer, e Element) {
 }
 
 func (f *ElementFormatter) isaName(isa ISA) string {
-	if s, ok := isaNames[isa]; ok {
-		return s
+	if isa < ISA(len(isaNames)) {
+		return isaNames[isa]
 	}
 	return isaNames[ISAUnknown]
 }
@@ -506,11 +506,11 @@ func (f *ElementFormatter) writeSWTFlags(sb *bytes.Buffer, info SWTInfo, timesta
 
 func (f *ElementFormatter) printSWInfoPktItm(sb *bytes.Buffer, e Element) {
 	itm := e.Payload.SWTItm
-
+ 
 	if itm.Overflow != 0 {
 		sb.WriteString("ITM_OVERFLOW; ")
 	}
-
+ 
 	var buf [24]byte
 	switch itm.PktType {
 	case SWITPayload:
@@ -542,22 +542,24 @@ func (f *ElementFormatter) printSWInfoPktItm(sb *bytes.Buffer, e Element) {
 		sb.Write(b)
 		sb.WriteString(") ")
 	}
-
-	if desc := itmLocalTimestampNames[itm.PktType]; desc != "" {
-		sb.WriteString("ITM_TS_LOCAL ( TS delta: 0x")
-		b := strconv.AppendUint(buf[:0], uint64(itm.Value), 16)
-		for range 8 - len(b) {
-			sb.WriteByte('0')
+ 
+	if itm.PktType < SWTItmType(len(itmLocalTimestampNames)) {
+		if desc := itmLocalTimestampNames[itm.PktType]; desc != "" {
+			sb.WriteString("ITM_TS_LOCAL ( TS delta: 0x")
+			b := strconv.AppendUint(buf[:0], uint64(itm.Value), 16)
+			for range 8 - len(b) {
+				sb.WriteByte('0')
+			}
+			sb.Write(b)
+			sb.WriteString(", { ")
+			sb.WriteString(desc)
+			sb.WriteString("}; TS cumulative: 0x")
+			b2 := strconv.AppendUint(buf[:0], e.Timestamp, 16)
+			for range 16 - len(b2) {
+				sb.WriteByte('0')
+			}
+			sb.Write(b2)
+			sb.WriteString(") ")
 		}
-		sb.Write(b)
-		sb.WriteString(", { ")
-		sb.WriteString(desc)
-		sb.WriteString("}; TS cumulative: 0x")
-		b2 := strconv.AppendUint(buf[:0], e.Timestamp, 16)
-		for range 16 - len(b2) {
-			sb.WriteByte('0')
-		}
-		sb.Write(b2)
-		sb.WriteString(") ")
 	}
 }

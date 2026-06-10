@@ -13,10 +13,22 @@ var (
 	errNoAccessor = errors.New("no memory accessor")
 )
 
+type accessorEntry struct {
+	acc      Accessor
+	start    VAddr
+	end      VAddr
+	memSpace MemSpaceAcc
+	score    int
+}
+
 // GlobalMapper implements a global registry of memory accessors.
 type GlobalMapper struct {
 	accessors []Accessor
-	last      Accessor
+	entries   []accessorEntry
+	lastAcc   Accessor
+	lastStart VAddr
+	lastEnd   VAddr
+	lastSpace MemSpaceAcc
 }
 
 func NewGlobalMapper() *GlobalMapper {
@@ -88,7 +100,14 @@ func (m *GlobalMapper) AddAccessor(accessor Accessor) error {
 	}
 
 	m.accessors = append(m.accessors, accessor)
-	m.last = nil
+	m.entries = append(m.entries, accessorEntry{
+		acc:      accessor,
+		start:    st,
+		end:      en,
+		memSpace: accessor.MemSpace(),
+		score:    memSpaceSpecificity(accessor.MemSpace()),
+	})
+	m.lastAcc = nil
 	return nil
 }
 
@@ -107,31 +126,46 @@ func (m *GlobalMapper) overlapsExisting(accessor Accessor) bool {
 func (m *GlobalMapper) removeAllAccessors() {
 	clear(m.accessors)
 	m.accessors = nil
-	m.last = nil
+	clear(m.entries)
+	m.entries = nil
+	m.lastAcc = nil
 }
 
 func (m *GlobalMapper) findAccessor(address VAddr, memSpace MemSpaceAcc) (Accessor, bool) {
-	if m.last != nil && m.last.MemSpace() == memSpace && m.last.AddrInRange(address) {
-		return m.last, true
+	if m.lastAcc != nil && m.lastSpace == memSpace && address >= m.lastStart && address <= m.lastEnd {
+		return m.lastAcc, true
 	}
 
 	var best Accessor
 	bestScore := maxMemSpaceSpecificity + 1
 
-	for _, acc := range m.accessors {
-		if !acc.AddrInRange(address) || (acc.MemSpace()&memSpace == 0) {
+	for i := range m.entries {
+		entry := &m.entries[i]
+		if address < entry.start || address > entry.end || (entry.memSpace&memSpace == 0) {
 			continue
 		}
-		if acc.MemSpace() == memSpace {
-			m.last = acc
-			return acc, true
+		if entry.memSpace == memSpace {
+			m.lastAcc = entry.acc
+			m.lastStart = entry.start
+			m.lastEnd = entry.end
+			m.lastSpace = entry.memSpace
+			return entry.acc, true
 		}
-		if score := memSpaceSpecificity(acc.MemSpace()); score < bestScore {
-			best = acc
-			bestScore = score
+		if entry.score < bestScore {
+			best = entry.acc
+			bestScore = entry.score
 		}
 	}
-	m.last = best
+
+	if best != nil {
+		st, en := best.Range()
+		m.lastAcc = best
+		m.lastStart = st
+		m.lastEnd = en
+		m.lastSpace = best.MemSpace()
+	} else {
+		m.lastAcc = nil
+	}
 	return best, best != nil
 }
 
