@@ -114,7 +114,12 @@ func runMultiSession(
 			fmt.Fprintf(out, "Trace Packet Lister : ERROR : Multi-session decode for buffer %s - buffer not found. Aborting.\n\n", sourceName)
 			break
 		}
-		binFile := filepath.Join(reader.SnapshotPath, srcTree.BufferInfo.DataFileName)
+		safeDataFile, err := snapshot.SafeRelativePath(srcTree.BufferInfo.DataFileName)
+		if err != nil {
+			fmt.Fprintf(out, "Trace Packet Lister : ERROR : Multi-session decode for buffer %s - invalid file path: %v. Aborting.\n\n", sourceName, err)
+			return err
+		}
+		binFile := filepath.Join(reader.SnapshotPath, safeDataFile)
 
 		if err := processTraceFile(out, pipe, binFile, genPrinter, opts); err != nil {
 			fmt.Fprintf(out, "Trace Packet Lister : ERROR : Multi-session decode for buffer %s failed. Aborting.\n\n", sourceName)

@@ -115,7 +115,13 @@ func mapMemoryRangesWithDiagnostics(mapper *coresight.GlobalMapper, ssDir string
 				continue
 			}
 
-			filePath := filepath.Join(ssDir, memParams.Path)
+			safePath, err := snapshot.SafeRelativePath(memParams.Path)
+			if err != nil {
+				recordLoadErr("", memParams, "invalid memory dump path: %v", err)
+				continue
+			}
+
+			filePath := filepath.Join(ssDir, safePath)
 			normPath := filepath.ToSlash(filePath)
 			space := parseMemSpace(memParams.Space)
 

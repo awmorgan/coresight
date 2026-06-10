@@ -83,7 +83,11 @@ func (b *PipelineBuilder) Build(sourceName string, packetProcOnly bool) (*coresi
 		return nil, fmt.Errorf("source tree for buffer %q not found", sourceName)
 	}
 
-	b.bufferFileName = filepath.Join(b.reader.SnapshotPath, tree.BufferInfo.DataFileName)
+	safeBufName, err := SafeRelativePath(tree.BufferInfo.DataFileName)
+	if err != nil {
+		return nil, fmt.Errorf("invalid buffer file path: %w", err)
+	}
+	b.bufferFileName = filepath.Join(b.reader.SnapshotPath, safeBufName)
 
 	dataFormat := strings.ToLower(tree.BufferInfo.DataFormat)
 	framedInput := dataFormat != "source_data"

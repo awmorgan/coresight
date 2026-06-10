@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 const SnapshotINIFilename = "snapshot.ini"
@@ -79,9 +80,37 @@ func (r *SnapshotReader) Read() error {
 	return nil
 }
 
+// SafeRelativePath verifies that a path specified in snapshot metadata is relative,
+// does not escape the snapshot root (no parent directory referencing e.g. via ".."),
+// is not empty, and has normalized separators.
+func SafeRelativePath(path string) (string, error) {
+	if strings.TrimSpace(path) == "" {
+		return "", fmt.Errorf("empty path")
+	}
+
+	// Normalize separators to slash to consistently inspect it
+	clean := filepath.ToSlash(filepath.Clean(path))
+
+	// Reject absolute paths
+	if filepath.IsAbs(path) || strings.HasPrefix(clean, "/") || filepath.VolumeName(path) != "" {
+		return "", fmt.Errorf("absolute path not allowed: %s", path)
+	}
+
+	// Cleaned path shouldn't start with ".."
+	if clean == ".." || strings.HasPrefix(clean, "../") {
+		return "", fmt.Errorf("path escapes snapshot directory: %s", path)
+	}
+
+	return clean, nil
+}
+
 func (r *SnapshotReader) loadDevice(devName string, iniFileName string) error {
-	devIniPath := r.snapshotFileName(iniFileName)
-	devFile, err := r.openSnapshotFile(iniFileName)
+	safeName, err := SafeRelativePath(iniFileName)
+	if err != nil {
+		return fmt.Errorf("invalid device ini path: %w", err)
+	}
+	devIniPath := r.snapshotFileName(safeName)
+	devFile, err := r.openSnapshotFile(safeName)
 	if err != nil {
 		return fmt.Errorf("failed to open device ini %s: %w", devIniPath, err)
 	}
@@ -103,16 +132,21 @@ func (r *SnapshotReader) loadDevice(devName string, iniFileName string) error {
 func (r *SnapshotReader) loadLegacyDevices() {
 	for i := 0; ; i++ {
 		name := fmt.Sprintf("device_%d.ini", i)
-		path := r.snapshotFileName(name)
+		safeName, err := SafeRelativePath(name)
+		if err != nil {
+			r.warn(err)
+			return
+		}
+		path := r.snapshotFileName(safeName)
 
-		if _, err := fs.Stat(r.snapshotFS(), r.fsPath(name)); err != nil {
+		if _, err := fs.Stat(r.snapshotFS(), r.fsPath(safeName)); err != nil {
 			if !errors.Is(err, fs.ErrNotExist) {
 				r.warn(fmt.Errorf("stat legacy device %s: %w", path, err))
 			}
 			return
 		}
 
-		r.warn(r.loadDevice(fmt.Sprintf("device_%d", i), name))
+		r.warn(r.loadDevice(fmt.Sprintf("device_%d", i), safeName))
 	}
 }
 
@@ -121,8 +155,13 @@ func (r *SnapshotReader) readTraceMetadata(name string) error {
 		name = TraceINIFilename
 	}
 
-	path := r.snapshotFileName(name)
-	file, err := r.openSnapshotFile(name)
+	safeName, err := SafeRelativePath(name)
+	if err != nil {
+		return fmt.Errorf("invalid trace metadata path: %w", err)
+	}
+
+	path := r.snapshotFileName(safeName)
+	file, err := r.openSnapshotFile(safeName)
 	if err != nil {
 		return fmt.Errorf("open trace metadata %s: %w", path, err)
 	}
@@ -135,6 +174,9 @@ func (r *SnapshotReader) readTraceMetadata(name string) error {
 
 	r.Trace = trace
 	for _, buf := range trace.Buffers {
+		if _, err := SafeRelativePath(buf.DataFileName); err != nil {
+			return fmt.Errorf("invalid trace buffer data file path %q: %w", buf.DataFileName, err)
+		}
 		tree, ok := SourceTree(buf.BufferName, trace)
 		if ok {
 			r.SourceTrees[buf.BufferName] = tree
@@ -145,7 +187,11 @@ func (r *SnapshotReader) readTraceMetadata(name string) error {
 }
 
 func (r *SnapshotReader) openSnapshotFile(name string) (fs.File, error) {
-	return r.snapshotFS().Open(r.fsPath(name))
+	safeName, err := SafeRelativePath(name)
+	if err != nil {
+		return nil, err
+	}
+	return r.snapshotFS().Open(r.fsPath(safeName))
 }
 
 func (r *SnapshotReader) snapshotFS() fs.FS {
